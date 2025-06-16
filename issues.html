@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>이슈 목록 | 예겜</title>
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-white text-gray-900 font-sans">
+
+    <div id="app-container" class="min-h-screen flex flex-col">
+
+        <!-- Header -->
+        <header class="bg-white/90 backdrop-blur-sm sticky top-0 z-50 border-b border-gray-200">
+            <nav class="container mx-auto px-4 lg:px-8 py-3 flex justify-between items-center">
+                <a href="index.html" class="flex items-center space-x-3">
+                    <img src="https://r2.flowith.net/files/o/1750058729786-poliview_logo_design_for_political_social_issues_platform_index_0@1024x1024.png" alt="Poli-View Logo" class="h-8 w-auto">
+                    <span class="text-xl font-bold tracking-tight text-gray-900">예겜</span>
+                </a>
+                <div class="hidden md:flex items-center space-x-6 text-sm font-medium text-gray-600">
+                    <a href="issues.html" class="text-gray-900 font-semibold">이슈 목록</a>
+                    <a href="mypage.html" class="hover:text-gray-900 transition-colors">내 정보</a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm font-medium text-gray-300 hidden sm:block">Poli-User</span>
+                    <div id="user-wallet" class="flex items-center space-x-2 bg-gray-800 px-3 py-1.5 rounded-md border border-gray-700">
+                        <i data-lucide="coins" class="w-4 h-4 text-yellow-400"></i>
+                        <span id="user-coins" class="text-sm font-semibold text-white">1000</span>
+                    </div>
+                </div>
+            </nav>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-grow container mx-auto px-4 lg:px-8 py-12">
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">전체 이슈 목록</h1>
+            <p class="text-gray-600 mb-8">관심있는 이슈를 찾아 예측에 참여해보세요.</p>
+            
+            <!-- Filters -->
+            <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4 mb-8">
+                <div class="flex-grow">
+                    <div class="relative">
+                        <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500"></i>
+                        <input type="text" id="search-input" placeholder="이슈 검색..." class="modern-input w-full pl-10 pr-4">
+                    </div>
+                </div>
+                <div class="flex space-x-2">
+                    <select id="category-filter" class="modern-select">
+                        <option value="all">모든 카테고리</option>
+                        <option value="정치">정치</option>
+                        <option value="스포츠">스포츠</option>
+                        <option value="경제">경제</option>
+                        <option value="코인">코인</option>
+                        <option value="테크">테크</option>
+                        <option value="엔터">엔터</option>
+                        <option value="날씨">날씨</option>
+                        <option value="해외">해외</option>
+                    </select>
+                    <select id="sort-filter" class="modern-select">
+                        <option value="newest">최신순</option>
+                        <option value="ending_soon">마감 임박순</option>
+                        <option value="volume">거래량순</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Issues Grid -->
+            <div id="all-issues-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <!-- All issue cards will be injected here by JavaScript -->
+            </div>
+             <div id="no-results" class="hidden text-center py-16">
+                <i data-lucide="folder-search" class="w-16 h-16 mx-auto text-gray-400"></i>
+                <p class="mt-4 text-gray-500">검색 결과가 없습니다.</p>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-gray-50 border-t border-gray-200">
+            <div class="container mx-auto px-4 lg:px-8 py-8">
+                <div class="flex flex-col md:flex-row justify-between items-center text-center md:text-left space-y-4 md:space-y-0">
+                    <div>
+                        <a href="index.html" class="flex items-center justify-center md:justify-start space-x-2 mb-2">
+                             <img src="https://r2.flowith.net/files/o/1750058729786-poliview_logo_design_for_political_social_issues_platform_index_0@1024x1024.png" alt="Poli-View Logo" class="h-6 w-auto">
+                             <span class="font-semibold text-gray-900">예겜</span>
+                        </a>
+                        <p class="text-xs text-gray-500 max-w-md">본 서비스는 현금 베팅을 제공하지 않는 예측 정보 플랫폼이며, 사용되는 감코인은 환전 및 현금화가 불가능한 사이버 자산입니다.</p>
+                    </div>
+                    <div class="flex space-x-6 text-sm text-gray-500">
+                        <a href="#" class="hover:text-gray-900 transition-colors">사이트 정보</a>
+                        <a href="#" class="hover:text-gray-900 transition-colors">이용약관</a>
+                        <a href="#" class="hover:text-gray-900 transition-colors">개인정보처리방침</a>
+                    </div>
+                </div>
+                <div class="mt-8 border-t border-gray-200 pt-4 text-center text-xs text-gray-500">
+                    &copy; 2025 예겜. All Rights Reserved.
+                </div>
+            </div>
+        </footer>
+
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>

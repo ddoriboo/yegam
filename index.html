@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>예겜 | 예감게임 플랫폼</title>
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-white text-gray-900 font-sans">
+
+    <div id="app-container" class="min-h-screen flex flex-col">
+
+        <!-- Header -->
+        <header class="bg-white/90 backdrop-blur-sm sticky top-0 z-50 border-b border-gray-200">
+            <nav class="container mx-auto px-4 lg:px-8 py-3 flex justify-between items-center">
+                <a href="index.html" class="flex items-center space-x-3">
+                    <img src="https://r2.flowith.net/files/o/1750058729786-poliview_logo_design_for_political_social_issues_platform_index_0@1024x1024.png" alt="Poli-View Logo" class="h-8 w-auto">
+                    <span class="text-xl font-bold tracking-tight text-gray-900">예겜</span>
+                </a>
+                <div class="hidden md:flex items-center space-x-6 text-sm font-medium text-gray-600">
+                    <a href="issues.html" class="hover:text-gray-900 transition-colors">이슈 목록</a>
+                    <a href="mypage.html" class="hover:text-gray-900 transition-colors">내 정보</a>
+                </div>
+                <div id="header-user-actions" class="flex items-center space-x-4">
+                    <!-- This will be dynamically populated by js/app.js -->
+                </div>
+            </nav>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-grow">
+            <!-- Category Filters -->
+            <section class="bg-white py-8 border-b border-gray-100">
+                <div class="container mx-auto px-4 lg:px-8">
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                        <h1 class="text-2xl md:text-3xl font-bold text-gray-900">예측 이슈</h1>
+                        <div class="flex items-center gap-2 text-sm text-gray-500">
+                            <i data-lucide="filter" class="w-4 h-4"></i>
+                            <span>카테고리 선택</span>
+                        </div>
+                    </div>
+                    <div id="category-filters" class="flex flex-wrap gap-3">
+                        <!-- Category filter buttons will be injected here by JavaScript -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Popular Issues Section -->
+            <section class="container mx-auto px-4 lg:px-8 py-16 md:py-20">
+                <div class="flex items-center justify-between mb-8">
+                    <h2 class="text-2xl md:text-3xl font-bold text-gray-900" id="section-title">인기 예측 이슈</h2>
+                    <a href="issues.html" class="flex items-center text-blue-600 hover:text-blue-700 transition-colors font-medium">\n                        <span>전체 보기</span>\n                        <i data-lucide="arrow-right" class="w-4 h-4 ml-2"></i>
+                    </a>
+                </div>
+                <div id="popular-issues-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Popular issue cards will be injected here by JavaScript -->
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-gray-50 border-t border-gray-200">
+            <div class="container mx-auto px-4 lg:px-8 py-8">
+                <div class="flex flex-col md:flex-row justify-between items-center text-center md:text-left space-y-4 md:space-y-0">\n                    <div>
+                        <a href="index.html" class="flex items-center justify-center md:justify-start space-x-2 mb-2">\n                             <img src="https://r2.flowith.net/files/o/1750058729786-poliview_logo_design_for_political_social_issues_platform_index_0@1024x1024.png" alt="Poli-View Logo" class="h-6 w-auto">\n                             <span class="font-semibold text-gray-900">예겜</span>
+                        </a>
+                        <p class="text-xs text-gray-500 max-w-md">본 서비스는 현금 베팅을 제공하지 않는 예측 정보 플랫폼이며, 사용되는 감코인은 환전 및 현금화가 불가능한 사이버 자산입니다.</p>
+                    </div>
+                    <div class="flex space-x-6 text-sm text-gray-500">\n                        <a href="#" class="hover:text-gray-900 transition-colors">사이트 정보</a>
+                        <a href="#" class="hover:text-gray-900 transition-colors">이용약관</a>
+                        <a href="#" class="hover:text-gray-900 transition-colors">개인정보처리방침</a>
+                    </div>
+                </div>
+                <div class="mt-8 border-t border-gray-200 pt-4 text-center text-xs text-gray-500">\n                    &copy; 2025 예겜. All Rights Reserved.\n                </div>
+            </div>
+        </footer>
+
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
