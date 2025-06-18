@@ -1,76 +1,88 @@
-const USER_KEY = 'poli-view-user';
-const USERS_KEY = 'poli-view-users';
-
-async function initUsers() {
-    if (!localStorage.getItem(USERS_KEY)) {
-        try {
-            const response = await fetch('data/users.json');
-            const users = await response.json();
-            localStorage.setItem(USERS_KEY, JSON.stringify(users));
-        } catch (error) {
-            localStorage.setItem(USERS_KEY, JSON.stringify([]));
-        }
-    }
-}
-
-function getUsers() {
-    const users = localStorage.getItem(USERS_KEY);
-    return users ? JSON.parse(users) : [];
-}
-
-function saveUsers(users) {
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-}
+const USER_KEY = 'yegame-user';
+const TOKEN_KEY = 'yegame-token';
 
 export async function login(email, password) {
-    await initUsers();
-    const users = getUsers();
-    const user = users.find(u => u.email === email && u.password === password);
-    if (user) {
-        sessionStorage.setItem(USER_KEY, JSON.stringify(user));
-        return true;
+    try {
+        const response = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            sessionStorage.setItem(USER_KEY, JSON.stringify(data.user));
+            sessionStorage.setItem(TOKEN_KEY, data.token);
+            return { success: true, user: data.user, message: data.message };
+        } else {
+            return { success: false, message: data.message };
+        }
+    } catch (error) {
+        console.error('로그인 오류:', error);
+        return { success: false, message: '서버 오류가 발생했습니다.' };
     }
-    return false;
 }
 
 export async function signup(username, email, password) {
     try {
-        await initUsers();
-        const users = getUsers();
+        const response = await fetch('/api/auth/signup', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username, email, password })
+        });
         
-        if (users.find(u => u.email === email)) {
-            return { success: false, message: "이미 존재하는 이메일입니다." };
+        const data = await response.json();
+        
+        if (data.success) {
+            return { success: true, message: data.message, user: data.user };
+        } else {
+            return { success: false, message: data.message };
         }
-        
-        if (users.find(u => u.username === username)) {
-            return { success: false, message: "이미 존재하는 사용자명입니다." };
-        }
-        
-        const newUser = {
-            id: 'user_' + Date.now(),
-            username,
-            email,
-            password,
-            coins: 10000
-        };
-        
-        users.push(newUser);
-        saveUsers(users);
-        
-        sessionStorage.setItem(USER_KEY, JSON.stringify(newUser));
-        return { success: true };
     } catch (error) {
-        console.error('Signup error:', error);
-        return { success: false, message: "회원가입 중 오류가 발생했습니다." };
+        console.error('회원가입 오류:', error);
+        return { success: false, message: '서버 오류가 발생했습니다.' };
+    }
+}
+
+export async function verifyToken() {
+    const token = getToken();
+    if (!token) return false;
+    
+    try {
+        const response = await fetch('/api/auth/verify', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            sessionStorage.setItem(USER_KEY, JSON.stringify(data.user));
+            return true;
+        } else {
+            logout();
+            return false;
+        }
+    } catch (error) {
+        console.error('토큰 검증 오류:', error);
+        logout();
+        return false;
     }
 }
 
 export function logout() {
     sessionStorage.removeItem(USER_KEY);
+    sessionStorage.removeItem(TOKEN_KEY);
 }
 
 export function isLoggedIn() {
-    return sessionStorage.getItem(USER_KEY) !== null;
+    return sessionStorage.getItem(USER_KEY) !== null && sessionStorage.getItem(TOKEN_KEY) !== null;
 }
 
 export function getCurrentUser() {
@@ -78,8 +90,30 @@ export function getCurrentUser() {
     return user ? JSON.parse(user) : null;
 }
 
-export function updateUserInSession(updatedUser) {
-    if(isLoggedIn()){
+export function getToken() {
+    return sessionStorage.getItem(TOKEN_KEY);
+}
+
+export function updateCurrentUser(updatedUser) {
+    if (isLoggedIn()) {
         sessionStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
+    }
+}
+
+export async function sendVerificationEmail(email) {
+    try {
+        const response = await fetch('/api/auth/send-verification', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email })
+        });
+        
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('이메일 발송 오류:', error);
+        return { success: false, message: '서버 오류가 발생했습니다.' };
     }
 }
