@@ -1,0 +1,16 @@
+[
+  {
+    "id": "poliuser1",
+    "email": "test@example.com",
+    "password": "password123",
+    "username": "Poli-User",
+    "coins": 5000
+  },
+  {
+    "id": "devuser2",
+    "email": "dev@poliview.com",
+    "password": "devpassword",
+    "username": "Poli-Dev",
+    "coins": 100000
+  }
+]
