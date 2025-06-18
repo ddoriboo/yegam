@@ -43,7 +43,7 @@ router.post('/signup', async (req, res) => {
         
         try {
             // 중복 사용자 확인
-            const existingUser = await get('SELECT id FROM users WHERE email = ? OR username = ?', [email, username]);
+            const existingUser = await get('SELECT id FROM users WHERE email = $1 OR username = $2', [email, username]);
             
             if (existingUser) {
                 return res.status(400).json({ 
@@ -56,7 +56,7 @@ router.post('/signup', async (req, res) => {
             const hashedPassword = await bcrypt.hash(password, 10);
             
             // 사용자 생성
-            const result = await run('INSERT INTO users (username, email, password_hash, coins) VALUES (?, ?, ?, ?)', 
+            const result = await run('INSERT INTO users (username, email, password_hash, coins) VALUES ($1, $2, $3, $4)', 
                 [username, email, hashedPassword, 10000]);
             
             const userId = result.lastID || result.rows[0]?.id;

@@ -62,24 +62,13 @@ const initSQLite = () => {
 const createSQLiteTables = () => {
     return new Promise((resolve, reject) => {
         const queries = [
-            // Users table
+            // Users table (SQLite 간단 버전)
             `CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE NOT NULL,
                 email TEXT UNIQUE NOT NULL,
-                password_hash TEXT,
-                gam_balance INTEGER DEFAULT 10000,
-                profile_image TEXT,
-                provider TEXT DEFAULT 'local',
-                provider_id TEXT,
-                verified BOOLEAN DEFAULT FALSE,
-                verification_token TEXT,
-                last_login_date DATE,
-                consecutive_login_days INTEGER DEFAULT 0,
-                total_predictions INTEGER DEFAULT 0,
-                correct_predictions INTEGER DEFAULT 0,
-                first_prediction_reward BOOLEAN DEFAULT 0,
-                first_comment_reward BOOLEAN DEFAULT 0,
+                password_hash TEXT NOT NULL,
+                coins INTEGER DEFAULT 10000,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )`,
@@ -88,9 +77,7 @@ const createSQLiteTables = () => {
             `CREATE TABLE IF NOT EXISTS issues (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT NOT NULL,
-                description TEXT,
                 category TEXT NOT NULL,
-                image_url TEXT,
                 end_date DATETIME NOT NULL,
                 yes_price INTEGER DEFAULT 50,
                 total_volume INTEGER DEFAULT 0,
@@ -116,23 +103,10 @@ const createSQLiteTables = () => {
                 UNIQUE(user_id, issue_id)
             )`,
             
-            // Gam transactions table
-            `CREATE TABLE IF NOT EXISTS gam_transactions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                type TEXT NOT NULL,
-                category TEXT NOT NULL,
-                amount INTEGER NOT NULL,
-                description TEXT,
-                reference_id INTEGER,
-                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users (id)
-            )`,
-            
             // Admins table
             `CREATE TABLE IF NOT EXISTS admins (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL UNIQUE,
+                user_id INTEGER NOT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users (id)
             )`
