@@ -23,6 +23,7 @@
     "jsonwebtoken": "^9.0.0",
     "bcryptjs": "^2.4.3",
     "sqlite3": "^5.1.6",
+    "pg": "^8.11.0",
     "dotenv": "^16.0.3"
   },
   "devDependencies": {

@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { getDB } = require('../database/init');
+const { query, run, get } = require('../database/database');
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'yegame-dev-secret-key-change-in-production';
@@ -41,18 +41,11 @@ router.post('/signup', async (req, res) => {
             });
         }
         
-        const db = getDB();
-        
-        // 중복 사용자 확인
-        db.get('SELECT id FROM users WHERE email = ? OR username = ?', [email, username], async (err, row) => {
-            if (err) {
-                return res.status(500).json({ 
-                    success: false, 
-                    message: '서버 오류가 발생했습니다.' 
-                });
-            }
+        try {
+            // 중복 사용자 확인
+            const existingUser = await get('SELECT id FROM users WHERE email = ? OR username = ?', [email, username]);
             
-            if (row) {
+            if (existingUser) {
                 return res.status(400).json({ 
                     success: false, 
                     message: '이미 존재하는 이메일 또는 사용자명입니다.' 
@@ -63,36 +56,35 @@ router.post('/signup', async (req, res) => {
             const hashedPassword = await bcrypt.hash(password, 10);
             
             // 사용자 생성
-            db.run('INSERT INTO users (username, email, password_hash) VALUES (?, ?, ?)', 
-                [username, email, hashedPassword], 
-                function(err) {
-                    if (err) {
-                        return res.status(500).json({ 
-                            success: false, 
-                            message: '회원가입 중 오류가 발생했습니다.' 
-                        });
-                    }
-                    
-                    // JWT 토큰 생성
-                    const token = jwt.sign(
-                        { id: this.lastID, username, email }, 
-                        JWT_SECRET, 
-                        { expiresIn: '7d' }
-                    );
-                    
-                    res.json({
-                        success: true,
-                        token,
-                        user: {
-                            id: this.lastID,
-                            username,
-                            email,
-                            coins: 10000
-                        }
-                    });
-                }
+            const result = await run('INSERT INTO users (username, email, password_hash, gam_balance) VALUES (?, ?, ?, ?)', 
+                [username, email, hashedPassword, 10000]);
+            
+            const userId = result.lastID || result.rows[0]?.id;
+            
+            // JWT 토큰 생성
+            const token = jwt.sign(
+                { id: userId, username, email }, 
+                JWT_SECRET, 
+                { expiresIn: '7d' }
             );
-        });
+            
+            res.json({
+                success: true,
+                token,
+                user: {
+                    id: userId,
+                    username,
+                    email,
+                    gam_balance: 10000
+                }
+            });
+        } catch (error) {
+            console.error('회원가입 오류:', error);
+            return res.status(500).json({ 
+                success: false, 
+                message: '회원가입 중 오류가 발생했습니다.' 
+            });
+        }
     } catch (error) {
         res.status(500).json({ 
             success: false, 
@@ -102,7 +94,7 @@ router.post('/signup', async (req, res) => {
 });
 
 // 로그인
-router.post('/login', (req, res) => {
+router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
         
@@ -113,49 +105,40 @@ router.post('/login', (req, res) => {
             });
         }
         
-        const db = getDB();
+        const user = await get('SELECT * FROM users WHERE email = ?', [email]);
         
-        db.get('SELECT * FROM users WHERE email = ?', [email], async (err, user) => {
-            if (err) {
-                return res.status(500).json({ 
-                    success: false, 
-                    message: '서버 오류가 발생했습니다.' 
-                });
-            }
-            
-            if (!user) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: '존재하지 않는 사용자입니다.' 
-                });
-            }
-            
-            // 비밀번호 확인
-            const validPassword = await bcrypt.compare(password, user.password_hash);
-            if (!validPassword) {
-                return res.status(400).json({ 
-                    success: false, 
-                    message: '비밀번호가 올바르지 않습니다.' 
-                });
-            }
-            
-            // JWT 토큰 생성
-            const token = jwt.sign(
-                { id: user.id, username: user.username, email: user.email }, 
-                JWT_SECRET, 
-                { expiresIn: '7d' }
-            );
-            
-            res.json({
-                success: true,
-                token,
-                user: {
-                    id: user.id,
-                    username: user.username,
-                    email: user.email,
-                    coins: user.coins
-                }
+        if (!user) {
+            return res.status(400).json({ 
+                success: false, 
+                message: '존재하지 않는 사용자입니다.' 
             });
+        }
+        
+        // 비밀번호 확인
+        const validPassword = await bcrypt.compare(password, user.password_hash);
+        if (!validPassword) {
+            return res.status(400).json({ 
+                success: false, 
+                message: '비밀번호가 올바르지 않습니다.' 
+            });
+        }
+        
+        // JWT 토큰 생성
+        const token = jwt.sign(
+            { id: user.id, username: user.username, email: user.email }, 
+            JWT_SECRET, 
+            { expiresIn: '7d' }
+        );
+        
+        res.json({
+            success: true,
+            token,
+            user: {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                gam_balance: user.gam_balance || user.coins || 10000
+            }
         });
     } catch (error) {
         res.status(500).json({ 
@@ -166,7 +149,7 @@ router.post('/login', (req, res) => {
 });
 
 // 토큰 검증
-router.get('/verify', (req, res) => {
+router.get('/verify', async (req, res) => {
     try {
         const token = req.headers.authorization?.split(' ')[1];
         
@@ -178,33 +161,24 @@ router.get('/verify', (req, res) => {
         }
         
         const decoded = jwt.verify(token, JWT_SECRET);
-        const db = getDB();
         
-        db.get('SELECT id, username, email, coins FROM users WHERE id = ?', [decoded.id], (err, user) => {
-            if (err) {
-                console.error('사용자 조회 오류:', err);
-                return res.status(500).json({ 
-                    success: false, 
-                    message: '서버 오류가 발생했습니다.' 
-                });
-            }
-            
-            if (!user) {
-                return res.status(401).json({ 
-                    success: false, 
-                    message: '유효하지 않은 토큰입니다.' 
-                });
-            }
-            
-            res.json({
-                success: true,
-                user: {
-                    id: user.id,
-                    username: user.username,
-                    email: user.email,
-                    coins: user.coins
-                }
+        const user = await get('SELECT id, username, email, gam_balance FROM users WHERE id = ?', [decoded.id]);
+        
+        if (!user) {
+            return res.status(401).json({ 
+                success: false, 
+                message: '유효하지 않은 토큰입니다.' 
             });
+        }
+        
+        res.json({
+            success: true,
+            user: {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                gam_balance: user.gam_balance || 10000
+            }
         });
     } catch (error) {
         console.error('토큰 검증 오류:', error);

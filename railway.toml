@@ -10,6 +10,7 @@ restartPolicyType = "on_failure"
 [environments.production.variables]
 NODE_ENV = "production"
 JWT_SECRET = "yegame-production-secret-key-2025"
+# DATABASE_URL will be set by Railway PostgreSQL service
 
 [[services]]
 name = "yegame-backend"
