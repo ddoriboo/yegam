@@ -12,11 +12,27 @@ const { initDatabase } = require('./database/init');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 미들웨어
-app.use(helmet());
+// 미들웨어 (개발/프로덕션 환경에 따라 보안 설정 조정)
+if (process.env.NODE_ENV === 'production') {
+    app.use(helmet({
+        contentSecurityPolicy: false, // CSP 비활성화로 일단 해결
+        crossOriginEmbedderPolicy: false
+    }));
+} else {
+    app.use(helmet({ contentSecurityPolicy: false }));
+}
 app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname)));
+app.use(express.static(path.join(__dirname), {
+    setHeaders: (res, path) => {
+        if (path.endsWith('.css')) {
+            res.setHeader('Content-Type', 'text/css');
+        }
+        if (path.endsWith('.js')) {
+            res.setHeader('Content-Type', 'application/javascript');
+        }
+    }
+}));
 
 // API 라우트
 app.use('/api/auth', authRoutes);
