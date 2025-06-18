@@ -137,7 +137,7 @@ router.post('/login', async (req, res) => {
                 id: user.id,
                 username: user.username,
                 email: user.email,
-                coins: user.coins || user.gam_balance || 10000
+                coins: user.coins || 10000
             }
         });
     } catch (error) {

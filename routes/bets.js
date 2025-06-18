@@ -50,7 +50,7 @@ router.post('/', authMiddleware, async (req, res) => {
             });
         }
         
-        const coinBalance = user.coins || user.gam_balance || 0;
+        const coinBalance = user.coins || 0;
         if (coinBalance < amount) {
             if (client) await client.query('ROLLBACK');
             return res.status(400).json({ 

@@ -36,25 +36,23 @@ const createTables = async () => {
     try {
         await client.query('BEGIN');
         
-        // 사용자 테이블
+        // 기존 테이블 삭제 (스키마 변경을 위해)
+        await client.query('DROP TABLE IF EXISTS gam_transactions CASCADE');
+        await client.query('DROP TABLE IF EXISTS bets CASCADE');
+        await client.query('DROP TABLE IF EXISTS admins CASCADE');
+        await client.query('DROP TABLE IF EXISTS issues CASCADE');
+        await client.query('DROP TABLE IF EXISTS users CASCADE');
+        
+        console.log('✅ 기존 PostgreSQL 테이블 삭제 완료');
+        
+        // 사용자 테이블 (SQLite와 호환)
         await client.query(`
             CREATE TABLE IF NOT EXISTS users (
                 id SERIAL PRIMARY KEY,
                 username VARCHAR(255) UNIQUE NOT NULL,
                 email VARCHAR(255) UNIQUE NOT NULL,
-                password_hash VARCHAR(255),
-                gam_balance INTEGER DEFAULT 10000,
-                profile_image TEXT,
-                provider VARCHAR(50) DEFAULT 'local',
-                provider_id TEXT,
-                verified BOOLEAN DEFAULT FALSE,
-                verification_token TEXT,
-                last_login_date DATE,
-                consecutive_login_days INTEGER DEFAULT 0,
-                total_predictions INTEGER DEFAULT 0,
-                correct_predictions INTEGER DEFAULT 0,
-                first_prediction_reward BOOLEAN DEFAULT FALSE,
-                first_comment_reward BOOLEAN DEFAULT FALSE,
+                password_hash VARCHAR(255) NOT NULL,
+                coins INTEGER DEFAULT 10000,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -65,9 +63,7 @@ const createTables = async () => {
             CREATE TABLE IF NOT EXISTS issues (
                 id SERIAL PRIMARY KEY,
                 title TEXT NOT NULL,
-                description TEXT,
                 category VARCHAR(100) NOT NULL,
-                image_url TEXT,
                 end_date TIMESTAMP NOT NULL,
                 yes_price INTEGER DEFAULT 50,
                 total_volume INTEGER DEFAULT 0,
@@ -96,26 +92,11 @@ const createTables = async () => {
             )
         `);
         
-        // 감 거래 내역 테이블
-        await client.query(`
-            CREATE TABLE IF NOT EXISTS gam_transactions (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER NOT NULL,
-                type VARCHAR(50) NOT NULL,
-                category VARCHAR(100) NOT NULL,
-                amount INTEGER NOT NULL,
-                description TEXT,
-                reference_id INTEGER,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users (id)
-            )
-        `);
-        
         // 관리자 테이블
         await client.query(`
             CREATE TABLE IF NOT EXISTS admins (
                 id SERIAL PRIMARY KEY,
-                user_id INTEGER NOT NULL UNIQUE,
+                user_id INTEGER NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users (id)
             )
