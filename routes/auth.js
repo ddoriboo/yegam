@@ -56,7 +56,7 @@ router.post('/signup', async (req, res) => {
             const hashedPassword = await bcrypt.hash(password, 10);
             
             // 사용자 생성
-            const result = await run('INSERT INTO users (username, email, password_hash, gam_balance) VALUES (?, ?, ?, ?)', 
+            const result = await run('INSERT INTO users (username, email, password_hash, coins) VALUES (?, ?, ?, ?)', 
                 [username, email, hashedPassword, 10000]);
             
             const userId = result.lastID || result.rows[0]?.id;
@@ -75,7 +75,7 @@ router.post('/signup', async (req, res) => {
                     id: userId,
                     username,
                     email,
-                    gam_balance: 10000
+                    coins: 10000
                 }
             });
         } catch (error) {
@@ -105,7 +105,7 @@ router.post('/login', async (req, res) => {
             });
         }
         
-        const user = await get('SELECT * FROM users WHERE email = ?', [email]);
+        const user = await get('SELECT * FROM users WHERE email = $1', [email]);
         
         if (!user) {
             return res.status(400).json({ 
@@ -137,7 +137,7 @@ router.post('/login', async (req, res) => {
                 id: user.id,
                 username: user.username,
                 email: user.email,
-                gam_balance: user.gam_balance || user.coins || 10000
+                coins: user.coins || user.gam_balance || 10000
             }
         });
     } catch (error) {
@@ -162,7 +162,7 @@ router.get('/verify', async (req, res) => {
         
         const decoded = jwt.verify(token, JWT_SECRET);
         
-        const user = await get('SELECT id, username, email, gam_balance FROM users WHERE id = ?', [decoded.id]);
+        const user = await get('SELECT id, username, email, coins FROM users WHERE id = $1', [decoded.id]);
         
         if (!user) {
             return res.status(401).json({ 
@@ -177,7 +177,7 @@ router.get('/verify', async (req, res) => {
                 id: user.id,
                 username: user.username,
                 email: user.email,
-                gam_balance: user.gam_balance || 10000
+                coins: user.coins || 10000
             }
         });
     } catch (error) {

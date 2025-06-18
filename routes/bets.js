@@ -39,8 +39,8 @@ router.post('/', authMiddleware, async (req, res) => {
             await client.query('BEGIN');
         }
         
-        // 사용자 감 잔액 확인
-        const user = await get('SELECT gam_balance FROM users WHERE id = $1', [userId]);
+        // 사용자 코인 잔액 확인
+        const user = await get('SELECT coins FROM users WHERE id = $1', [userId]);
         
         if (!user) {
             if (client) await client.query('ROLLBACK');
@@ -50,12 +50,12 @@ router.post('/', authMiddleware, async (req, res) => {
             });
         }
         
-        const gamBalance = user.gam_balance || user.coins || 0;
-        if (gamBalance < amount) {
+        const coinBalance = user.coins || user.gam_balance || 0;
+        if (coinBalance < amount) {
             if (client) await client.query('ROLLBACK');
             return res.status(400).json({ 
                 success: false, 
-                message: '보유 감이 부족합니다.' 
+                message: '보유 코인이 부족합니다.' 
             });
         }
         
@@ -87,8 +87,8 @@ router.post('/', authMiddleware, async (req, res) => {
         
         const betId = betResult.lastID || betResult.rows[0]?.id;
         
-        // 사용자 감 잔액 차감
-        await run('UPDATE users SET gam_balance = gam_balance - $1 WHERE id = $2', [amount, userId]);
+        // 사용자 코인 잔액 차감
+        await run('UPDATE users SET coins = coins - $1 WHERE id = $2', [amount, userId]);
         
         // 이슈 볼륨 및 가격 업데이트
         const newYesVolume = choice === 'Yes' ? issue.yes_volume + amount : issue.yes_volume;
@@ -99,9 +99,9 @@ router.post('/', authMiddleware, async (req, res) => {
         await run('UPDATE issues SET yes_volume = $1, no_volume = $2, total_volume = $3, yes_price = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5', 
             [newYesVolume, newNoVolume, newTotalVolume, newYesPrice, issueId]);
         
-        // 감 거래 내역 기록
-        await run('INSERT INTO gam_transactions (user_id, type, category, amount, description, reference_id) VALUES ($1, $2, $3, $4, $5, $6)',
-            [userId, 'SPEND', 'BET', -amount, `${issue.title} - ${choice} 베팅`, betId]);
+        // 코인 거래 내역 기록 (SQLite에는 gam_transactions 테이블이 없으므로 주석 처리)
+        // await run('INSERT INTO gam_transactions (user_id, type, category, amount, description, reference_id) VALUES ($1, $2, $3, $4, $5, $6)',
+        //     [userId, 'SPEND', 'BET', -amount, `${issue.title} - ${choice} 베팅`, betId]);
         
         if (client) {
             await client.query('COMMIT');
@@ -119,7 +119,7 @@ router.post('/', authMiddleware, async (req, res) => {
                 amount
             },
             updatedUser: {
-                gam_balance: gamBalance - amount
+                coins: coinBalance - amount
             },
             updatedIssue: {
                 yesPrice: newYesPrice,
