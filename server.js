@@ -46,9 +46,14 @@ app.get('/mypage', (req, res) => {
 
 // 데이터베이스 초기화 후 서버 시작
 initDatabase().then(() => {
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
         console.log(`🚀 예겜 서버가 포트 ${PORT}에서 실행 중입니다.`);
-        console.log(`🌐 http://localhost:${PORT} 에서 접속하세요.`);
+        if (process.env.NODE_ENV === 'production') {
+            console.log(`🌐 Railway 공개 URL에서 접속하세요.`);
+            console.log(`📍 Railway 대시보드에서 공개 URL을 확인하세요.`);
+        } else {
+            console.log(`🌐 http://localhost:${PORT} 에서 접속하세요.`);
+        }
     });
 }).catch(err => {
     console.error('데이터베이스 초기화 실패:', err);
