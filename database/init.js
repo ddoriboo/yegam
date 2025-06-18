@@ -9,19 +9,28 @@ const initDatabase = () => {
     return new Promise((resolve, reject) => {
         db = new sqlite3.Database(DB_PATH, (err) => {
             if (err) {
-                console.error('데이터베이스 연결 실패:', err);
+                console.error('❌ 데이터베이스 연결 실패:', err);
                 reject(err);
                 return;
             }
             console.log('✅ SQLite 데이터베이스 연결 성공');
             
-            // 테이블 생성
-            createTables()
-                .then(() => {
-                    console.log('✅ 데이터베이스 테이블 초기화 완료');
-                    resolve();
-                })
-                .catch(reject);
+            // Enable foreign keys
+            db.run('PRAGMA foreign_keys = ON', (err) => {
+                if (err) {
+                    console.error('❌ Foreign keys 활성화 실패:', err);
+                    reject(err);
+                    return;
+                }
+                
+                // 테이블 생성
+                createTables()
+                    .then(() => {
+                        console.log('✅ 데이터베이스 테이블 초기화 완료');
+                        resolve();
+                    })
+                    .catch(reject);
+            });
         });
     });
 };
@@ -82,15 +91,17 @@ const createTables = () => {
         let completed = 0;
         const total = queries.length;
         
-        queries.forEach(query => {
+        queries.forEach((query, index) => {
             db.run(query, (err) => {
                 if (err) {
-                    console.error('테이블 생성 실패:', err);
+                    console.error(`❌ 테이블 생성 실패 (쿼리 ${index + 1}):`, err);
                     reject(err);
                     return;
                 }
                 
                 completed++;
+                console.log(`✅ 테이블 생성 완료 (${completed}/${total})`);
+                
                 if (completed === total) {
                     // 초기 데이터 삽입
                     insertInitialData()
