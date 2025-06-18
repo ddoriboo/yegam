@@ -8,25 +8,29 @@ let db; // SQLite instance
 let isPostgreSQL = false;
 
 const initDatabase = async () => {
-    // 임시로 SQLite만 사용 (PostgreSQL 연결 문제 해결 후 활성화)
-    console.log('📁 Using SQLite database (temporary)...');
-    isPostgreSQL = false;
-    return initSQLite();
+    console.log('🔍 Environment check:', {
+        NODE_ENV: process.env.NODE_ENV,
+        DATABASE_URL: process.env.DATABASE_URL ? '***설정됨***' : '설정되지 않음'
+    });
     
-    // TODO: PostgreSQL 연결 문제 해결 후 아래 코드 활성화
-    /*
     // Use PostgreSQL in production if DATABASE_URL is set
     if (process.env.NODE_ENV === 'production' && process.env.DATABASE_URL) {
         console.log('🐘 Using PostgreSQL database...');
         isPostgreSQL = true;
-        return await initPostgreSQL();
+        try {
+            return await initPostgreSQL();
+        } catch (error) {
+            console.error('❌ PostgreSQL 연결 실패, SQLite로 폴백:', error.message);
+            console.log('📁 Falling back to SQLite database...');
+            isPostgreSQL = false;
+            return initSQLite();
+        }
     }
     
     // Use SQLite for development
     console.log('📁 Using SQLite database...');
     isPostgreSQL = false;
     return initSQLite();
-    */
 };
 
 const initSQLite = () => {
