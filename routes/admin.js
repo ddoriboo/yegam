@@ -239,111 +239,54 @@ router.get('/issues/closed', adminMiddleware, async (req, res) => {
     console.log(`🔍 관리자 이슈 조회 요청 - 필터: ${filter}`);
     
     try {
-        const db = getDB();
-        if (!db) {
-            console.error('❌ 데이터베이스 연결을 가져올 수 없습니다');
-            return res.status(500).json({ 
-                success: false, 
-                message: '데이터베이스 연결 오류가 발생했습니다.' 
-            });
+        const { query: dbQuery } = require('../database/database');
+        let queryString = '';
+        let params = [];
+        
+        switch (filter) {
+            case 'closed':
+                // 마감된 이슈이지만 결과가 아직 결정되지 않은 이슈들
+                queryString = `SELECT id, title, category, end_date, status, result, yes_price, total_volume 
+                             FROM issues 
+                             WHERE (status = 'closed' OR end_date < ${getCurrentTimeSQL()}) AND result IS NULL 
+                             ORDER BY end_date ASC`;
+                break;
+            case 'pending':
+                queryString = `SELECT id, title, category, end_date, status, result, yes_price, total_volume 
+                             FROM issues 
+                             WHERE status = $1 
+                             ORDER BY end_date ASC`;
+                params = ['pending'];
+                break;
+            case 'resolved':
+                queryString = `SELECT id, title, category, end_date, status, result, yes_price, total_volume 
+                             FROM issues 
+                             WHERE result IS NOT NULL 
+                             ORDER BY decided_at DESC`;
+                break;
+            case 'all':
+                // 디버깅용: 모든 이슈 표시
+                queryString = `SELECT id, title, category, end_date, status, result, yes_price, total_volume 
+                             FROM issues 
+                             ORDER BY end_date ASC`;
+                break;
         }
         
-        console.log('✅ 데이터베이스 연결 확인됨');
-    } catch (dbError) {
-        console.error('❌ 데이터베이스 연결 실패:', dbError);
-        return res.status(500).json({ 
+        console.log(`📝 실행할 쿼리: ${queryString}`);
+        console.log(`📊 파라미터: ${JSON.stringify(params)}`);
+        
+        const result = await dbQuery(queryString, params);
+        const issues = result.rows || [];
+        console.log(`✅ 이슈 조회 성공: ${issues.length}개 발견`);
+        
+        res.json({ success: true, issues });
+        
+    } catch (err) {
+        console.error('❌ 결과 관리용 이슈 조회 실패:', err);
+        res.status(500).json({ 
             success: false, 
-            message: '데이터베이스 연결에 실패했습니다.' 
+            message: `데이터베이스 쿼리 오류: ${err.message}` 
         });
-    }
-    
-    const db = getDB();
-    let query = '';
-    let params = [];
-    
-    switch (filter) {
-        case 'closed':
-            // 마감된 이슈이지만 결과가 아직 결정되지 않은 이슈들
-            query = `SELECT id, title, category, end_date, status, result, yes_price, total_volume 
-                     FROM issues 
-                     WHERE (status = 'closed' OR end_date < ${getCurrentTimeSQL()}) AND result IS NULL 
-                     ORDER BY end_date ASC`;
-            break;
-        case 'pending':
-            query = `SELECT id, title, category, end_date, status, result, yes_price, total_volume 
-                     FROM issues 
-                     WHERE status = 'pending' 
-                     ORDER BY end_date ASC`;
-            break;
-        case 'resolved':
-            query = `SELECT id, title, category, end_date, status, result, yes_price, total_volume 
-                     FROM issues 
-                     WHERE result IS NOT NULL 
-                     ORDER BY decided_at DESC`;
-            break;
-        case 'all':
-            // 디버깅용: 모든 이슈 표시
-            query = `SELECT id, title, category, end_date, status, result, yes_price, total_volume 
-                     FROM issues 
-                     ORDER BY end_date ASC`;
-            break;
-    }
-    
-    console.log(`📝 실행할 쿼리: ${query}`);
-    console.log(`📊 파라미터: ${JSON.stringify(params)}`);
-    
-    // 데이터베이스 쿼리 실행
-    if (typeof db.all === 'function') {
-        console.log('🗃️ SQLite 방식으로 쿼리 실행');
-        // SQLite 방식 - params가 빈 배열일 때는 생략
-        if (params.length > 0) {
-            db.all(query, params, (err, issues) => {
-                if (err) {
-                    console.error('❌ 결과 관리용 이슈 조회 실패 (with params):', err);
-                    console.error('❌ 쿼리:', query);
-                    console.error('❌ 파라미터:', params);
-                    return res.status(500).json({ 
-                        success: false, 
-                        message: `데이터베이스 쿼리 오류: ${err.message}` 
-                    });
-                }
-                
-                console.log(`✅ 이슈 조회 성공: ${issues.length}개 발견`);
-                res.json({ success: true, issues });
-            });
-        } else {
-            db.all(query, (err, issues) => {
-                if (err) {
-                    console.error('❌ 결과 관리용 이슈 조회 실패 (no params):', err);
-                    console.error('❌ 쿼리:', query);
-                    return res.status(500).json({ 
-                        success: false, 
-                        message: `데이터베이스 쿼리 오류: ${err.message}` 
-                    });
-                }
-                
-                console.log(`✅ 이슈 조회 성공: ${issues.length}개 발견`);
-                res.json({ success: true, issues });
-            });
-        }
-    } else {
-        console.log('🐘 PostgreSQL 방식으로 쿼리 실행');
-        // 새로운 인터페이스 사용
-        try {
-            const { query: dbQuery } = require('../database/database');
-            const result = await dbQuery(query, params);
-            const issues = result.rows || result || [];
-            console.log(`✅ 이슈 조회 성공: ${issues.length}개 발견`);
-            res.json({ success: true, issues: issues });
-        } catch (err) {
-            console.error('❌ 결과 관리용 이슈 조회 실패 (PostgreSQL):', err);
-            console.error('❌ 쿼리:', query);
-            console.error('❌ 파라미터:', params);
-            return res.status(500).json({ 
-                success: false, 
-                message: `데이터베이스 쿼리 오류: ${err.message}` 
-            });
-        }
     }
 });
 

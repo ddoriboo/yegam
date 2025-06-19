@@ -15,27 +15,19 @@ class IssueScheduler {
         try {
             console.log('🔄 자동 이슈 마감 검사 시작...');
             
-            const db = this.getDatabase();
-            if (!db) {
-                console.error('❌ 데이터베이스 연결을 가져올 수 없습니다.');
-                return;
-            }
+            const { query: dbQuery, run: dbRun } = require('../database/database');
             
             // 마감 시간이 지났지만 아직 마감되지 않은 이슈들 조회
-            const expiredIssues = await new Promise((resolve, reject) => {
-                const query = `
-                    SELECT id, title, end_date 
-                    FROM issues 
-                    WHERE end_date < ${getCurrentTimeSQL()} 
-                    AND status = 'active'
-                    AND result IS NULL
-                `;
-                
-                db.all(query, (err, issues) => {
-                    if (err) reject(err);
-                    else resolve(issues);
-                });
-            });
+            const queryString = `
+                SELECT id, title, end_date 
+                FROM issues 
+                WHERE end_date < ${getCurrentTimeSQL()} 
+                AND status = 'active'
+                AND result IS NULL
+            `;
+            
+            const result = await dbQuery(queryString);
+            const expiredIssues = result.rows || [];
 
             if (expiredIssues.length === 0) {
                 console.log('✅ 마감할 이슈가 없습니다.');
@@ -46,21 +38,12 @@ class IssueScheduler {
 
             // 각 이슈를 마감 상태로 변경
             for (const issue of expiredIssues) {
-                await new Promise((resolve, reject) => {
-                    db.run(
-                        'UPDATE issues SET status = "closed" WHERE id = ?',
-                        [issue.id],
-                        function(err) {
-                            if (err) {
-                                console.error(`❌ 이슈 ${issue.id} 마감 실패:`, err);
-                                reject(err);
-                            } else {
-                                console.log(`✅ 이슈 "${issue.title}" (ID: ${issue.id}) 자동 마감 완료`);
-                                resolve();
-                            }
-                        }
-                    );
-                });
+                try {
+                    await dbRun('UPDATE issues SET status = $1 WHERE id = $2', ['closed', issue.id]);
+                    console.log(`✅ 이슈 "${issue.title}" (ID: ${issue.id}) 자동 마감 완료`);
+                } catch (err) {
+                    console.error(`❌ 이슈 ${issue.id} 마감 실패:`, err);
+                }
             }
 
             console.log('🎉 자동 이슈 마감 처리 완료');
@@ -105,7 +88,7 @@ class IssueScheduler {
     getStatus() {
         return {
             isRunning: this.isRunning,
-            nextRun: this.cronJob ? this.cronJob.nextRun() : null
+            nextRun: this.cronJob ? new Date(Date.now() + 60000) : null // 매 분 실행이므로 1분 후로 표시
         };
     }
 
