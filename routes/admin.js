@@ -332,8 +332,9 @@ router.get('/issues/closed', adminMiddleware, async (req, res) => {
         try {
             const { query: dbQuery } = require('../database/database');
             const result = await dbQuery(query, params);
-            console.log(`✅ 이슈 조회 성공: ${result.rows.length}개 발견`);
-            res.json({ success: true, issues: result.rows });
+            const issues = result.rows || result || [];
+            console.log(`✅ 이슈 조회 성공: ${issues.length}개 발견`);
+            res.json({ success: true, issues: issues });
         } catch (err) {
             console.error('❌ 결과 관리용 이슈 조회 실패 (PostgreSQL):', err);
             console.error('❌ 쿼리:', query);
