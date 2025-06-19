@@ -29,7 +29,7 @@
 
 ### Backend
 - **Node.js + Express**: 서버 프레임워크
-- **PostgreSQL (Railway) / SQLite (Local)**: 데이터베이스
+- **PostgreSQL**: 데이터베이스 (개발/운영 환경 통일)
 - **JWT**: 사용자 인증 
 - **Cloudinary**: 이미지 저장소
 - **Multer**: 파일 업로드
@@ -73,7 +73,43 @@ npm install
 cp .env.example .env
 ```
 
-4. Cloudinary 설정 (이미지 업로드용)
+4. PostgreSQL 데이터베이스 설정
+
+**Option 1: Docker 사용 (권장)**
+```bash
+# PostgreSQL 컨테이너 실행
+docker run --name yegam-postgres \
+  -e POSTGRES_DB=yegam \
+  -e POSTGRES_USER=yegam \
+  -e POSTGRES_PASSWORD=password \
+  -p 5432:5432 \
+  -d postgres:15
+
+# .env 파일에 DATABASE_URL 추가
+echo "DATABASE_URL=postgresql://yegam:password@localhost:5432/yegam" >> .env
+```
+
+**Option 2: 로컬 PostgreSQL 설치**
+```bash
+# macOS (Homebrew)
+brew install postgresql
+brew services start postgresql
+createdb yegam
+
+# Ubuntu/Debian
+sudo apt-get install postgresql postgresql-contrib
+sudo -u postgres createdb yegam
+
+# .env 파일에 DATABASE_URL 추가 (사용자명과 비밀번호는 각자 설정에 맞게 수정)
+echo "DATABASE_URL=postgresql://username:password@localhost:5432/yegam" >> .env
+```
+
+**Option 3: Railway 무료 PostgreSQL 사용**
+1. [Railway](https://railway.app/) 계정 생성
+2. 새 프로젝트 생성 → PostgreSQL 추가
+3. DATABASE_URL을 .env 파일에 복사
+
+5. Cloudinary 설정 (이미지 업로드용)
    - [Cloudinary](https://cloudinary.com/) 계정 생성
    - Dashboard에서 Cloud Name, API Key, API Secret 확인
    - `.env` 파일에 설정 추가:
@@ -83,12 +119,12 @@ CLOUDINARY_API_KEY=your-api-key
 CLOUDINARY_API_SECRET=your-api-secret
 ```
 
-5. 로컬 서버 실행
+6. 로컬 서버 실행
 ```bash
 npm run dev
 ```
 
-6. 브라우저에서 접속
+7. 브라우저에서 접속
 ```
 http://localhost:3000
 ```

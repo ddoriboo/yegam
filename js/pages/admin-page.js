@@ -3,12 +3,12 @@ import { APP_CONFIG, MESSAGES } from '../../config/constants.js';
 import { getCategoryBadgeStyle } from '../ui/issue-card.js';
 import { formatVolume } from '../../utils/formatters.js';
 
-export function renderAdminPage() {
+export async function renderAdminPage() {
     if (!checkAdminAccess()) {
         showAdminLogin();
         return;
     }
-    renderAdminIssueTable();
+    await renderAdminIssueTable();
 }
 
 export function setupAdminFunctions() {
@@ -43,14 +43,14 @@ function showAdminLogin() {
     document.getElementById('admin-login-form')?.addEventListener('submit', handleAdminLogin);
 }
 
-function handleAdminLogin(e) {
+async function handleAdminLogin(e) {
     e.preventDefault();
     const password = document.getElementById('admin-password').value;
     const errorEl = document.getElementById('admin-login-error');
     
     if (password === APP_CONFIG.ADMIN_PASSWORD) {
         sessionStorage.setItem('admin-auth', 'authenticated');
-        renderAdminPage();
+        await renderAdminPage();
     } else {
         errorEl.textContent = MESSAGES.ERROR.ADMIN_AUTH_FAILED;
         errorEl.classList.remove('hidden');
@@ -90,7 +90,7 @@ function closeModal(modal, form) {
     form.reset();
 }
 
-function handleCreateIssue(e) {
+async function handleCreateIssue(e) {
     e.preventDefault();
     const formData = new FormData(e.target);
     
@@ -111,19 +111,27 @@ function handleCreateIssue(e) {
     if (result.success) {
         alert(MESSAGES.SUCCESS.ISSUE_CREATED);
         closeModal(document.getElementById('create-issue-modal'), e.target);
-        renderAdminIssueTable();
+        await renderAdminIssueTable();
     } else {
         alert(`이슈 생성에 실패했습니다: ${result.message}`);
     }
 }
 
-function renderAdminIssueTable() {
-    const issues = backend.getIssues();
-    const tbody = document.getElementById('issues-table-body');
-    
-    if (!tbody) return;
+async function renderAdminIssueTable() {
+    try {
+        const response = await fetch('/api/issues');
+        const data = await response.json();
+        
+        if (!data.success) {
+            throw new Error(data.message || '데이터 로딩 실패');
+        }
+        
+        const issues = data.issues;
+        const tbody = document.getElementById('issues-table-body');
+        
+        if (!tbody) return;
 
-    tbody.innerHTML = issues.map(issue => `
+        tbody.innerHTML = issues.map(issue => `
         <tr>
             <td class="px-6 py-4">
                 <div class="text-sm font-medium text-gray-900">${issue.title}</div>
@@ -147,6 +155,13 @@ function renderAdminIssueTable() {
             </td>
         </tr>
     `).join('');
+    } catch (error) {
+        console.error('데이터 로딩 중 오류가 발생했습니다:', error);
+        const tbody = document.getElementById('issues-table-body');
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-red-600">데이터 로딩 중 오류가 발생했습니다: ' + error.message + '</td></tr>';
+        }
+    }
 }
 
 function addNewIssue(issue) {
@@ -161,28 +176,28 @@ function addNewIssue(issue) {
 }
 
 // Global functions for onclick handlers
-window.deleteIssue = function(issueId) {
+window.deleteIssue = async function(issueId) {
     if (!confirm(MESSAGES.CONFIRM.DELETE_ISSUE)) return;
     
     try {
         const issues = backend.getIssues();
         const filteredIssues = issues.filter(issue => issue.id !== issueId);
         sessionStorage.setItem('poli-view-issues', JSON.stringify(filteredIssues));
-        renderAdminIssueTable();
+        await renderAdminIssueTable();
         alert(MESSAGES.SUCCESS.ISSUE_DELETED);
     } catch (error) {
         alert('이슈 삭제에 실패했습니다: ' + error.message);
     }
 };
 
-window.editIssue = function(issueId) {
+window.editIssue = async function(issueId) {
     try {
         const issues = backend.getIssues();
         const issue = issues.find(i => i.id === issueId);
         if (issue) {
             issue.isPopular = !issue.isPopular;
             sessionStorage.setItem('poli-view-issues', JSON.stringify(issues));
-            renderAdminIssueTable();
+            await renderAdminIssueTable();
             alert(`이슈가 ${issue.isPopular ? '인기' : '일반'} 이슈로 변경되었습니다.`);
         }
     } catch (error) {
