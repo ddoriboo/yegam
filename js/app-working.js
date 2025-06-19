@@ -205,6 +205,7 @@ function selectCategory(category, buttonElement) {
     
     currentCategory = category;
     currentPage = 1;
+    renderPopularIssues(); // 인기 이슈도 필터링 적용
     renderAllIssues();
 }
 
@@ -225,6 +226,7 @@ function setupHomePageEvents() {
         searchInput.addEventListener('input', debounce((e) => {
             currentSearch = e.target.value.trim();
             currentPage = 1;
+            renderPopularIssues(); // 인기 이슈도 검색 필터링 적용
             renderAllIssues();
         }, 300));
     }
@@ -235,6 +237,7 @@ function setupHomePageEvents() {
         sortSelect.addEventListener('change', (e) => {
             currentSort = e.target.value;
             currentPage = 1;
+            renderPopularIssues(); // 인기 이슈도 정렬 적용
             renderAllIssues();
         });
     }
@@ -253,15 +256,32 @@ function renderPopularIssues() {
     const grid = document.getElementById('popular-issues-grid');
     if (!grid) return;
     
-    const popularIssues = allIssues
-        .filter(issue => issue.is_popular || issue.isPopular)
-        .slice(0, 4);
+    // 필터링 로직 적용
+    let popularIssues = allIssues.filter(issue => issue.is_popular || issue.isPopular);
+    
+    // 카테고리 필터 적용
+    if (currentCategory !== '전체') {
+        popularIssues = popularIssues.filter(issue => issue.category === currentCategory);
+    }
+    
+    // 검색 필터 적용
+    if (currentSearch) {
+        popularIssues = popularIssues.filter(issue => 
+            issue.title.toLowerCase().includes(currentSearch.toLowerCase())
+        );
+    }
+    
+    // 정렬 적용
+    popularIssues = sortIssues(popularIssues, currentSort);
+    
+    // 최대 4개까지만 표시
+    popularIssues = popularIssues.slice(0, 4);
     
     if (popularIssues.length === 0) {
         grid.innerHTML = `
             <div class="col-span-full text-center py-12">
                 <i data-lucide="star" class="w-12 h-12 mx-auto text-gray-300 mb-4"></i>
-                <p class="text-gray-500">인기 이슈가 없습니다.</p>
+                <p class="text-gray-500">조건에 맞는 인기 이슈가 없습니다.</p>
             </div>
         `;
         return;
@@ -383,6 +403,22 @@ function debounce(func, wait) {
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
     };
+}
+
+// Get category badge style
+function getCategoryBadgeStyle(category) {
+    const categoryColors = {
+        '정치': 'background: linear-gradient(135deg, #EF4444, #F87171); color: white;',
+        '스포츠': 'background: linear-gradient(135deg, #06B6D4, #67E8F9); color: white;',
+        '경제': 'background: linear-gradient(135deg, #10B981, #34D399); color: white;',
+        '코인': 'background: linear-gradient(135deg, #F59E0B, #FBBF24); color: white;',
+        '테크': 'background: linear-gradient(135deg, #8B5CF6, #A78BFA); color: white;',
+        '엔터': 'background: linear-gradient(135deg, #EC4899, #F472B6); color: white;',
+        '날씨': 'background: linear-gradient(135deg, #3B82F6, #60A5FA); color: white;',
+        '해외': 'background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white;'
+    };
+    
+    return categoryColors[category] || 'background: linear-gradient(135deg, #6B7280, #9CA3AF); color: white;';
 }
 
 // Comments System
@@ -919,7 +955,7 @@ function createIssueCard(issue) {
     return `
         <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow">
             <div class="flex justify-between items-start mb-4">
-                <span class="px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                <span class="px-3 py-1 rounded-full text-xs font-medium" style="${getCategoryBadgeStyle(issue.category)}">
                     ${issue.category}
                 </span>
                 <span class="text-xs text-gray-500 flex items-center">
@@ -1590,7 +1626,7 @@ function renderAdminIssueTable() {
                 <div class="text-sm text-gray-500">ID: ${issue.id}</div>
             </td>
             <td class="px-6 py-4">
-                <span class="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                <span class="px-2 py-1 text-xs font-semibold rounded-full" style="${getCategoryBadgeStyle(issue.category)}">
                     ${issue.category}
                 </span>
             </td>
