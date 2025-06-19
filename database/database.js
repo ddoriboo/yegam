@@ -33,11 +33,42 @@ const getCurrentTimeSQL = () => {
     return 'NOW()';
 };
 
+// 임시 호환성 함수 - 기존 코드와의 호환성을 위해
+const getDB = () => {
+    return {
+        all: async (text, params, callback) => {
+            try {
+                const result = await query(text, params || []);
+                callback(null, result.rows);
+            } catch (err) {
+                callback(err);
+            }
+        },
+        get: async (text, params, callback) => {
+            try {
+                const result = await get(text, params || []);
+                callback(null, result);
+            } catch (err) {
+                callback(err);
+            }
+        },
+        run: async (text, params, callback) => {
+            try {
+                const result = await run(text, params || []);
+                callback.call({ lastID: result.rows[0]?.id, changes: result.rowCount || 0 });
+            } catch (err) {
+                callback(err);
+            }
+        }
+    };
+};
+
 module.exports = {
     initDatabase,
     query,
     run,
     get,
     getClient,
-    getCurrentTimeSQL
+    getCurrentTimeSQL,
+    getDB
 };
