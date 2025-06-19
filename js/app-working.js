@@ -1370,31 +1370,40 @@ function setupAdminTabs() {
     const issuesTab = document.getElementById('issues-tab');
     const resultsTab = document.getElementById('results-tab');
     const commentsTab = document.getElementById('comments-tab');
+    const schedulerTab = document.getElementById('scheduler-tab');
     const issuesSection = document.getElementById('issues-section');
     const resultsSection = document.getElementById('results-section');
     const commentsSection = document.getElementById('comments-section');
+    const schedulerSection = document.getElementById('scheduler-section');
     const createBtn = document.getElementById('create-issue-btn');
     
-    if (!issuesTab || !resultsTab || !commentsTab) return;
+    if (!issuesTab || !resultsTab || !commentsTab || !schedulerTab) return;
     
     issuesTab.addEventListener('click', () => {
-        switchAdminTab('issues', issuesTab, [resultsTab, commentsTab], [issuesSection], [resultsSection, commentsSection], createBtn, true);
+        switchAdminTab('issues', issuesTab, [resultsTab, commentsTab, schedulerTab], [issuesSection], [resultsSection, commentsSection, schedulerSection], createBtn, true);
     });
     
     resultsTab.addEventListener('click', () => {
-        switchAdminTab('results', resultsTab, [issuesTab, commentsTab], [resultsSection], [issuesSection, commentsSection], createBtn, false);
+        switchAdminTab('results', resultsTab, [issuesTab, commentsTab, schedulerTab], [resultsSection], [issuesSection, commentsSection, schedulerSection], createBtn, false);
         loadResultsData();
     });
     
     commentsTab.addEventListener('click', () => {
-        switchAdminTab('comments', commentsTab, [issuesTab, resultsTab], [commentsSection], [issuesSection, resultsSection], createBtn, false);
+        switchAdminTab('comments', commentsTab, [issuesTab, resultsTab, schedulerTab], [commentsSection], [issuesSection, resultsSection, schedulerSection], createBtn, false);
         loadAdminComments();
+    });
+    
+    schedulerTab.addEventListener('click', () => {
+        switchAdminTab('scheduler', schedulerTab, [issuesTab, resultsTab, commentsTab], [schedulerSection], [issuesSection, resultsSection, commentsSection], createBtn, false);
+        loadSchedulerStatus();
     });
     
     // 결과 관리 이벤트
     setupResultManagementEvents();
     // 댓글 관리 이벤트
     setupCommentManagementEvents();
+    // 스케줄러 관리 이벤트
+    setupSchedulerManagementEvents();
 }
 
 function switchAdminTab(tabName, activeTabEl, inactiveTabEls, activeSectionEls, inactiveSectionEls, createBtn, showCreateBtn) {
@@ -2530,6 +2539,198 @@ function renderUserBets(bets) {
     }).join('');
     
     container.classList.remove('hidden');
+    
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+// 스케줄러 관리 함수들
+function setupSchedulerManagementEvents() {
+    // 상태 새로고침 버튼
+    const refreshBtn = document.getElementById('refresh-scheduler-status');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            loadSchedulerStatus();
+        });
+    }
+    
+    // 수동 검사 실행 버튼
+    const manualCheckBtn = document.getElementById('manual-check-btn');
+    if (manualCheckBtn) {
+        manualCheckBtn.addEventListener('click', async () => {
+            await runManualSchedulerCheck();
+        });
+    }
+}
+
+async function loadSchedulerStatus() {
+    try {
+        console.log('Loading scheduler status...');
+        
+        const response = await fetch('/api/admin/scheduler/status');
+        const data = await response.json();
+        
+        if (data.success) {
+            updateSchedulerStatusDisplay(data.scheduler);
+        } else {
+            console.error('Failed to load scheduler status:', data.message);
+            showSchedulerError('스케줄러 상태를 불러오는데 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('Error loading scheduler status:', error);
+        showSchedulerError('스케줄러 상태를 불러오는 중 오류가 발생했습니다.');
+    }
+}
+
+function updateSchedulerStatusDisplay(status) {
+    const runningStatusEl = document.getElementById('scheduler-running-status');
+    const nextRunEl = document.getElementById('scheduler-next-run');
+    const currentTimeEl = document.getElementById('scheduler-current-time');
+    
+    if (runningStatusEl) {
+        if (status.isRunning) {
+            runningStatusEl.innerHTML = `
+                <span class="inline-flex items-center text-green-600">
+                    <i data-lucide="play-circle" class="w-4 h-4 mr-2"></i>
+                    실행 중
+                </span>
+            `;
+        } else {
+            runningStatusEl.innerHTML = `
+                <span class="inline-flex items-center text-red-600">
+                    <i data-lucide="pause-circle" class="w-4 h-4 mr-2"></i>
+                    중지됨
+                </span>
+            `;
+        }
+    }
+    
+    if (nextRunEl) {
+        if (status.nextRun) {
+            const nextRun = new Date(status.nextRun);
+            nextRunEl.textContent = nextRun.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
+        } else {
+            nextRunEl.textContent = '-';
+        }
+    }
+    
+    if (currentTimeEl) {
+        if (status.currentTime) {
+            const currentTime = new Date(status.currentTime);
+            currentTimeEl.textContent = currentTime.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
+        } else {
+            currentTimeEl.textContent = '-';
+        }
+    }
+    
+    // 아이콘 재생성
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+function showSchedulerError(message) {
+    const runningStatusEl = document.getElementById('scheduler-running-status');
+    if (runningStatusEl) {
+        runningStatusEl.innerHTML = `
+            <span class="inline-flex items-center text-red-600">
+                <i data-lucide="alert-circle" class="w-4 h-4 mr-2"></i>
+                오류
+            </span>
+        `;
+    }
+    
+    // 로그에 오류 추가
+    addSchedulerLog(message, 'error');
+    
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+async function runManualSchedulerCheck() {
+    const btn = document.getElementById('manual-check-btn');
+    const originalText = btn.innerHTML;
+    
+    try {
+        // 버튼 로딩 상태로 변경
+        btn.disabled = true;
+        btn.innerHTML = `
+            <i data-lucide="loader" class="w-4 h-4 mr-2 animate-spin"></i>
+            실행 중...
+        `;
+        
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+        
+        console.log('Running manual scheduler check...');
+        
+        const response = await fetch('/api/admin/scheduler/run', {
+            method: 'POST'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            addSchedulerLog('수동 마감 검사가 성공적으로 실행되었습니다.', 'success');
+            showSuccess('수동 마감 검사가 완료되었습니다.');
+            
+            // 상태 새로고침
+            setTimeout(() => {
+                loadSchedulerStatus();
+            }, 1000);
+        } else {
+            addSchedulerLog(`수동 마감 검사 실패: ${data.message}`, 'error');
+            showError(data.message || '수동 마감 검사에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('Error running manual scheduler check:', error);
+        addSchedulerLog(`수동 마감 검사 오류: ${error.message}`, 'error');
+        showError('수동 마감 검사 중 오류가 발생했습니다.');
+    } finally {
+        // 버튼 복원
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    }
+}
+
+function addSchedulerLog(message, type = 'info') {
+    const logsContainer = document.getElementById('scheduler-logs');
+    if (!logsContainer) return;
+    
+    const timestamp = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
+    const logClass = type === 'error' ? 'text-red-600' : type === 'success' ? 'text-green-600' : 'text-gray-600';
+    const icon = type === 'error' ? 'alert-circle' : type === 'success' ? 'check-circle' : 'info';
+    
+    const logEntry = document.createElement('div');
+    logEntry.className = `flex items-start space-x-2 mb-2 pb-2 border-b border-gray-100 text-sm ${logClass}`;
+    logEntry.innerHTML = `
+        <i data-lucide="${icon}" class="w-4 h-4 mt-0.5 flex-shrink-0"></i>
+        <div class="flex-1">
+            <div class="font-medium">${message}</div>
+            <div class="text-xs text-gray-500 mt-1">${timestamp}</div>
+        </div>
+    `;
+    
+    // 첫 번째 자식이 "로그가 없습니다" 메시지인 경우 제거
+    const firstChild = logsContainer.firstElementChild;
+    if (firstChild && firstChild.textContent.includes('로그가 없습니다')) {
+        logsContainer.removeChild(firstChild);
+    }
+    
+    logsContainer.insertBefore(logEntry, logsContainer.firstChild);
+    
+    // 최대 10개 로그만 유지
+    const logs = logsContainer.children;
+    while (logs.length > 10) {
+        logsContainer.removeChild(logs[logs.length - 1]);
+    }
     
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();

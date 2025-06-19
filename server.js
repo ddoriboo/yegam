@@ -12,6 +12,7 @@ const adminCommentRoutes = require('./routes/admin-comments');
 const adminRoutes = require('./routes/admin');
 const uploadRoutes = require('./routes/upload');
 const { initDatabase } = require('./database/database');
+const issueScheduler = require('./services/scheduler');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -80,6 +81,9 @@ initDatabase().then(() => {
         } else {
             console.log(`🌐 http://localhost:${PORT} 에서 접속하세요.`);
         }
+        
+        // 이슈 자동 마감 스케줄러 시작
+        issueScheduler.start();
     });
 }).catch(err => {
     console.error('데이터베이스 초기화 실패:', err);

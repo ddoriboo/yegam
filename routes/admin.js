@@ -4,6 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const { getDB } = require('../database/database');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
+const issueScheduler = require('../services/scheduler');
 
 const router = express.Router();
 
@@ -545,6 +546,44 @@ router.get('/issues/:id', adminMiddleware, async (req, res) => {
         res.status(500).json({ 
             success: false, 
             message: '이슈 조회 중 오류가 발생했습니다.' 
+        });
+    }
+});
+
+// 스케줄러 상태 조회
+router.get('/scheduler/status', adminMiddleware, (req, res) => {
+    try {
+        const status = issueScheduler.getStatus();
+        res.json({
+            success: true,
+            scheduler: {
+                isRunning: status.isRunning,
+                nextRun: status.nextRun ? status.nextRun.toISOString() : null,
+                currentTime: new Date().toISOString()
+            }
+        });
+    } catch (error) {
+        console.error('스케줄러 상태 조회 실패:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: '스케줄러 상태 조회에 실패했습니다.' 
+        });
+    }
+});
+
+// 스케줄러 수동 실행
+router.post('/scheduler/run', adminMiddleware, async (req, res) => {
+    try {
+        await issueScheduler.runManualCheck();
+        res.json({
+            success: true,
+            message: '이슈 만료 검사가 수동으로 실행되었습니다.'
+        });
+    } catch (error) {
+        console.error('스케줄러 수동 실행 실패:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: '스케줄러 수동 실행에 실패했습니다.' 
         });
     }
 });
