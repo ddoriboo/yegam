@@ -1287,6 +1287,14 @@ async function initAdminPage() {
     setupAdminTabs();
     await loadAdminIssues();
     setupCreateIssueForm();
+    
+    // 결과관리와 스케줄러 데이터 미리 로드
+    try {
+        await loadResultsData();
+        await loadSchedulerStatus();
+    } catch (error) {
+        console.error('관리자 데이터 초기 로딩 실패:', error);
+    }
 }
 
 function setupAdminPageEvents() {
@@ -1928,8 +1936,8 @@ async function handleAdminHighlightComment(commentId, action) {
 }
 
 function checkAdminAccess() {
-    // 관리자 접근을 위해서는 사용자 로그인도 필요
-    return sessionStorage.getItem('admin-auth') === 'authenticated' && userToken;
+    // 관리자 인증만 확인 (사용자 토큰 불필요)
+    return sessionStorage.getItem('admin-auth') === 'authenticated';
 }
 
 function showAdminLogin() {
@@ -1974,9 +1982,13 @@ function showAdminLogin() {
         
         if (password === 'admin123') {
             sessionStorage.setItem('admin-auth', 'authenticated');
-            setupAdminPageEvents();
-            await loadAdminIssues();
-            setupCreateIssueForm();
+            
+            // 관리자 로그인 폼 숨기고 관리자 UI 표시
+            const adminLoginSection = document.querySelector('main');
+            if (adminLoginSection) {
+                // 관리자 페이지 재초기화
+                await initAdminPage();
+            }
         } else {
             errorEl.textContent = '잘못된 관리자 암호입니다.';
             errorEl.classList.remove('hidden');
