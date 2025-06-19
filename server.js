@@ -74,6 +74,10 @@ app.get('/mypage', (req, res) => {
     res.sendFile(path.join(__dirname, 'mypage.html'));
 });
 
+app.get('/tier_guide', (req, res) => {
+    res.sendFile(path.join(__dirname, 'tier_guide.html'));
+});
+
 // 데이터베이스 초기화 후 서버 시작
 console.log('🔄 데이터베이스 초기화 시작...');
 initDatabase().then(() => {

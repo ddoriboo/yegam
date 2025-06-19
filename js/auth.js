@@ -117,3 +117,68 @@ export async function sendVerificationEmail(email) {
         return { success: false, message: '서버 오류가 발생했습니다.' };
     }
 }
+
+// 사용자 인증 상태 확인 및 UI 업데이트
+export async function checkAuth() {
+    try {
+        const { addTierStyles, updateUserTierDisplay } = await import('./utils/tier-utils.js');
+        
+        // 티어 스타일 추가
+        addTierStyles();
+        
+        const userInfo = document.getElementById('user-info');
+        const authButtons = document.getElementById('auth-buttons');
+        
+        if (isLoggedIn()) {
+            const isValid = await verifyToken();
+            if (isValid) {
+                const user = getCurrentUser();
+                if (userInfo) {
+                    userInfo.classList.remove('hidden');
+                    userInfo.classList.add('flex');
+                    
+                    // 사용자 이름 업데이트
+                    const userNameEl = document.getElementById('user-name');
+                    if (userNameEl) userNameEl.textContent = user.username;
+                    
+                    // 코인 정보 업데이트
+                    const userCoinsEl = document.getElementById('user-coins');
+                    if (userCoinsEl) userCoinsEl.textContent = `${user.coins?.toLocaleString() || '0'} 감`;
+                    
+                    // 티어 정보 업데이트 (GAM 정보가 있다면)
+                    const userGam = user.gam || 0;
+                    updateUserTierDisplay(userGam, 'user-tier-display');
+                }
+                
+                if (authButtons) {
+                    authButtons.classList.add('hidden');
+                }
+                
+                // 로그아웃 버튼 이벤트
+                const logoutBtn = document.getElementById('logout-btn');
+                if (logoutBtn) {
+                    logoutBtn.addEventListener('click', () => {
+                        logout();
+                        window.location.reload();
+                    });
+                }
+                
+                return true;
+            }
+        }
+        
+        // 로그인되지 않은 상태
+        if (userInfo) {
+            userInfo.classList.add('hidden');
+            userInfo.classList.remove('flex');
+        }
+        if (authButtons) {
+            authButtons.classList.remove('hidden');
+        }
+        
+        return false;
+    } catch (error) {
+        console.error('인증 상태 확인 오류:', error);
+        return false;
+    }
+}

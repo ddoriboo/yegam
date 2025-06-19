@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function initializeApplication() {
     await backend.init();
-    updateHeader();
+    await auth.checkAuth();
     const path = window.location.pathname.split("/").pop();
 
     if (path === 'index.html' || path === '') {
