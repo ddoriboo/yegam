@@ -15,7 +15,7 @@ const initPostgreSQL = () => {
         
         pool = new Pool({
             connectionString: connectionString,
-            ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+            ssl: connectionString.includes('railway') || connectionString.includes('postgres://') ? { rejectUnauthorized: false } : false
         });
         
         console.log('✅ PostgreSQL 연결 설정 완료');
@@ -69,8 +69,13 @@ const createTables = async () => {
                 is_popular BOOLEAN DEFAULT FALSE,
                 correct_answer TEXT DEFAULT NULL,
                 status VARCHAR(50) DEFAULT 'active',
+                result TEXT DEFAULT NULL,
+                decided_by INTEGER DEFAULT NULL,
+                decided_at TIMESTAMP DEFAULT NULL,
+                decision_reason TEXT DEFAULT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (decided_by) REFERENCES users (id)
             )
         `);
         
@@ -78,6 +83,11 @@ const createTables = async () => {
         try {
             await client.query(`ALTER TABLE issues ADD COLUMN IF NOT EXISTS description TEXT`);
             await client.query(`ALTER TABLE issues ADD COLUMN IF NOT EXISTS image_url TEXT`);
+            await client.query(`ALTER TABLE issues ADD COLUMN IF NOT EXISTS result TEXT DEFAULT NULL`);
+            await client.query(`ALTER TABLE issues ADD COLUMN IF NOT EXISTS decided_by INTEGER`);
+            await client.query(`ALTER TABLE issues ADD COLUMN IF NOT EXISTS decided_at TIMESTAMP DEFAULT NULL`);
+            await client.query(`ALTER TABLE issues ADD COLUMN IF NOT EXISTS decision_reason TEXT DEFAULT NULL`);
+            console.log('✅ 이슈 테이블 누락 컬럼 추가 완료');
         } catch (error) {
             // 컬럼이 이미 존재하는 경우 무시
             console.log('이슈 테이블 컬럼 추가 스킵 (이미 존재함)');
@@ -138,6 +148,21 @@ const createTables = async () => {
                 FOREIGN KEY (user_id) REFERENCES users (id),
                 FOREIGN KEY (comment_id) REFERENCES comments (id),
                 UNIQUE(user_id, comment_id)
+            )
+        `);
+        
+        // 보상 테이블
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS rewards (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                issue_id INTEGER NOT NULL,
+                bet_id INTEGER NOT NULL,
+                reward_amount INTEGER NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id),
+                FOREIGN KEY (issue_id) REFERENCES issues (id),
+                FOREIGN KEY (bet_id) REFERENCES bets (id)
             )
         `);
         

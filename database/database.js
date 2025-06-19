@@ -13,9 +13,9 @@ const initDatabase = async () => {
         DATABASE_URL: process.env.DATABASE_URL ? '***설정됨***' : '설정되지 않음'
     });
     
-    // Use PostgreSQL in production if DATABASE_URL is set
-    if (process.env.NODE_ENV === 'production' && process.env.DATABASE_URL) {
-        console.log('🐘 Using PostgreSQL database...');
+    // Use PostgreSQL if DATABASE_URL is set (regardless of NODE_ENV)
+    if (process.env.DATABASE_URL) {
+        console.log('🐘 Using PostgreSQL database (DATABASE_URL detected)...');
         isPostgreSQL = true;
         try {
             return await initPostgreSQL();
