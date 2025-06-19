@@ -53,6 +53,9 @@
                     <button id="issues-tab" class="admin-tab active pb-4 border-b-2 border-blue-500 text-blue-600 font-medium">
                         이슈 관리
                     </button>
+                    <button id="results-tab" class="admin-tab pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium">
+                        결과 관리
+                    </button>
                     <button id="comments-tab" class="admin-tab pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium">
                         댓글 관리
                     </button>
@@ -229,6 +232,130 @@
                             <!-- 이슈 목록이 여기에 동적으로 생성됩니다 -->
                         </tbody>
                     </table>
+                </div>
+            </div>
+            
+            <!-- 결과 관리 섹션 -->
+            <div id="results-section" class="hidden bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">이슈 결과 관리</h3>
+                        <p class="text-sm text-gray-600 mt-1">마감된 이슈의 결과를 결정하고 보상을 지급합니다</p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <select id="result-filter" class="text-sm border border-gray-300 rounded-md px-3 py-1">
+                            <option value="closed">마감된 이슈</option>
+                            <option value="pending">결과 대기</option>
+                            <option value="resolved">결과 확정</option>
+                        </select>
+                        <button id="refresh-results" class="text-sm text-gray-600 hover:text-gray-900">
+                            <i data-lucide="refresh-cw" class="w-4 h-4 mr-1"></i>
+                            새로고침
+                        </button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">이슈</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">카테고리</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">마감일</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">참여 현황</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">상태</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">결과</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">액션</th>
+                            </tr>
+                        </thead>
+                        <tbody id="results-table-body" class="bg-white divide-y divide-gray-200">
+                            <!-- 결과 관리 목록이 여기에 동적으로 생성됩니다 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- 이슈 결과 입력 모달 -->
+            <div id="result-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                <div class="bg-white rounded-lg max-w-lg w-full">
+                    <div class="p-6 border-b border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-xl font-bold text-gray-900">이슈 결과 결정</h2>
+                            <button id="close-result-modal-btn" class="text-gray-400 hover:text-gray-600">
+                                <i data-lucide="x" class="w-6 h-6"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <form id="result-form" class="p-6 space-y-6">
+                        <input type="hidden" id="result-issue-id" name="issueId">
+                        
+                        <!-- 이슈 정보 표시 -->
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h3 id="result-issue-title" class="font-medium text-gray-900 mb-2"></h3>
+                            <div class="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                                <div>
+                                    <span class="font-medium">카테고리:</span>
+                                    <span id="result-issue-category" class="ml-1"></span>
+                                </div>
+                                <div>
+                                    <span class="font-medium">마감일:</span>
+                                    <span id="result-issue-end-date" class="ml-1"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 결과 선택 -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-3">결과 선택</label>
+                            <div class="grid grid-cols-2 gap-3">
+                                <label class="relative">
+                                    <input type="radio" name="result" value="Yes" class="sr-only">
+                                    <div class="result-option p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-green-300 text-center">
+                                        <div class="text-2xl mb-2">✅</div>
+                                        <div class="font-medium text-green-600">Yes</div>
+                                        <div class="text-sm text-gray-500">이슈가 실현됨</div>
+                                    </div>
+                                </label>
+                                <label class="relative">
+                                    <input type="radio" name="result" value="No" class="sr-only">
+                                    <div class="result-option p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-red-300 text-center">
+                                        <div class="text-2xl mb-2">❌</div>
+                                        <div class="font-medium text-red-600">No</div>
+                                        <div class="text-sm text-gray-500">이슈가 실현되지 않음</div>
+                                    </div>
+                                </label>
+                            </div>
+                            <div class="grid grid-cols-2 gap-3 mt-3">
+                                <label class="relative">
+                                    <input type="radio" name="result" value="Draw" class="sr-only">
+                                    <div class="result-option p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-yellow-300 text-center">
+                                        <div class="text-2xl mb-2">⚖️</div>
+                                        <div class="font-medium text-yellow-600">무승부</div>
+                                        <div class="text-sm text-gray-500">판단 불가능</div>
+                                    </div>
+                                </label>
+                                <label class="relative">
+                                    <input type="radio" name="result" value="Cancelled" class="sr-only">
+                                    <div class="result-option p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-gray-400 text-center">
+                                        <div class="text-2xl mb-2">🚫</div>
+                                        <div class="font-medium text-gray-600">취소</div>
+                                        <div class="text-sm text-gray-500">이슈 취소</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 결정 사유 -->
+                        <div>
+                            <label for="result-reason" class="block text-sm font-medium text-gray-700 mb-2">결정 사유</label>
+                            <textarea id="result-reason" name="reason" class="modern-input w-full" rows="3" placeholder="결과를 결정한 이유를 입력하세요" required></textarea>
+                        </div>
+
+                        <!-- 버튼 -->
+                        <div class="flex space-x-3 pt-4">
+                            <button type="submit" class="btn-primary flex-1">결과 확정 및 보상 지급</button>
+                            <button type="button" id="result-cancel-btn" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors">취소</button>
+                        </div>
+                    </form>
                 </div>
             </div>
             

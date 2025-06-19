@@ -1368,34 +1368,53 @@ function setupAdminPageEvents() {
 // 관리자 탭 설정
 function setupAdminTabs() {
     const issuesTab = document.getElementById('issues-tab');
+    const resultsTab = document.getElementById('results-tab');
     const commentsTab = document.getElementById('comments-tab');
     const issuesSection = document.getElementById('issues-section');
+    const resultsSection = document.getElementById('results-section');
     const commentsSection = document.getElementById('comments-section');
     const createBtn = document.getElementById('create-issue-btn');
     
-    if (!issuesTab || !commentsTab) return;
+    if (!issuesTab || !resultsTab || !commentsTab) return;
     
     issuesTab.addEventListener('click', () => {
-        switchAdminTab(issuesTab, commentsTab, issuesSection, commentsSection, createBtn, true);
+        switchAdminTab('issues', issuesTab, [resultsTab, commentsTab], [issuesSection], [resultsSection, commentsSection], createBtn, true);
+    });
+    
+    resultsTab.addEventListener('click', () => {
+        switchAdminTab('results', resultsTab, [issuesTab, commentsTab], [resultsSection], [issuesSection, commentsSection], createBtn, false);
+        loadResultsData();
     });
     
     commentsTab.addEventListener('click', () => {
-        switchAdminTab(commentsTab, issuesTab, commentsSection, issuesSection, createBtn, false);
+        switchAdminTab('comments', commentsTab, [issuesTab, resultsTab], [commentsSection], [issuesSection, resultsSection], createBtn, false);
         loadAdminComments();
     });
     
+    // 결과 관리 이벤트
+    setupResultManagementEvents();
     // 댓글 관리 이벤트
     setupCommentManagementEvents();
 }
 
-function switchAdminTab(activeTab, inactiveTab, activeSection, inactiveSection, createBtn, showCreateBtn) {
-    // 탭 스타일 변경
-    activeTab.className = 'admin-tab active pb-4 border-b-2 border-blue-500 text-blue-600 font-medium';
-    inactiveTab.className = 'admin-tab pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium';
+function switchAdminTab(tabName, activeTabEl, inactiveTabEls, activeSectionEls, inactiveSectionEls, createBtn, showCreateBtn) {
+    // 모든 탭을 비활성화
+    inactiveTabEls.forEach(tab => {
+        tab.className = 'admin-tab pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium';
+    });
     
-    // 섹션 표시/숨김
-    activeSection.classList.remove('hidden');
-    inactiveSection.classList.add('hidden');
+    // 활성 탭 스타일 적용
+    activeTabEl.className = 'admin-tab active pb-4 border-b-2 border-blue-500 text-blue-600 font-medium';
+    
+    // 모든 섹션 숨김
+    inactiveSectionEls.forEach(section => {
+        section.classList.add('hidden');
+    });
+    
+    // 활성 섹션 표시
+    activeSectionEls.forEach(section => {
+        section.classList.remove('hidden');
+    });
     
     // 새 이슈 생성 버튼 표시/숨김
     if (createBtn) {
@@ -1404,6 +1423,316 @@ function switchAdminTab(activeTab, inactiveTab, activeSection, inactiveSection, 
         } else {
             createBtn.classList.add('hidden');
         }
+    }
+}
+
+// 결과 관리 이벤트 설정
+function setupResultManagementEvents() {
+    // 결과 필터 변경
+    const resultFilter = document.getElementById('result-filter');
+    if (resultFilter) {
+        resultFilter.addEventListener('change', () => {
+            loadResultsData();
+        });
+    }
+    
+    // 새로고침 버튼
+    const refreshBtn = document.getElementById('refresh-results');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            loadResultsData();
+        });
+    }
+    
+    // 결과 모달 이벤트
+    setupResultModal();
+    
+    // 결과 액션 이벤트 (이벤트 위임)
+    document.addEventListener('click', async (e) => {
+        if (e.target.closest('.result-decide-btn')) {
+            const btn = e.target.closest('.result-decide-btn');
+            const issueId = btn.dataset.issueId;
+            openResultModal(issueId);
+        }
+        
+        if (e.target.closest('.result-close-btn')) {
+            const btn = e.target.closest('.result-close-btn');
+            const issueId = btn.dataset.issueId;
+            await handleCloseIssue(issueId);
+        }
+    });
+}
+
+async function loadResultsData() {
+    const tbody = document.getElementById('results-table-body');
+    const filterSelect = document.getElementById('result-filter');
+    
+    if (!tbody) return;
+    
+    try {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8"><i data-lucide="loader" class="w-6 h-6 animate-spin mx-auto mb-2 text-gray-400"></i><br>로딩 중...</td></tr>';
+        
+        const filter = filterSelect ? filterSelect.value : 'closed';
+        const response = await fetch(`/api/admin/issues/closed?filter=${filter}`, {
+            headers: {
+                'Authorization': `Bearer ${userToken}`
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            if (data.issues.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-500">해당하는 이슈가 없습니다.</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = data.issues.map(issue => renderResultRow(issue)).join('');
+            
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        } else {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-red-500">데이터 로딩에 실패했습니다.</td></tr>';
+        }
+    } catch (error) {
+        console.error('결과 데이터 로딩 실패:', error);
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-red-500">데이터 로딩 중 오류가 발생했습니다.</td></tr>';
+    }
+}
+
+function renderResultRow(issue) {
+    const endDate = new Date(issue.end_date);
+    const formattedEndDate = `${endDate.getFullYear()}.${String(endDate.getMonth() + 1).padStart(2, '0')}.${String(endDate.getDate()).padStart(2, '0')}`;
+    
+    const totalVolume = (issue.yes_volume || 0) + (issue.no_volume || 0);
+    const yesCount = issue.yes_count || 0;
+    const noCount = issue.no_count || 0;
+    
+    let statusBadge = '';
+    let resultBadge = '';
+    let actionButtons = '';
+    
+    if (issue.result) {
+        const resultColors = {
+            'Yes': 'bg-green-100 text-green-800',
+            'No': 'bg-red-100 text-red-800',
+            'Draw': 'bg-yellow-100 text-yellow-800',
+            'Cancelled': 'bg-gray-100 text-gray-800'
+        };
+        
+        statusBadge = '<span class="px-2 py-1 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">결과 확정</span>';
+        resultBadge = `<span class="px-2 py-1 text-xs font-medium ${resultColors[issue.result]} rounded-full">${issue.result}</span>`;
+        
+        if (issue.decided_by_name) {
+            resultBadge += `<br><small class="text-gray-500">${issue.decided_by_name}</small>`;
+        }
+    } else {
+        const now = new Date();
+        const isExpired = endDate < now;
+        
+        if (isExpired || issue.status === 'closed') {
+            statusBadge = '<span class="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">마감</span>';
+            actionButtons = `
+                <button class="result-decide-btn px-3 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors" data-issue-id="${issue.id}">
+                    결과 결정
+                </button>
+            `;
+        } else {
+            statusBadge = '<span class="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">진행중</span>';
+            actionButtons = `
+                <button class="result-close-btn px-3 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors" data-issue-id="${issue.id}">
+                    수동 마감
+                </button>
+            `;
+        }
+        
+        resultBadge = '<span class="text-gray-500">대기 중</span>';
+    }
+    
+    return `
+        <tr class="hover:bg-gray-50">
+            <td class="px-6 py-4">
+                <div class="max-w-xs">
+                    <p class="text-sm font-medium text-gray-900 truncate">${issue.title}</p>
+                    ${issue.description ? `<p class="text-xs text-gray-500 mt-1 truncate">${issue.description}</p>` : ''}
+                </div>
+            </td>
+            <td class="px-6 py-4">
+                <span class="px-2 py-1 text-xs font-medium rounded-full ${getCategoryBadgeClass(issue.category)}">${issue.category}</span>
+            </td>
+            <td class="px-6 py-4 text-sm text-gray-900">${formattedEndDate}</td>
+            <td class="px-6 py-4">
+                <div class="text-sm text-gray-900">
+                    <div>총 ${yesCount + noCount}명 참여</div>
+                    <div class="text-xs text-gray-500">${totalVolume.toLocaleString()} 감</div>
+                    <div class="text-xs">
+                        <span class="text-green-600">Yes: ${yesCount}명</span> / 
+                        <span class="text-red-600">No: ${noCount}명</span>
+                    </div>
+                </div>
+            </td>
+            <td class="px-6 py-4">${statusBadge}</td>
+            <td class="px-6 py-4">${resultBadge}</td>
+            <td class="px-6 py-4">${actionButtons}</td>
+        </tr>
+    `;
+}
+
+function getCategoryBadgeClass(category) {
+    const classes = {
+        '정치': 'bg-red-100 text-red-800',
+        '스포츠': 'bg-cyan-100 text-cyan-800', 
+        '경제': 'bg-green-100 text-green-800',
+        '코인': 'bg-orange-100 text-orange-800',
+        '테크': 'bg-purple-100 text-purple-800',
+        '엔터': 'bg-pink-100 text-pink-800',
+        '날씨': 'bg-blue-100 text-blue-800',
+        '해외': 'bg-indigo-100 text-indigo-800'
+    };
+    return classes[category] || 'bg-gray-100 text-gray-800';
+}
+
+function setupResultModal() {
+    const modal = document.getElementById('result-modal');
+    const closeBtn = document.getElementById('close-result-modal-btn');
+    const cancelBtn = document.getElementById('result-cancel-btn');
+    const form = document.getElementById('result-form');
+    
+    if (!modal || !form) return;
+    
+    // 모달 닫기
+    [closeBtn, cancelBtn].forEach(btn => {
+        if (btn) {
+            btn.addEventListener('click', () => {
+                modal.classList.add('hidden');
+                form.reset();
+            });
+        }
+    });
+    
+    // 결과 옵션 선택
+    modal.addEventListener('click', (e) => {
+        if (e.target.closest('.result-option')) {
+            const option = e.target.closest('.result-option');
+            const radio = option.parentElement.querySelector('input[type="radio"]');
+            
+            // 모든 옵션 선택 해제
+            modal.querySelectorAll('.result-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            
+            // 선택된 옵션 표시
+            option.classList.add('selected');
+            radio.checked = true;
+        }
+    });
+    
+    // 폼 제출
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await handleResultSubmit(e);
+    });
+}
+
+async function openResultModal(issueId) {
+    const modal = document.getElementById('result-modal');
+    
+    try {
+        // 이슈 정보 조회
+        const response = await fetch(`/api/issues/${issueId}`, {
+            headers: {
+                'Authorization': `Bearer ${userToken}`
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.issue) {
+            const issue = data.issue;
+            
+            // 모달에 이슈 정보 표시
+            document.getElementById('result-issue-id').value = issueId;
+            document.getElementById('result-issue-title').textContent = issue.title;
+            document.getElementById('result-issue-category').textContent = issue.category;
+            
+            const endDate = new Date(issue.end_date);
+            document.getElementById('result-issue-end-date').textContent = 
+                `${endDate.getFullYear()}.${String(endDate.getMonth() + 1).padStart(2, '0')}.${String(endDate.getDate()).padStart(2, '0')}`;
+            
+            modal.classList.remove('hidden');
+        } else {
+            alert('이슈 정보를 불러올 수 없습니다.');
+        }
+    } catch (error) {
+        console.error('이슈 정보 조회 실패:', error);
+        alert('이슈 정보를 불러오는 중 오류가 발생했습니다.');
+    }
+}
+
+async function handleResultSubmit(e) {
+    const formData = new FormData(e.target);
+    const issueId = formData.get('issueId');
+    const result = formData.get('result');
+    const reason = formData.get('reason');
+    
+    if (!result) {
+        alert('결과를 선택해주세요.');
+        return;
+    }
+    
+    if (!reason.trim()) {
+        alert('결정 사유를 입력해주세요.');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/admin/issues/${issueId}/result`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${userToken}`
+            },
+            body: JSON.stringify({ result, reason })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(data.message);
+            document.getElementById('result-modal').classList.add('hidden');
+            loadResultsData(); // 테이블 새로고침
+        } else {
+            alert(data.message || '결과 처리에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('결과 처리 실패:', error);
+        alert('결과 처리 중 오류가 발생했습니다.');
+    }
+}
+
+async function handleCloseIssue(issueId) {
+    if (!confirm('이슈를 수동으로 마감하시겠습니까?')) return;
+    
+    try {
+        const response = await fetch(`/api/admin/issues/${issueId}/close`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${userToken}`
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert(data.message);
+            loadResultsData(); // 테이블 새로고침
+        } else {
+            alert(data.message || '이슈 마감에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('이슈 마감 실패:', error);
+        alert('이슈 마감 중 오류가 발생했습니다.');
     }
 }
 

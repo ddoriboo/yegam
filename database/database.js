@@ -92,8 +92,13 @@ const createSQLiteTables = () => {
                 is_popular BOOLEAN DEFAULT FALSE,
                 correct_answer TEXT DEFAULT NULL,
                 status TEXT DEFAULT 'active',
+                result TEXT DEFAULT NULL,
+                decided_by INTEGER DEFAULT NULL,
+                decided_at DATETIME DEFAULT NULL,
+                decision_reason TEXT DEFAULT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (decided_by) REFERENCES users (id)
             )`,
             
             // Bets table
@@ -144,6 +149,19 @@ const createSQLiteTables = () => {
                 FOREIGN KEY (user_id) REFERENCES users (id),
                 FOREIGN KEY (comment_id) REFERENCES comments (id),
                 UNIQUE(user_id, comment_id)
+            )`,
+            
+            // Rewards table
+            `CREATE TABLE IF NOT EXISTS rewards (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                issue_id INTEGER NOT NULL,
+                bet_id INTEGER NOT NULL,
+                reward_amount INTEGER NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id),
+                FOREIGN KEY (issue_id) REFERENCES issues (id),
+                FOREIGN KEY (bet_id) REFERENCES bets (id)
             )`
         ];
         

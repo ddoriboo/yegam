@@ -519,6 +519,17 @@ html {
     background: linear-gradient(135deg, #4F46E5, #6366F1);
 }
 
+/* Result Option Styles */
+.result-option.selected {
+    border-color: #3b82f6 !important;
+    background-color: #eff6ff !important;
+}
+
+.result-option:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
 /* My Page Table Styles */
 .history-table {
     width: 100%;
