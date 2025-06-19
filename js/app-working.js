@@ -112,10 +112,16 @@ function logout() {
 }
 
 // Home page functions
+// Global state for home page
+let allIssues = [];
+let currentPage = 1;
+let currentCategory = '전체';
+let currentSort = 'newest';
+let currentSearch = '';
+let isLoading = false;
+
 async function initHomePage() {
-    console.log('Initializing home page...');
-    
-    showLoading('popular-issues-grid');
+    console.log('Initializing unified home page...');
     
     try {
         // Load issues from API
@@ -123,11 +129,23 @@ async function initHomePage() {
         const data = await response.json();
         
         if (data.success) {
-            issues = data.issues;
-            console.log('Loaded', issues.length, 'issues');
+            allIssues = data.issues;
+            issues = data.issues; // Keep for backward compatibility
+            console.log('Loaded', allIssues.length, 'issues');
             
             setupCategoryFilters();
+            setupHomePageEvents();
             renderPopularIssues();
+            renderAllIssues();
+            
+            // Handle anchor links
+            if (window.location.hash === '#all-issues') {
+                setTimeout(() => {
+                    document.getElementById('all-issues-section').scrollIntoView({ 
+                        behavior: 'smooth' 
+                    });
+                }, 500);
+            }
         } else {
             throw new Error(data.message || 'Failed to load issues');
         }
@@ -141,34 +159,230 @@ function setupCategoryFilters() {
     const filtersContainer = document.getElementById('category-filters');
     if (!filtersContainer) return;
     
-    // Extract unique categories from issues
-    const categories = ['전체', ...new Set(issues.map(issue => issue.category))];
+    // Define all categories with their colors
+    const categoryColors = {
+        '전체': 'background: linear-gradient(135deg, #6B7280, #9CA3AF); color: white;',
+        '정치': 'background: linear-gradient(135deg, #EF4444, #F87171); color: white;',
+        '스포츠': 'background: linear-gradient(135deg, #06B6D4, #67E8F9); color: white;',
+        '경제': 'background: linear-gradient(135deg, #10B981, #34D399); color: white;',
+        '코인': 'background: linear-gradient(135deg, #F59E0B, #FBBF24); color: white;',
+        '테크': 'background: linear-gradient(135deg, #8B5CF6, #A78BFA); color: white;',
+        '엔터': 'background: linear-gradient(135deg, #EC4899, #F472B6); color: white;',
+        '날씨': 'background: linear-gradient(135deg, #3B82F6, #60A5FA); color: white;',
+        '해외': 'background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white;'
+    };
+    
+    const categories = ['전체', '정치', '스포츠', '경제', '코인', '테크', '엔터', '날씨', '해외'];
     
     filtersContainer.innerHTML = categories.map((category, index) => `
-        <button class="category-filter-btn ${index === 0 ? 'active' : ''} px-4 py-2 rounded-full text-sm font-medium transition-colors
-                       ${index === 0 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}"
+        <button class="category-filter-btn ${index === 0 ? 'active' : ''} px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
+                style="${index === 0 ? categoryColors['전체'] : categoryColors[category]}"
                 data-category="${category}">
             ${category}
         </button>
     `).join('');
     
-    // Add click handlers
+    // Add click events to category filters
     filtersContainer.addEventListener('click', (e) => {
-        const button = e.target.closest('.category-filter-btn');
-        if (!button) return;
-        
-        // Update active state
-        filtersContainer.querySelectorAll('.category-filter-btn').forEach(btn => {
-            btn.classList.remove('active', 'bg-blue-600', 'text-white');
-            btn.classList.add('bg-gray-100', 'text-gray-700');
-        });
-        
-        button.classList.add('active', 'bg-blue-600', 'text-white');
-        button.classList.remove('bg-gray-100', 'text-gray-700');
-        
-        const category = button.dataset.category;
-        renderPopularIssues(category);
+        if (e.target.classList.contains('category-filter-btn')) {
+            const category = e.target.dataset.category;
+            selectCategory(category, e.target);
+        }
     });
+}
+
+function selectCategory(category, buttonElement) {
+    // Update active state
+    document.querySelectorAll('.category-filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.opacity = '0.7';
+        btn.style.transform = 'scale(1)';
+    });
+    
+    buttonElement.classList.add('active');
+    buttonElement.style.opacity = '1';
+    buttonElement.style.transform = 'scale(1.05)';
+    
+    currentCategory = category;
+    currentPage = 1;
+    renderAllIssues();
+}
+
+function setupHomePageEvents() {
+    // Scroll to all issues button
+    const scrollBtn = document.getElementById('scroll-to-all-issues');
+    if (scrollBtn) {
+        scrollBtn.addEventListener('click', () => {
+            document.getElementById('all-issues-section').scrollIntoView({ 
+                behavior: 'smooth' 
+            });
+        });
+    }
+    
+    // Search input
+    const searchInput = document.getElementById('search-input');
+    if (searchInput) {
+        searchInput.addEventListener('input', debounce((e) => {
+            currentSearch = e.target.value.trim();
+            currentPage = 1;
+            renderAllIssues();
+        }, 300));
+    }
+    
+    // Sort select
+    const sortSelect = document.getElementById('sort-select');
+    if (sortSelect) {
+        sortSelect.addEventListener('change', (e) => {
+            currentSort = e.target.value;
+            currentPage = 1;
+            renderAllIssues();
+        });
+    }
+    
+    // Load more button
+    const loadMoreBtn = document.getElementById('load-more-btn');
+    if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', () => {
+            currentPage++;
+            renderAllIssues(true); // append mode
+        });
+    }
+}
+
+function renderPopularIssues() {
+    const grid = document.getElementById('popular-issues-grid');
+    if (!grid) return;
+    
+    const popularIssues = allIssues
+        .filter(issue => issue.is_popular || issue.isPopular)
+        .slice(0, 4);
+    
+    if (popularIssues.length === 0) {
+        grid.innerHTML = `
+            <div class="col-span-full text-center py-12">
+                <i data-lucide="star" class="w-12 h-12 mx-auto text-gray-300 mb-4"></i>
+                <p class="text-gray-500">인기 이슈가 없습니다.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    grid.innerHTML = popularIssues.map(issue => createIssueCard(issue)).join('');
+    
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+function renderAllIssues(append = false) {
+    const grid = document.getElementById('all-issues-grid');
+    const loadMoreBtn = document.getElementById('load-more-btn');
+    const noMoreMsg = document.getElementById('no-more-issues');
+    const issuesCount = document.getElementById('issues-count');
+    
+    if (!grid) return;
+    
+    // Filter and sort issues
+    let filteredIssues = allIssues;
+    
+    // Apply category filter
+    if (currentCategory !== '전체') {
+        filteredIssues = filteredIssues.filter(issue => issue.category === currentCategory);
+    }
+    
+    // Apply search filter
+    if (currentSearch) {
+        filteredIssues = filteredIssues.filter(issue => 
+            issue.title.toLowerCase().includes(currentSearch.toLowerCase())
+        );
+    }
+    
+    // Apply sorting
+    filteredIssues = sortIssues(filteredIssues, currentSort);
+    
+    // Update issues count
+    if (issuesCount) {
+        issuesCount.textContent = filteredIssues.length;
+    }
+    
+    // Pagination
+    const itemsPerPage = 6;
+    const startIndex = append ? 0 : 0;
+    const endIndex = currentPage * itemsPerPage;
+    const issuesToShow = filteredIssues.slice(startIndex, endIndex);
+    
+    if (issuesToShow.length === 0 && !append) {
+        grid.innerHTML = `
+            <div class="col-span-full text-center py-12">
+                <i data-lucide="search" class="w-12 h-12 mx-auto text-gray-300 mb-4"></i>
+                <p class="text-gray-500">검색 결과가 없습니다.</p>
+            </div>
+        `;
+        loadMoreBtn.classList.add('hidden');
+        noMoreMsg.classList.add('hidden');
+        return;
+    }
+    
+    // Render issues
+    if (append) {
+        const newIssues = filteredIssues.slice((currentPage - 1) * itemsPerPage, endIndex);
+        grid.innerHTML += newIssues.map(issue => createIssueCard(issue)).join('');
+    } else {
+        grid.innerHTML = issuesToShow.map(issue => createIssueCard(issue)).join('');
+    }
+    
+    // Show/hide load more button
+    if (endIndex >= filteredIssues.length) {
+        loadMoreBtn.classList.add('hidden');
+        if (filteredIssues.length > itemsPerPage) {
+            noMoreMsg.classList.remove('hidden');
+        }
+    } else {
+        loadMoreBtn.classList.remove('hidden');
+        noMoreMsg.classList.add('hidden');
+    }
+    
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+function sortIssues(issues, sortType) {
+    const sortedIssues = [...issues];
+    
+    switch (sortType) {
+        case 'newest':
+            return sortedIssues.sort((a, b) => 
+                new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt)
+            );
+        case 'popular':
+            return sortedIssues.sort((a, b) => 
+                (b.total_volume || b.totalVolume || 0) - (a.total_volume || a.totalVolume || 0)
+            );
+        case 'ending':
+            return sortedIssues.sort((a, b) => 
+                new Date(a.end_date || a.endDate) - new Date(b.end_date || b.endDate)
+            );
+        case 'volume':
+            return sortedIssues.sort((a, b) => 
+                (b.total_volume || b.totalVolume || 0) - (a.total_volume || a.totalVolume || 0)
+            );
+        default:
+            return sortedIssues;
+    }
+}
+
+// Utility function for debouncing
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
 }
 
 // Comments System
@@ -1756,8 +1970,8 @@ function loginWithGithub() {
 
 // Placeholder functions for other pages
 async function initIssuesPage() {
-    console.log('Issues page - redirecting to home');
-    window.location.href = 'index.html';
+    console.log('Issues page - redirecting to home with all issues anchor');
+    window.location.href = 'index.html#all-issues';
 }
 
 async function initMyPage() {

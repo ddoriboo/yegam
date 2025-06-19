@@ -23,7 +23,6 @@
                     <span class="text-xl font-bold tracking-tight text-gray-900">예겜</span>
                 </a>
                 <div class="hidden md:flex items-center space-x-6 text-sm font-medium text-gray-600">
-                    <a href="issues.html" class="hover:text-gray-900 transition-colors">이슈 목록</a>
                     <a href="mypage.html" class="hover:text-gray-900 transition-colors">내 정보</a>
                 </div>
                 <div id="header-user-actions" class="flex items-center space-x-4">
@@ -54,13 +53,69 @@
             <section class="container mx-auto px-4 lg:px-8 py-16 md:py-20">
                 <div class="flex items-center justify-between mb-8">
                     <h2 class="text-2xl md:text-3xl font-bold text-gray-900" id="section-title">인기 예측 이슈</h2>
-                    <a href="issues.html" class="flex items-center text-blue-600 hover:text-blue-700 transition-colors font-medium">
+                    <button id="scroll-to-all-issues" class="flex items-center text-blue-600 hover:text-blue-700 transition-colors font-medium">
                         <span>전체 보기</span>
-                        <i data-lucide="arrow-right" class="w-4 h-4 ml-2"></i>
-                    </a>
+                        <i data-lucide="arrow-down" class="w-4 h-4 ml-2"></i>
+                    </button>
                 </div>
                 <div id="popular-issues-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <!-- Popular issue cards will be injected here by JavaScript -->
+                </div>
+            </section>
+
+            <!-- Search and Filters Section -->
+            <section class="bg-gray-50 py-12 border-t border-gray-200">
+                <div class="container mx-auto px-4 lg:px-8">
+                    <div class="max-w-2xl mx-auto">
+                        <!-- Search Bar -->
+                        <div class="relative mb-6">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i data-lucide="search" class="h-5 w-5 text-gray-400"></i>
+                            </div>
+                            <input type="text" id="search-input" class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500" placeholder="이슈 제목으로 검색하세요...">
+                        </div>
+                        
+                        <!-- Sort Options -->
+                        <div class="flex flex-wrap gap-3 justify-center">
+                            <select id="sort-select" class="px-4 py-2 border border-gray-300 rounded-lg bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="newest">최신순</option>
+                                <option value="popular">인기순</option>
+                                <option value="ending">마감 임박순</option>
+                                <option value="volume">참여량순</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- All Issues Section -->
+            <section id="all-issues-section" class="container mx-auto px-4 lg:px-8 py-16">
+                <div class="flex items-center justify-between mb-8">
+                    <h2 class="text-2xl md:text-3xl font-bold text-gray-900">전체 이슈</h2>
+                    <div class="text-sm text-gray-500">
+                        <span id="issues-count">-</span>개의 이슈
+                    </div>
+                </div>
+                
+                <!-- Issues Grid -->
+                <div id="all-issues-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- All issue cards will be injected here by JavaScript -->
+                </div>
+                
+                <!-- Loading State -->
+                <div id="issues-loading" class="hidden text-center py-8">
+                    <i data-lucide="loader" class="w-6 h-6 animate-spin mx-auto mb-2 text-gray-400"></i>
+                    <p class="text-gray-500">이슈를 불러오는 중...</p>
+                </div>
+                
+                <!-- Load More Button -->
+                <div class="text-center mt-12">
+                    <button id="load-more-btn" class="hidden px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors">
+                        더 많은 이슈 보기
+                    </button>
+                    <div id="no-more-issues" class="hidden text-gray-500 text-sm">
+                        모든 이슈를 불러왔습니다.
+                    </div>
                 </div>
             </section>
         </main>

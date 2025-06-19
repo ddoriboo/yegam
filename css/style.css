@@ -141,6 +141,59 @@ body {
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
+/* 카테고리 필터 버튼 스타일 */
+.category-filter-btn {
+    position: relative;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    min-width: 80px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.category-filter-btn:hover {
+    transform: scale(1.05) translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.category-filter-btn.active {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    opacity: 1 !important;
+}
+
+.category-filter-btn:not(.active) {
+    opacity: 0.7;
+}
+
+.category-filter-btn:not(.active):hover {
+    opacity: 0.9;
+}
+
+/* 부드러운 스크롤 */
+html {
+    scroll-behavior: smooth;
+}
+
+/* 검색 및 필터 섹션 */
+.search-section {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+}
+
+/* 로딩 애니메이션 */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
 .modern-card {
     background: white;
     border: 1px solid var(--border-gray);
