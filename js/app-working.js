@@ -17,6 +17,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Check authentication
     await checkAuthentication();
     
+    // Initialize comments system
+    initCommentsSystem();
+    
     // Initialize the application based on current page
     const path = window.location.pathname.split("/").pop();
     console.log('Current page:', path);
@@ -168,6 +171,499 @@ function setupCategoryFilters() {
     });
 }
 
+// Comments System
+let userLikedComments = new Set();
+
+function initCommentsSystem() {
+    // 댓글 토글 버튼 이벤트 리스너
+    document.addEventListener('click', async (e) => {
+        if (e.target.closest('.comments-toggle-btn')) {
+            const btn = e.target.closest('.comments-toggle-btn');
+            const issueId = btn.dataset.issueId;
+            await toggleComments(issueId);
+        }
+        
+        // 좋아요 버튼
+        if (e.target.closest('.comment-like-btn')) {
+            const btn = e.target.closest('.comment-like-btn');
+            const commentId = btn.dataset.commentId;
+            await handleCommentLike(commentId, btn);
+        }
+        
+        // 댓글 삭제 버튼
+        if (e.target.closest('.comment-delete-btn')) {
+            const btn = e.target.closest('.comment-delete-btn');
+            const commentId = btn.dataset.commentId;
+            await handleCommentDelete(commentId);
+        }
+        
+        // 답글 버튼
+        if (e.target.closest('.comment-reply-btn')) {
+            const btn = e.target.closest('.comment-reply-btn');
+            const commentId = btn.dataset.commentId;
+            toggleReplyForm(commentId);
+        }
+    });
+    
+    // 댓글 폼 제출 이벤트
+    document.addEventListener('submit', async (e) => {
+        if (e.target.classList.contains('comment-form')) {
+            e.preventDefault();
+            const form = e.target;
+            const issueId = form.dataset.issueId;
+            const parentId = form.dataset.parentId || null;
+            await handleCommentSubmit(form, issueId, parentId);
+        }
+    });
+}
+
+async function toggleComments(issueId) {
+    const commentsSection = document.querySelector(`.comments-section[data-issue-id="${issueId}"]`);
+    const toggleBtn = document.querySelector(`.comments-toggle-btn[data-issue-id="${issueId}"]`);
+    const chevron = toggleBtn.querySelector('[data-lucide="chevron-down"]');
+    
+    if (commentsSection.classList.contains('hidden')) {
+        commentsSection.classList.remove('hidden');
+        chevron.classList.add('rotate-180');
+        await loadComments(issueId);
+        if (currentUser) {
+            showCommentForm(issueId);
+        }
+    } else {
+        commentsSection.classList.add('hidden');
+        chevron.classList.remove('rotate-180');
+    }
+}
+
+async function loadComments(issueId) {
+    const commentsSection = document.querySelector(`.comments-section[data-issue-id="${issueId}"]`);
+    const loadingEl = commentsSection.querySelector('.comments-loading');
+    const containerEl = commentsSection.querySelector('.comments-container');
+    
+    try {
+        loadingEl.classList.remove('hidden');
+        containerEl.classList.add('hidden');
+        
+        const response = await fetch(`/api/comments/issue/${issueId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            if (currentUser) {
+                await loadUserLikeStatus(issueId);
+            }
+            containerEl.innerHTML = renderComments(data.comments);
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+            loadingEl.classList.add('hidden');
+            containerEl.classList.remove('hidden');
+        } else {
+            throw new Error(data.error || '댓글을 불러올 수 없습니다.');
+        }
+    } catch (error) {
+        console.error('댓글 로드 실패:', error);
+        loadingEl.innerHTML = `
+            <div class="text-center py-4 text-red-500">
+                <i data-lucide="alert-circle" class="w-5 h-5 mx-auto mb-2"></i>
+                <span>댓글을 불러올 수 없습니다.</span>
+            </div>
+        `;
+    }
+}
+
+async function loadUserLikeStatus(issueId) {
+    if (!currentUser) return;
+    
+    try {
+        const response = await fetch(`/api/comments/likes/${currentUser.id}/${issueId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            userLikedComments = new Set(data.likedComments);
+        }
+    } catch (error) {
+        console.error('좋아요 상태 로드 실패:', error);
+    }
+}
+
+function renderComments(comments) {
+    if (comments.length === 0) {
+        return `
+            <div class="text-center py-8 text-gray-500">
+                <i data-lucide="message-circle" class="w-8 h-8 mx-auto mb-3 text-gray-300"></i>
+                <p>첫 번째 댓글을 작성해보세요!</p>
+            </div>
+        `;
+    }
+    
+    return comments.map(comment => renderComment(comment)).join('');
+}
+
+function renderComment(comment) {
+    const isLiked = userLikedComments.has(comment.id);
+    const isOwner = currentUser && currentUser.id === comment.user_id;
+    const isHighlighted = comment.is_highlighted;
+    
+    let highlightClass = '';
+    let highlightBadge = '';
+    
+    if (isHighlighted) {
+        highlightClass = 'bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-200';
+        highlightBadge = `
+            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800 font-medium">
+                <i data-lucide="star" class="w-3 h-3 mr-1"></i>
+                강조
+            </span>
+        `;
+    }
+    
+    const repliesHtml = comment.replies ? comment.replies.map(reply => renderReply(reply)).join('') : '';
+    
+    return `
+        <div class="comment ${highlightClass} border rounded-lg p-4 mb-4" data-comment-id="${comment.id}">
+            <div class="flex items-start space-x-3 mb-3">
+                <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                        ${comment.username.charAt(0).toUpperCase()}
+                    </div>
+                </div>
+                <div class="flex-grow min-w-0">
+                    <div class="flex items-center space-x-2 mb-1">
+                        <span class="font-medium text-gray-900">${comment.username}</span>
+                        ${highlightBadge}
+                        <span class="text-xs text-gray-500">${comment.timeAgo}</span>
+                    </div>
+                    <p class="text-gray-800 text-sm leading-relaxed">${comment.content}</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    ${currentUser ? `
+                        <button class="comment-like-btn flex items-center space-x-1 text-sm ${isLiked ? 'text-red-500' : 'text-gray-500'} hover:text-red-500 transition-colors" data-comment-id="${comment.id}">
+                            <i data-lucide="heart" class="w-4 h-4 ${isLiked ? 'fill-current' : ''}"></i>
+                            <span>${comment.likes || 0}</span>
+                        </button>
+                        <button class="comment-reply-btn text-sm text-gray-500 hover:text-blue-500 transition-colors" data-comment-id="${comment.id}">
+                            <i data-lucide="reply" class="w-4 h-4 mr-1"></i>
+                            답글
+                        </button>
+                    ` : ''}
+                </div>
+                
+                ${isOwner ? `
+                    <button class="comment-delete-btn text-xs text-red-500 hover:text-red-700 transition-colors" data-comment-id="${comment.id}">
+                        <i data-lucide="trash-2" class="w-3 h-3 mr-1"></i>
+                        삭제
+                    </button>
+                ` : ''}
+            </div>
+            
+            <div class="reply-form-container hidden mt-4"></div>
+            
+            ${repliesHtml ? `
+                <div class="replies-container mt-4 pl-8 border-l-2 border-gray-100">
+                    ${repliesHtml}
+                </div>
+            ` : ''}
+        </div>
+    `;
+}
+
+function renderReply(reply) {
+    const isLiked = userLikedComments.has(reply.id);
+    const isOwner = currentUser && currentUser.id === reply.user_id;
+    
+    return `
+        <div class="reply border-b border-gray-100 pb-3 mb-3 last:border-b-0 last:pb-0 last:mb-0" data-comment-id="${reply.id}">
+            <div class="flex items-start space-x-3">
+                <div class="flex-shrink-0">
+                    <div class="w-6 h-6 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
+                        ${reply.username.charAt(0).toUpperCase()}
+                    </div>
+                </div>
+                <div class="flex-grow min-w-0">
+                    <div class="flex items-center space-x-2 mb-1">
+                        <span class="font-medium text-gray-900 text-sm">${reply.username}</span>
+                        <span class="text-xs text-gray-500">${reply.timeAgo}</span>
+                    </div>
+                    <p class="text-gray-800 text-sm leading-relaxed">${reply.content}</p>
+                    
+                    <div class="flex items-center justify-between mt-2">
+                        <div class="flex items-center space-x-3">
+                            ${currentUser ? `
+                                <button class="comment-like-btn flex items-center space-x-1 text-xs ${isLiked ? 'text-red-500' : 'text-gray-500'} hover:text-red-500 transition-colors" data-comment-id="${reply.id}">
+                                    <i data-lucide="heart" class="w-3 h-3 ${isLiked ? 'fill-current' : ''}"></i>
+                                    <span>${reply.likes || 0}</span>
+                                </button>
+                            ` : ''}
+                        </div>
+                        
+                        ${isOwner ? `
+                            <button class="comment-delete-btn text-xs text-red-500 hover:text-red-700 transition-colors" data-comment-id="${reply.id}">
+                                <i data-lucide="trash-2" class="w-3 h-3 mr-1"></i>
+                                삭제
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function showCommentForm(issueId) {
+    const commentsSection = document.querySelector(`.comments-section[data-issue-id="${issueId}"]`);
+    const formContainer = commentsSection.querySelector('.comment-form-container');
+    
+    formContainer.innerHTML = `
+        <form class="comment-form bg-gray-50 rounded-lg p-4" data-issue-id="${issueId}">
+            <textarea 
+                name="content" 
+                placeholder="이 이슈에 대한 의견을 남겨보세요..." 
+                class="w-full p-3 border border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                rows="3"
+                maxlength="500"
+                required
+            ></textarea>
+            <div class="flex items-center justify-between mt-3">
+                <span class="text-xs text-gray-500">
+                    <span class="character-count">0</span> / 500자
+                </span>
+                <div class="flex items-center space-x-2">
+                    <button type="button" class="cancel-comment text-sm text-gray-500 hover:text-gray-700 transition-colors">
+                        취소
+                    </button>
+                    <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                        댓글 작성
+                    </button>
+                </div>
+            </div>
+        </form>
+    `;
+    
+    formContainer.classList.remove('hidden');
+    
+    const textarea = formContainer.querySelector('textarea');
+    const charCount = formContainer.querySelector('.character-count');
+    
+    textarea.addEventListener('input', () => {
+        charCount.textContent = textarea.value.length;
+    });
+    
+    formContainer.querySelector('.cancel-comment').addEventListener('click', () => {
+        formContainer.classList.add('hidden');
+    });
+    
+    textarea.focus();
+}
+
+function toggleReplyForm(commentId) {
+    const comment = document.querySelector(`[data-comment-id="${commentId}"]`);
+    const replyContainer = comment.querySelector('.reply-form-container');
+    
+    if (replyContainer.classList.contains('hidden')) {
+        const issueId = comment.closest('.comments-section').dataset.issueId;
+        
+        replyContainer.innerHTML = `
+            <form class="comment-form bg-blue-50 rounded-lg p-3" data-issue-id="${issueId}" data-parent-id="${commentId}">
+                <textarea 
+                    name="content" 
+                    placeholder="답글을 작성하세요..." 
+                    class="w-full p-2 border border-blue-200 rounded resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm"
+                    rows="2"
+                    maxlength="500"
+                    required
+                ></textarea>
+                <div class="flex items-center justify-between mt-2">
+                    <span class="text-xs text-gray-500">
+                        <span class="character-count">0</span> / 500자
+                    </span>
+                    <div class="flex items-center space-x-2">
+                        <button type="button" class="cancel-reply text-xs text-gray-500 hover:text-gray-700 transition-colors">
+                            취소
+                        </button>
+                        <button type="submit" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded text-xs font-medium transition-colors">
+                            답글 작성
+                        </button>
+                    </div>
+                </div>
+            </form>
+        `;
+        
+        replyContainer.classList.remove('hidden');
+        
+        const textarea = replyContainer.querySelector('textarea');
+        const charCount = replyContainer.querySelector('.character-count');
+        
+        textarea.addEventListener('input', () => {
+            charCount.textContent = textarea.value.length;
+        });
+        
+        replyContainer.querySelector('.cancel-reply').addEventListener('click', () => {
+            replyContainer.classList.add('hidden');
+        });
+        
+        textarea.focus();
+    } else {
+        replyContainer.classList.add('hidden');
+    }
+}
+
+async function handleCommentSubmit(form, issueId, parentId = null) {
+    const formData = new FormData(form);
+    const content = formData.get('content').trim();
+    
+    if (!content) return;
+    
+    const submitBtn = form.querySelector('[type="submit"]');
+    const originalText = submitBtn.textContent;
+    
+    try {
+        submitBtn.disabled = true;
+        submitBtn.textContent = '작성 중...';
+        
+        const response = await fetch('/api/comments', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                userId: currentUser.id,
+                issueId: parseInt(issueId),
+                content: content,
+                parentId: parentId ? parseInt(parentId) : null
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            await loadComments(issueId);
+            form.reset();
+            
+            if (parentId) {
+                form.closest('.reply-form-container').classList.add('hidden');
+            }
+            
+            showNotification('댓글이 작성되었습니다.', 'success');
+        } else {
+            throw new Error(data.error || '댓글 작성에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('댓글 작성 실패:', error);
+        showNotification(error.message, 'error');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+    }
+}
+
+async function handleCommentLike(commentId, btn) {
+    if (!currentUser) {
+        showNotification('로그인이 필요합니다.', 'error');
+        return;
+    }
+    
+    const isLiked = userLikedComments.has(parseInt(commentId));
+    const action = isLiked ? 'unlike' : 'like';
+    
+    try {
+        const response = await fetch(`/api/comments/${commentId}/like`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                userId: currentUser.id,
+                action: action
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            const heartIcon = btn.querySelector('[data-lucide="heart"]');
+            const countSpan = btn.querySelector('span');
+            
+            if (action === 'like') {
+                userLikedComments.add(parseInt(commentId));
+                btn.classList.remove('text-gray-500');
+                btn.classList.add('text-red-500');
+                heartIcon.classList.add('fill-current');
+                countSpan.textContent = parseInt(countSpan.textContent) + 1;
+            } else {
+                userLikedComments.delete(parseInt(commentId));
+                btn.classList.remove('text-red-500');
+                btn.classList.add('text-gray-500');
+                heartIcon.classList.remove('fill-current');
+                countSpan.textContent = parseInt(countSpan.textContent) - 1;
+            }
+        } else {
+            throw new Error(data.error || '좋아요 처리에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('좋아요 처리 실패:', error);
+        showNotification(error.message, 'error');
+    }
+}
+
+async function handleCommentDelete(commentId) {
+    if (!confirm('정말로 이 댓글을 삭제하시겠습니까?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/comments/${commentId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                userId: currentUser.id
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            const commentEl = document.querySelector(`[data-comment-id="${commentId}"]`);
+            const issueId = commentEl.closest('.comments-section').dataset.issueId;
+            
+            await loadComments(issueId);
+            showNotification('댓글이 삭제되었습니다.', 'success');
+        } else {
+            throw new Error(data.error || '댓글 삭제에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('댓글 삭제 실패:', error);
+        showNotification(error.message, 'error');
+    }
+}
+
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 px-4 py-2 rounded-lg text-white text-sm font-medium transition-all duration-300 transform translate-x-full opacity-0 ${
+        type === 'success' ? 'bg-green-500' : 
+        type === 'error' ? 'bg-red-500' : 
+        'bg-blue-500'
+    }`;
+    notification.textContent = message;
+    
+    document.body.appendChild(notification);
+    
+    requestAnimationFrame(() => {
+        notification.classList.remove('translate-x-full', 'opacity-0');
+    });
+    
+    setTimeout(() => {
+        notification.classList.add('translate-x-full', 'opacity-0');
+        setTimeout(() => {
+            notification.remove();
+        }, 300);
+    }, 3000);
+}
+
 function renderPopularIssues(categoryFilter = '전체') {
     const grid = document.getElementById('popular-issues-grid');
     if (!grid) return;
@@ -257,6 +753,23 @@ function createIssueCard(issue) {
                     <i data-lucide="coins" class="w-4 h-4 mr-1 text-yellow-500"></i>
                     ${formatVolume(volume)}
                 </span>
+            </div>
+            
+            <!-- Comments Section -->
+            <div class="pt-4 border-t border-gray-200 mt-4">
+                <button class="comments-toggle-btn w-full flex items-center justify-center space-x-2 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors" data-issue-id="${issue.id}">
+                    <i data-lucide="message-circle" class="w-4 h-4 text-gray-600"></i>
+                    <span class="text-sm font-medium text-gray-700">토론 참여하기</span>
+                    <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 transform transition-transform"></i>
+                </button>
+                <div class="comments-section hidden mt-4" data-issue-id="${issue.id}">
+                    <div class="comments-loading text-center py-4 text-gray-500">
+                        <i data-lucide="loader" class="w-5 h-5 animate-spin mx-auto mb-2"></i>
+                        <span>댓글을 불러오는 중...</span>
+                    </div>
+                    <div class="comments-container hidden"></div>
+                    <div class="comment-form-container hidden"></div>
+                </div>
             </div>
         </div>
     `;
@@ -462,6 +975,7 @@ async function initAdminPage() {
     
     // Setup admin page UI events
     setupAdminPageEvents();
+    setupAdminTabs();
     await loadAdminIssues();
     setupCreateIssueForm();
 }
@@ -491,6 +1005,228 @@ function setupAdminPageEvents() {
                 modal.classList.add('hidden');
             }
         });
+    }
+}
+
+// 관리자 탭 설정
+function setupAdminTabs() {
+    const issuesTab = document.getElementById('issues-tab');
+    const commentsTab = document.getElementById('comments-tab');
+    const issuesSection = document.getElementById('issues-section');
+    const commentsSection = document.getElementById('comments-section');
+    const createBtn = document.getElementById('create-issue-btn');
+    
+    if (!issuesTab || !commentsTab) return;
+    
+    issuesTab.addEventListener('click', () => {
+        switchAdminTab(issuesTab, commentsTab, issuesSection, commentsSection, createBtn, true);
+    });
+    
+    commentsTab.addEventListener('click', () => {
+        switchAdminTab(commentsTab, issuesTab, commentsSection, issuesSection, createBtn, false);
+        loadAdminComments();
+    });
+    
+    // 댓글 관리 이벤트
+    setupCommentManagementEvents();
+}
+
+function switchAdminTab(activeTab, inactiveTab, activeSection, inactiveSection, createBtn, showCreateBtn) {
+    // 탭 스타일 변경
+    activeTab.className = 'admin-tab active pb-4 border-b-2 border-blue-500 text-blue-600 font-medium';
+    inactiveTab.className = 'admin-tab pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium';
+    
+    // 섹션 표시/숨김
+    activeSection.classList.remove('hidden');
+    inactiveSection.classList.add('hidden');
+    
+    // 새 이슈 생성 버튼 표시/숨김
+    if (createBtn) {
+        if (showCreateBtn) {
+            createBtn.classList.remove('hidden');
+        } else {
+            createBtn.classList.add('hidden');
+        }
+    }
+}
+
+function setupCommentManagementEvents() {
+    // 댓글 필터 변경
+    const commentFilter = document.getElementById('comment-filter');
+    if (commentFilter) {
+        commentFilter.addEventListener('change', () => {
+            loadAdminComments();
+        });
+    }
+    
+    // 새로고침 버튼
+    const refreshBtn = document.getElementById('refresh-comments');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', () => {
+            loadAdminComments();
+        });
+    }
+    
+    // 댓글 액션 이벤트 (이벤트 위임)
+    document.addEventListener('click', async (e) => {
+        if (e.target.closest('.admin-delete-comment')) {
+            const btn = e.target.closest('.admin-delete-comment');
+            const commentId = btn.dataset.commentId;
+            await handleAdminDeleteComment(commentId);
+        }
+        
+        if (e.target.closest('.admin-highlight-comment')) {
+            const btn = e.target.closest('.admin-highlight-comment');
+            const commentId = btn.dataset.commentId;
+            const action = btn.dataset.action;
+            await handleAdminHighlightComment(commentId, action);
+        }
+    });
+}
+
+async function loadAdminComments() {
+    const tbody = document.getElementById('comments-table-body');
+    const loadingEl = document.getElementById('comments-loading');
+    const emptyEl = document.getElementById('comments-empty');
+    const filterSelect = document.getElementById('comment-filter');
+    
+    if (!tbody || !loadingEl || !emptyEl) return;
+    
+    try {
+        loadingEl.classList.remove('hidden');
+        tbody.classList.add('hidden');
+        emptyEl.classList.add('hidden');
+        
+        const filter = filterSelect ? filterSelect.value : 'all';
+        const response = await fetch(`/api/admin/comments/all?filter=${filter}&limit=100`);
+        const data = await response.json();
+        
+        if (data.success) {
+            if (data.comments.length === 0) {
+                loadingEl.classList.add('hidden');
+                emptyEl.classList.remove('hidden');
+                return;
+            }
+            
+            tbody.innerHTML = data.comments.map(comment => renderAdminCommentRow(comment)).join('');
+            
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+            
+            loadingEl.classList.add('hidden');
+            tbody.classList.remove('hidden');
+        } else {
+            throw new Error(data.error || '댓글을 불러올 수 없습니다.');
+        }
+    } catch (error) {
+        console.error('관리자 댓글 로드 실패:', error);
+        loadingEl.innerHTML = `
+            <div class="flex items-center justify-center py-8 text-red-500">
+                <i data-lucide="alert-circle" class="w-5 h-5 mr-2"></i>
+                <span>댓글을 불러올 수 없습니다.</span>
+            </div>
+        `;
+    }
+}
+
+function renderAdminCommentRow(comment) {
+    const statusBadge = comment.isDeleted ? 
+        '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">삭제됨</span>' :
+        comment.is_highlighted ? 
+        '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">강조됨</span>' :
+        '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">정상</span>';
+    
+    const actions = comment.isDeleted ? 
+        '' : // 삭제된 댓글은 액션 버튼 없음
+        `<div class="flex items-center space-x-2">
+            ${!comment.is_highlighted ? 
+                `<button class="admin-highlight-comment text-xs text-yellow-600 hover:text-yellow-700" data-comment-id="${comment.id}" data-action="highlight">강조</button>` :
+                `<button class="admin-highlight-comment text-xs text-gray-600 hover:text-gray-700" data-comment-id="${comment.id}" data-action="unhighlight">강조해제</button>`
+            }
+            <button class="admin-delete-comment text-xs text-red-600 hover:text-red-700" data-comment-id="${comment.id}">삭제</button>
+        </div>`;
+    
+    return `
+        <tr>
+            <td class="px-6 py-4">
+                <div class="text-sm text-gray-900 max-w-xs truncate" title="${comment.content}">
+                    ${comment.contentPreview}
+                </div>
+                ${comment.parent_id ? '<div class="text-xs text-gray-500 mt-1">↳ 답글</div>' : ''}
+                ${comment.reply_count > 0 ? `<div class="text-xs text-blue-600 mt-1">${comment.reply_count}개 답글</div>` : ''}
+            </td>
+            <td class="px-6 py-4">
+                <div class="text-sm font-medium text-gray-900">${comment.username}</div>
+                <div class="text-xs text-gray-500">ID: ${comment.user_id}</div>
+            </td>
+            <td class="px-6 py-4">
+                <div class="text-sm text-gray-900 max-w-xs truncate" title="${comment.issue_title}">
+                    ${comment.issue_title}
+                </div>
+                <div class="text-xs text-gray-500">ID: ${comment.issue_id}</div>
+            </td>
+            <td class="px-6 py-4 text-sm text-gray-900">
+                <div class="flex items-center">
+                    <i data-lucide="heart" class="w-4 h-4 mr-1 ${comment.likes > 0 ? 'text-red-500' : 'text-gray-400'}"></i>
+                    ${comment.likes}
+                </div>
+            </td>
+            <td class="px-6 py-4">${statusBadge}</td>
+            <td class="px-6 py-4 text-sm text-gray-500">${comment.timeAgo}</td>
+            <td class="px-6 py-4">${actions}</td>
+        </tr>
+    `;
+}
+
+async function handleAdminDeleteComment(commentId) {
+    if (!confirm('정말로 이 댓글을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/api/admin/comments/${commentId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showNotification('댓글이 삭제되었습니다.', 'success');
+            await loadAdminComments();
+        } else {
+            throw new Error(data.error || '댓글 삭제에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('관리자 댓글 삭제 실패:', error);
+        showNotification(error.message, 'error');
+    }
+}
+
+async function handleAdminHighlightComment(commentId, action) {
+    try {
+        const response = await fetch(`/api/admin/comments/${commentId}/highlight`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ action })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showNotification(data.message, 'success');
+            await loadAdminComments();
+        } else {
+            throw new Error(data.error || '댓글 강조 처리에 실패했습니다.');
+        }
+    } catch (error) {
+        console.error('관리자 댓글 강조 처리 실패:', error);
+        showNotification(error.message, 'error');
     }
 }
 

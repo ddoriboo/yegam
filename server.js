@@ -7,6 +7,8 @@ require('dotenv').config();
 const authRoutes = require('./routes/auth');
 const issueRoutes = require('./routes/issues');
 const betRoutes = require('./routes/bets');
+const commentRoutes = require('./routes/comments');
+const adminCommentRoutes = require('./routes/admin-comments');
 const { initDatabase } = require('./database/database');
 
 const app = express();
@@ -38,6 +40,8 @@ app.use(express.static(path.join(__dirname), {
 app.use('/api/auth', authRoutes);
 app.use('/api/issues', issueRoutes);
 app.use('/api/bets', betRoutes);
+app.use('/api/comments', commentRoutes);
+app.use('/api/admin/comments', adminCommentRoutes);
 
 // 프론트엔드 라우트
 app.get('/', (req, res) => {

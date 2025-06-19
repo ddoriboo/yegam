@@ -85,6 +85,35 @@ const createTables = () => {
                 user_id INTEGER NOT NULL,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users (id)
+            )`,
+            
+            // 댓글 테이블
+            `CREATE TABLE IF NOT EXISTS comments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                issue_id INTEGER NOT NULL,
+                parent_id INTEGER DEFAULT NULL,
+                content TEXT NOT NULL,
+                likes INTEGER DEFAULT 0,
+                is_highlighted BOOLEAN DEFAULT FALSE,
+                highlight_expires_at DATETIME DEFAULT NULL,
+                deleted_at DATETIME DEFAULT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id),
+                FOREIGN KEY (issue_id) REFERENCES issues (id),
+                FOREIGN KEY (parent_id) REFERENCES comments (id)
+            )`,
+            
+            // 댓글 좋아요 테이블
+            `CREATE TABLE IF NOT EXISTS comment_likes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                comment_id INTEGER NOT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id),
+                FOREIGN KEY (comment_id) REFERENCES comments (id),
+                UNIQUE(user_id, comment_id)
             )`
         ];
         
