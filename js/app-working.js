@@ -465,17 +465,33 @@ async function initAdminPage() {
 }
 
 function checkAdminAccess() {
-    return sessionStorage.getItem('admin-auth') === 'authenticated';
+    // 관리자 접근을 위해서는 사용자 로그인도 필요
+    return sessionStorage.getItem('admin-auth') === 'authenticated' && userToken;
 }
 
 function showAdminLogin() {
     const mainContent = document.querySelector('main');
     if (!mainContent) return;
     
+    // 사용자 로그인 상태 확인
+    if (!userToken) {
+        mainContent.innerHTML = `
+            <div class="max-w-md mx-auto mt-16">
+                <div class="bg-white rounded-lg shadow-lg p-8">
+                    <h2 class="text-2xl font-bold text-center mb-6">관리자 접근 오류</h2>
+                    <p class="text-center text-gray-600 mb-4">관리자 기능을 사용하려면 먼저 사용자 로그인이 필요합니다.</p>
+                    <a href="login.html" class="w-full block bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 text-center">로그인하러 가기</a>
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
     mainContent.innerHTML = `
         <div class="max-w-md mx-auto mt-16">
             <div class="bg-white rounded-lg shadow-lg p-8">
                 <h2 class="text-2xl font-bold text-center mb-6">관리자 로그인</h2>
+                <p class="text-center text-gray-600 mb-4">사용자: <strong>${currentUser?.username || '알 수 없음'}</strong></p>
                 <form id="admin-login-form">
                     <div class="mb-4">
                         <label class="block text-sm font-medium text-gray-700 mb-2">관리자 암호</label>
