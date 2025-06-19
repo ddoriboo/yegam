@@ -1,5 +1,5 @@
 const cron = require('node-cron');
-const { getDB } = require('../database/database');
+const { getDB, getCurrentTimeSQL } = require('../database/database');
 
 class IssueScheduler {
     constructor() {
@@ -23,13 +23,15 @@ class IssueScheduler {
             
             // 마감 시간이 지났지만 아직 마감되지 않은 이슈들 조회
             const expiredIssues = await new Promise((resolve, reject) => {
-                db.all(`
+                const query = `
                     SELECT id, title, end_date 
                     FROM issues 
-                    WHERE end_date < datetime('now') 
+                    WHERE end_date < ${getCurrentTimeSQL()} 
                     AND status = 'active'
                     AND result IS NULL
-                `, (err, issues) => {
+                `;
+                
+                db.all(query, (err, issues) => {
                     if (err) reject(err);
                     else resolve(issues);
                 });

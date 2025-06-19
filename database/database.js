@@ -362,11 +362,17 @@ const getDB = () => {
     return db;
 };
 
+// 데이터베이스별 현재 시간 함수 반환
+const getCurrentTimeSQL = () => {
+    return isPostgreSQL ? 'NOW()' : "datetime('now')";
+};
+
 module.exports = {
     initDatabase,
     query,
     run,
     get,
     getDB,
-    isPostgreSQL: () => isPostgreSQL
+    isPostgreSQL: () => isPostgreSQL,
+    getCurrentTimeSQL
 };

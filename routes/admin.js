@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { getDB } = require('../database/database');
+const { getDB, getCurrentTimeSQL } = require('../database/database');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 const issueScheduler = require('../services/scheduler');
 
@@ -266,7 +266,7 @@ router.get('/issues/closed', adminMiddleware, async (req, res) => {
             // 마감된 이슈이지만 결과가 아직 결정되지 않은 이슈들
             query = `SELECT id, title, category, end_date, status, result, yes_price, total_volume 
                      FROM issues 
-                     WHERE (status = 'closed' OR end_date < datetime('now')) AND result IS NULL 
+                     WHERE (status = 'closed' OR end_date < ${getCurrentTimeSQL()}) AND result IS NULL 
                      ORDER BY end_date ASC`;
             break;
         case 'pending':
@@ -399,7 +399,7 @@ router.post('/issues/:id/result', adminMiddleware, async (req, res) => {
         await new Promise((resolve, reject) => {
             db.run(`
                 UPDATE issues 
-                SET result = ?, decided_by = ?, decided_at = datetime('now'), 
+                SET result = ?, decided_by = ?, decided_at = ${getCurrentTimeSQL()}, 
                     decision_reason = ?, status = 'resolved'
                 WHERE id = ?
             `, [result, adminId, reason, id], function(err) {
