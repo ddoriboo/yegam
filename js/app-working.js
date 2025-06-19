@@ -1645,12 +1645,8 @@ async function openResultModal(issueId) {
     const modal = document.getElementById('result-modal');
     
     try {
-        // 이슈 정보 조회
-        const response = await fetch(`/api/issues/${issueId}`, {
-            headers: {
-                'Authorization': `Bearer ${userToken}`
-            }
-        });
+        // 관리자용 이슈 정보 조회
+        const response = await fetch(`/api/admin/issues/${issueId}`);
         
         const data = await response.json();
         

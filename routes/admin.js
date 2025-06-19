@@ -270,15 +270,26 @@ router.get('/issues/closed', adminMiddleware, async (req, res) => {
     
     // 데이터베이스 쿼리 실행
     if (typeof db.all === 'function') {
-        // SQLite 방식
-        db.all(query, params, (err, issues) => {
-            if (err) {
-                console.error('결과 관리용 이슈 조회 실패:', err);
-                return res.status(500).json({ success: false, message: '이슈 조회에 실패했습니다.' });
-            }
-            
-            res.json({ success: true, issues });
-        });
+        // SQLite 방식 - params가 빈 배열일 때는 생략
+        if (params.length > 0) {
+            db.all(query, params, (err, issues) => {
+                if (err) {
+                    console.error('결과 관리용 이슈 조회 실패:', err);
+                    return res.status(500).json({ success: false, message: '이슈 조회에 실패했습니다.' });
+                }
+                
+                res.json({ success: true, issues });
+            });
+        } else {
+            db.all(query, (err, issues) => {
+                if (err) {
+                    console.error('결과 관리용 이슈 조회 실패:', err);
+                    return res.status(500).json({ success: false, message: '이슈 조회에 실패했습니다.' });
+                }
+                
+                res.json({ success: true, issues });
+            });
+        }
     } else {
         // 새로운 인터페이스 사용
         try {
@@ -296,7 +307,7 @@ router.get('/issues/closed', adminMiddleware, async (req, res) => {
 router.post('/issues/:id/result', adminMiddleware, async (req, res) => {
     const { id } = req.params;
     const { result, reason } = req.body;
-    const adminId = req.user.id;
+    const adminId = req.user?.id || 1; // 임시로 관리자 ID 1 사용
     
     if (!result || !reason) {
         return res.status(400).json({ 
@@ -479,6 +490,63 @@ router.post('/issues/:id/close', adminMiddleware, (req, res) => {
             message: '이슈가 수동으로 마감되었습니다.'
         });
     });
+});
+
+// 관리자용 단일 이슈 조회 (상태 무관)
+router.get('/issues/:id', adminMiddleware, async (req, res) => {
+    try {
+        const issueId = req.params.id;
+        const db = getDB();
+        
+        if (typeof db.get === 'function') {
+            db.get('SELECT * FROM issues WHERE id = ?', [issueId], (err, issue) => {
+                if (err) {
+                    console.error('관리자 이슈 조회 실패:', err);
+                    return res.status(500).json({ success: false, message: '이슈 조회에 실패했습니다.' });
+                }
+                
+                if (!issue) {
+                    return res.status(404).json({ 
+                        success: false, 
+                        message: '존재하지 않는 이슈입니다.' 
+                    });
+                }
+                
+                res.json({
+                    success: true,
+                    issue: {
+                        ...issue,
+                        isPopular: Boolean(issue.is_popular)
+                    }
+                });
+            });
+        } else {
+            // 새로운 인터페이스 사용
+            const { get } = require('../database/database');
+            const issue = await get('SELECT * FROM issues WHERE id = $1', [issueId]);
+            
+            if (!issue) {
+                return res.status(404).json({ 
+                    success: false, 
+                    message: '존재하지 않는 이슈입니다.' 
+                });
+            }
+            
+            res.json({
+                success: true,
+                issue: {
+                    ...issue,
+                    isPopular: Boolean(issue.is_popular)
+                }
+            });
+        }
+    } catch (error) {
+        console.error('관리자 이슈 조회 오류:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: '이슈 조회 중 오류가 발생했습니다.' 
+        });
+    }
 });
 
 module.exports = router;
