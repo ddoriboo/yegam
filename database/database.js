@@ -38,7 +38,7 @@ const getDB = () => {
     return {
         all: async (text, params, callback) => {
             try {
-                const result = await query(text, params || []);
+                const result = await pgQuery(text, params || []);
                 callback(null, result.rows);
             } catch (err) {
                 callback(err);
@@ -46,15 +46,15 @@ const getDB = () => {
         },
         get: async (text, params, callback) => {
             try {
-                const result = await get(text, params || []);
-                callback(null, result);
+                const result = await pgQuery(text, params || []);
+                callback(null, result.rows[0] || null);
             } catch (err) {
                 callback(err);
             }
         },
         run: async (text, params, callback) => {
             try {
-                const result = await run(text, params || []);
+                const result = await pgQuery(text, params || []);
                 callback.call({ lastID: result.rows[0]?.id, changes: result.rowCount || 0 });
             } catch (err) {
                 callback(err);
