@@ -58,7 +58,7 @@ router.get('/:id', async (req, res) => {
 // 새 이슈 생성 (관리자용)
 router.post('/', authMiddleware, async (req, res) => {
     try {
-        const { title, category, endDate, yesPrice, isPopular } = req.body;
+        const { title, category, description, imageUrl, endDate, yesPrice, isPopular } = req.body;
         
         if (!title || !category || !endDate) {
             return res.status(400).json({ 
@@ -67,10 +67,23 @@ router.post('/', authMiddleware, async (req, res) => {
             });
         }
         
-        const result = await run('INSERT INTO issues (title, category, end_date, yes_price, is_popular) VALUES ($1, $2, $3, $4, $5)', 
-            [title, category, endDate, yesPrice || 50, isPopular ? true : false]);
+        const insertQuery = `
+            INSERT INTO issues (title, category, description, image_url, end_date, yes_price, is_popular) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING id
+        `;
         
-        const issueId = result.lastID || result.rows[0]?.id;
+        const result = await query(insertQuery, [
+            title, 
+            category, 
+            description || null, 
+            imageUrl || null, 
+            endDate, 
+            yesPrice || 50, 
+            isPopular ? true : false
+        ]);
+        
+        const issueId = result.rows[0]?.id || result.lastID;
         
         res.json({
             success: true,
@@ -90,10 +103,25 @@ router.post('/', authMiddleware, async (req, res) => {
 router.put('/:id', authMiddleware, async (req, res) => {
     try {
         const issueId = req.params.id;
-        const { title, category, endDate, yesPrice, isPopular } = req.body;
+        const { title, category, description, imageUrl, endDate, yesPrice, isPopular } = req.body;
         
-        const result = await run('UPDATE issues SET title = $1, category = $2, end_date = $3, yes_price = $4, is_popular = $5 WHERE id = $6', 
-            [title, category, endDate, yesPrice, isPopular ? true : false, issueId]);
+        const updateQuery = `
+            UPDATE issues 
+            SET title = $1, category = $2, description = $3, image_url = $4, 
+                end_date = $5, yes_price = $6, is_popular = $7, updated_at = CURRENT_TIMESTAMP 
+            WHERE id = $8
+        `;
+        
+        const result = await run(updateQuery, [
+            title, 
+            category, 
+            description || null, 
+            imageUrl || null, 
+            endDate, 
+            yesPrice, 
+            isPopular ? true : false, 
+            issueId
+        ]);
         
         if (result.changes === 0) {
             return res.status(404).json({ 

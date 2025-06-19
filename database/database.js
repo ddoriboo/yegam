@@ -82,6 +82,8 @@ const createSQLiteTables = () => {
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 title TEXT NOT NULL,
                 category TEXT NOT NULL,
+                description TEXT,
+                image_url TEXT,
                 end_date DATETIME NOT NULL,
                 yes_price INTEGER DEFAULT 50,
                 total_volume INTEGER DEFAULT 0,

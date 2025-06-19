@@ -101,6 +101,7 @@
                             <label for="issue-image" class="block text-sm font-medium text-gray-700 mb-2">이미지 업로드 (선택사항)</label>
                             <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                                 <input type="file" id="issue-image" name="image" accept="image/*" class="hidden">
+                                <input type="hidden" id="image-url" name="imageUrl" value="">
                                 <div id="image-preview" class="hidden mb-4">
                                     <img id="preview-img" src="" alt="미리보기" class="mx-auto max-h-32 rounded">
                                     <button type="button" id="remove-image" class="mt-2 text-red-600 text-sm">이미지 제거</button>
@@ -109,6 +110,10 @@
                                     <i data-lucide="upload" class="w-8 h-8 mx-auto text-gray-400 mb-2"></i>
                                     <p class="text-sm text-gray-600">클릭하여 이미지를 업로드하거나 드래그 앤 드롭하세요</p>
                                     <p class="text-xs text-gray-500 mt-1">PNG, JPG, JPEG (최대 5MB)</p>
+                                </div>
+                                <div id="upload-progress" class="hidden mt-2">
+                                    <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                                    <p class="text-xs text-gray-600 mt-1">업로드 중...</p>
                                 </div>
                             </div>
                         </div>
@@ -123,6 +128,81 @@
                         <div class="flex space-x-3 pt-4">
                             <button type="submit" class="btn-primary flex-1">이슈 생성</button>
                             <button type="button" id="cancel-btn" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors">취소</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 이슈 수정 모달 -->
+            <div id="edit-issue-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                    <div class="p-6 border-b border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-xl font-bold text-gray-900">이슈 수정</h2>
+                            <button id="close-edit-modal-btn" class="text-gray-400 hover:text-gray-600">
+                                <i data-lucide="x" class="w-6 h-6"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <form id="edit-issue-form" class="p-6 space-y-6">
+                        <input type="hidden" id="edit-issue-id" name="issueId">
+                        <div>
+                            <label for="edit-issue-title" class="block text-sm font-medium text-gray-700 mb-2">이슈 제목</label>
+                            <input type="text" id="edit-issue-title" name="title" class="modern-input w-full" required>
+                        </div>
+                        <div>
+                            <label for="edit-issue-category" class="block text-sm font-medium text-gray-700 mb-2">카테고리</label>
+                            <select id="edit-issue-category" name="category" class="modern-select w-full" required>
+                                <option value="">카테고리 선택</option>
+                                <option value="정치">정치</option>
+                                <option value="스포츠">스포츠</option>
+                                <option value="경제">경제</option>
+                                <option value="코인">코인</option>
+                                <option value="테크">테크</option>
+                                <option value="엔터">엔터</option>
+                                <option value="날씨">날씨</option>
+                                <option value="해외">해외</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="edit-issue-end-date" class="block text-sm font-medium text-gray-700 mb-2">마감일</label>
+                            <input type="datetime-local" id="edit-issue-end-date" name="endDate" class="modern-input w-full" required>
+                        </div>
+                        <div>
+                            <label for="edit-issue-description" class="block text-sm font-medium text-gray-700 mb-2">설명 (선택사항)</label>
+                            <textarea id="edit-issue-description" name="description" class="modern-input w-full" rows="3"></textarea>
+                        </div>
+                        <div>
+                            <label for="edit-issue-image" class="block text-sm font-medium text-gray-700 mb-2">이미지 업로드 (선택사항)</label>
+                            <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                                <input type="file" id="edit-issue-image" name="image" accept="image/*" class="hidden">
+                                <input type="hidden" id="edit-image-url" name="imageUrl" value="">
+                                <div id="edit-image-preview" class="hidden mb-4">
+                                    <img id="edit-preview-img" src="" alt="미리보기" class="mx-auto max-h-32 rounded">
+                                    <button type="button" id="edit-remove-image" class="mt-2 text-red-600 text-sm">이미지 제거</button>
+                                </div>
+                                <div id="edit-upload-area" class="cursor-pointer" onclick="document.getElementById('edit-issue-image').click()">
+                                    <i data-lucide="upload" class="w-8 h-8 mx-auto text-gray-400 mb-2"></i>
+                                    <p class="text-sm text-gray-600">클릭하여 이미지를 업로드하거나 드래그 앤 드롭하세요</p>
+                                    <p class="text-xs text-gray-500 mt-1">PNG, JPG, JPEG (최대 5MB)</p>
+                                </div>
+                                <div id="edit-upload-progress" class="hidden mt-2">
+                                    <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                                    <p class="text-xs text-gray-600 mt-1">업로드 중...</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="edit-issue-yes-price" class="block text-sm font-medium text-gray-700 mb-2">초기 Yes 확률 (%)</label>
+                            <input type="number" id="edit-issue-yes-price" name="yesPrice" class="modern-input w-full" min="1" max="99" required>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" id="edit-issue-popular" name="isPopular" class="mr-2">
+                            <label for="edit-issue-popular" class="text-sm text-gray-700">인기 이슈로 표시</label>
+                        </div>
+                        <div class="flex space-x-3 pt-4">
+                            <button type="submit" class="btn-primary flex-1">이슈 수정</button>
+                            <button type="button" id="edit-cancel-btn" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors">취소</button>
                         </div>
                     </form>
                 </div>

@@ -59,6 +59,8 @@ const createTables = async () => {
                 id SERIAL PRIMARY KEY,
                 title TEXT NOT NULL,
                 category VARCHAR(100) NOT NULL,
+                description TEXT,
+                image_url TEXT,
                 end_date TIMESTAMP NOT NULL,
                 yes_price INTEGER DEFAULT 50,
                 total_volume INTEGER DEFAULT 0,
@@ -71,6 +73,15 @@ const createTables = async () => {
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
+        
+        // 기존 테이블에 새 컬럼 추가 (이미 존재하는 경우 무시)
+        try {
+            await client.query(`ALTER TABLE issues ADD COLUMN IF NOT EXISTS description TEXT`);
+            await client.query(`ALTER TABLE issues ADD COLUMN IF NOT EXISTS image_url TEXT`);
+        } catch (error) {
+            // 컬럼이 이미 존재하는 경우 무시
+            console.log('이슈 테이블 컬럼 추가 스킵 (이미 존재함)');
+        }
         
         // 베팅 테이블
         await client.query(`

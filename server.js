@@ -9,6 +9,7 @@ const issueRoutes = require('./routes/issues');
 const betRoutes = require('./routes/bets');
 const commentRoutes = require('./routes/comments');
 const adminCommentRoutes = require('./routes/admin-comments');
+const uploadRoutes = require('./routes/upload');
 const { initDatabase } = require('./database/database');
 
 const app = express();
@@ -42,6 +43,10 @@ app.use('/api/issues', issueRoutes);
 app.use('/api/bets', betRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/admin/comments', adminCommentRoutes);
+app.use('/api/upload', uploadRoutes);
+
+// 업로드된 파일 정적 서빙
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // 프론트엔드 라우트
 app.get('/', (req, res) => {

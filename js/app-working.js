@@ -995,6 +995,24 @@ function setupAdminPageEvents() {
     if (closeBtn && modal) {
         closeBtn.addEventListener('click', () => {
             modal.classList.add('hidden');
+            // Reset form and image upload UI
+            document.getElementById('create-issue-form')?.reset();
+            document.getElementById('image-preview').classList.add('hidden');
+            document.getElementById('upload-area').classList.remove('hidden');
+            document.getElementById('image-url').value = '';
+        });
+    }
+    
+    // Cancel button
+    const cancelBtn = document.getElementById('cancel-btn');
+    if (cancelBtn && modal) {
+        cancelBtn.addEventListener('click', () => {
+            modal.classList.add('hidden');
+            // Reset form and image upload UI
+            document.getElementById('create-issue-form')?.reset();
+            document.getElementById('image-preview').classList.add('hidden');
+            document.getElementById('upload-area').classList.remove('hidden');
+            document.getElementById('image-url').value = '';
         });
     }
     
@@ -1006,6 +1024,36 @@ function setupAdminPageEvents() {
             }
         });
     }
+    
+    // 이슈 수정 모달 이벤트
+    const editModal = document.getElementById('edit-issue-modal');
+    const editCloseBtn = document.getElementById('close-edit-modal-btn');
+    const editCancelBtn = document.getElementById('edit-cancel-btn');
+    
+    if (editCloseBtn && editModal) {
+        editCloseBtn.addEventListener('click', () => {
+            editModal.classList.add('hidden');
+        });
+    }
+    
+    if (editCancelBtn && editModal) {
+        editCancelBtn.addEventListener('click', () => {
+            editModal.classList.add('hidden');
+        });
+    }
+    
+    // 수정 모달 배경 클릭 시 닫기
+    if (editModal) {
+        editModal.addEventListener('click', (e) => {
+            if (e.target === editModal) {
+                editModal.classList.add('hidden');
+            }
+        });
+    }
+    
+    // 이미지 업로드 이벤트 설정
+    setupImageUpload();
+    setupEditImageUpload();
 }
 
 // 관리자 탭 설정
@@ -1324,6 +1372,7 @@ function renderAdminIssueTable() {
                 </span>
             </td>
             <td class="px-6 py-4 text-sm space-x-2">
+                <button onclick="editIssue(${issue.id})" class="text-blue-600 hover:text-blue-900">수정</button>
                 <button onclick="deleteIssue(${issue.id})" class="text-red-600 hover:text-red-900">삭제</button>
             </td>
         </tr>
@@ -1340,6 +1389,9 @@ function setupCreateIssueForm() {
         const title = e.target.title.value;
         const category = e.target.category.value;
         const endDate = e.target.endDate.value;
+        const description = e.target.description.value;
+        const imageUrl = e.target.imageUrl.value;
+        const yesPrice = e.target.yesPrice.value;
         const isPopular = e.target.isPopular.checked;
         
         try {
@@ -1353,6 +1405,9 @@ function setupCreateIssueForm() {
                     title,
                     category,
                     endDate,
+                    description,
+                    imageUrl,
+                    yesPrice: parseInt(yesPrice) || 50,
                     isPopular
                 })
             });
@@ -1362,6 +1417,11 @@ function setupCreateIssueForm() {
             if (data.success || response.ok) {
                 alert('이슈가 성공적으로 생성되었습니다!');
                 e.target.reset();
+                document.getElementById('create-issue-modal').classList.add('hidden');
+                // Reset image upload UI
+                document.getElementById('image-preview').classList.add('hidden');
+                document.getElementById('upload-area').classList.remove('hidden');
+                document.getElementById('image-url').value = '';
                 await loadAdminIssues();
             } else {
                 alert(data.message || '이슈 생성에 실패했습니다.');
@@ -1371,9 +1431,229 @@ function setupCreateIssueForm() {
             alert('이슈 생성 중 오류가 발생했습니다.');
         }
     });
+    
+    // Edit form setup
+    const editForm = document.getElementById('edit-issue-form');
+    if (editForm) {
+        editForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const issueId = e.target.issueId.value;
+            const title = e.target.title.value;
+            const category = e.target.category.value;
+            const endDate = e.target.endDate.value;
+            const description = e.target.description.value;
+            const imageUrl = e.target.imageUrl.value;
+            const yesPrice = e.target.yesPrice.value;
+            const isPopular = e.target.isPopular.checked;
+            
+            try {
+                const response = await fetch(`/api/issues/${issueId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${userToken}`
+                    },
+                    body: JSON.stringify({
+                        title,
+                        category,
+                        endDate,
+                        description,
+                        imageUrl,
+                        yesPrice: parseInt(yesPrice),
+                        isPopular
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success || response.ok) {
+                    alert('이슈가 성공적으로 수정되었습니다!');
+                    document.getElementById('edit-issue-modal').classList.add('hidden');
+                    await loadAdminIssues();
+                } else {
+                    alert(data.message || '이슈 수정에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('Issue update failed:', error);
+                alert('이슈 수정 중 오류가 발생했습니다.');
+            }
+        });
+    }
+}
+
+// Image upload functions
+function setupImageUpload() {
+    const fileInput = document.getElementById('issue-image');
+    const previewContainer = document.getElementById('image-preview');
+    const previewImg = document.getElementById('preview-img');
+    const uploadArea = document.getElementById('upload-area');
+    const progressContainer = document.getElementById('upload-progress');
+    const progressBar = progressContainer?.querySelector('.bg-blue-600');
+    const removeBtn = document.getElementById('remove-image');
+    const imageUrlInput = document.getElementById('image-url');
+    
+    if (!fileInput) return;
+    
+    fileInput.addEventListener('change', handleImageUpload);
+    
+    if (removeBtn) {
+        removeBtn.addEventListener('click', () => {
+            fileInput.value = '';
+            imageUrlInput.value = '';
+            previewContainer.classList.add('hidden');
+            uploadArea.classList.remove('hidden');
+        });
+    }
+    
+    async function handleImageUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        // Show progress
+        uploadArea.classList.add('hidden');
+        progressContainer.classList.remove('hidden');
+        
+        const formData = new FormData();
+        formData.append('image', file);
+        
+        try {
+            const response = await fetch('/api/upload/image', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                imageUrlInput.value = data.imageUrl;
+                previewImg.src = data.imageUrl;
+                previewContainer.classList.remove('hidden');
+                progressContainer.classList.add('hidden');
+            } else {
+                throw new Error(data.error || '업로드 실패');
+            }
+        } catch (error) {
+            console.error('Image upload failed:', error);
+            alert('이미지 업로드에 실패했습니다: ' + error.message);
+            uploadArea.classList.remove('hidden');
+            progressContainer.classList.add('hidden');
+            fileInput.value = '';
+        }
+    }
+}
+
+function setupEditImageUpload() {
+    const fileInput = document.getElementById('edit-issue-image');
+    const previewContainer = document.getElementById('edit-image-preview');
+    const previewImg = document.getElementById('edit-preview-img');
+    const uploadArea = document.getElementById('edit-upload-area');
+    const progressContainer = document.getElementById('edit-upload-progress');
+    const progressBar = progressContainer?.querySelector('.bg-blue-600');
+    const removeBtn = document.getElementById('edit-remove-image');
+    const imageUrlInput = document.getElementById('edit-image-url');
+    
+    if (!fileInput) return;
+    
+    fileInput.addEventListener('change', handleEditImageUpload);
+    
+    if (removeBtn) {
+        removeBtn.addEventListener('click', () => {
+            fileInput.value = '';
+            imageUrlInput.value = '';
+            previewContainer.classList.add('hidden');
+            uploadArea.classList.remove('hidden');
+        });
+    }
+    
+    async function handleEditImageUpload(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        // Show progress
+        uploadArea.classList.add('hidden');
+        progressContainer.classList.remove('hidden');
+        
+        const formData = new FormData();
+        formData.append('image', file);
+        
+        try {
+            const response = await fetch('/api/upload/image', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                imageUrlInput.value = data.imageUrl;
+                previewImg.src = data.imageUrl;
+                previewContainer.classList.remove('hidden');
+                progressContainer.classList.add('hidden');
+            } else {
+                throw new Error(data.error || '업로드 실패');
+            }
+        } catch (error) {
+            console.error('Image upload failed:', error);
+            alert('이미지 업로드에 실패했습니다: ' + error.message);
+            uploadArea.classList.remove('hidden');
+            progressContainer.classList.add('hidden');
+            fileInput.value = '';
+        }
+    }
 }
 
 // Global functions
+async function editIssue(issueId) {
+    try {
+        // Find the issue data
+        const issue = issues.find(i => i.id === issueId);
+        if (!issue) {
+            alert('이슈를 찾을 수 없습니다.');
+            return;
+        }
+        
+        // Populate the edit form
+        document.getElementById('edit-issue-id').value = issue.id;
+        document.getElementById('edit-issue-title').value = issue.title;
+        document.getElementById('edit-issue-category').value = issue.category;
+        document.getElementById('edit-issue-description').value = issue.description || '';
+        document.getElementById('edit-issue-yes-price').value = issue.yes_price || issue.yesPrice || 50;
+        document.getElementById('edit-issue-popular').checked = issue.is_popular || issue.isPopular || false;
+        
+        // Format end date for datetime-local input
+        const endDate = new Date(issue.end_date || issue.endDate);
+        if (!isNaN(endDate.getTime())) {
+            const year = endDate.getFullYear();
+            const month = String(endDate.getMonth() + 1).padStart(2, '0');
+            const day = String(endDate.getDate()).padStart(2, '0');
+            const hours = String(endDate.getHours()).padStart(2, '0');
+            const minutes = String(endDate.getMinutes()).padStart(2, '0');
+            document.getElementById('edit-issue-end-date').value = `${year}-${month}-${day}T${hours}:${minutes}`;
+        }
+        
+        // Handle existing image
+        const imageUrl = issue.image_url || issue.imageUrl;
+        if (imageUrl) {
+            document.getElementById('edit-image-url').value = imageUrl;
+            document.getElementById('edit-preview-img').src = imageUrl;
+            document.getElementById('edit-image-preview').classList.remove('hidden');
+            document.getElementById('edit-upload-area').classList.add('hidden');
+        } else {
+            document.getElementById('edit-image-url').value = '';
+            document.getElementById('edit-image-preview').classList.add('hidden');
+            document.getElementById('edit-upload-area').classList.remove('hidden');
+        }
+        
+        // Show the edit modal
+        document.getElementById('edit-issue-modal').classList.remove('hidden');
+        
+    } catch (error) {
+        console.error('Failed to open edit modal:', error);
+        alert('이슈 수정 화면을 열 수 없습니다.');
+    }
+}
+
 async function deleteIssue(issueId) {
     if (!confirm('정말로 이 이슈를 삭제하시겠습니까?')) return;
     
