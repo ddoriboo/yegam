@@ -135,6 +135,7 @@ async function initHomePage() {
             
             setupCategoryFilters();
             setupHomePageEvents();
+            setupScrollToTop();
             renderPopularIssues();
             renderAllIssues();
             
@@ -205,7 +206,6 @@ function selectCategory(category, buttonElement) {
     
     currentCategory = category;
     currentPage = 1;
-    renderPopularIssues(); // 인기 이슈도 필터링 적용
     renderAllIssues();
 }
 
@@ -226,7 +226,6 @@ function setupHomePageEvents() {
         searchInput.addEventListener('input', debounce((e) => {
             currentSearch = e.target.value.trim();
             currentPage = 1;
-            renderPopularIssues(); // 인기 이슈도 검색 필터링 적용
             renderAllIssues();
         }, 300));
     }
@@ -237,7 +236,6 @@ function setupHomePageEvents() {
         sortSelect.addEventListener('change', (e) => {
             currentSort = e.target.value;
             currentPage = 1;
-            renderPopularIssues(); // 인기 이슈도 정렬 적용
             renderAllIssues();
         });
     }
@@ -253,41 +251,63 @@ function setupHomePageEvents() {
 }
 
 function renderPopularIssues() {
-    const grid = document.getElementById('popular-issues-grid');
-    if (!grid) return;
+    const listContainer = document.getElementById('popular-issues-list');
+    if (!listContainer) return;
     
-    // 필터링 로직 적용
-    let popularIssues = allIssues.filter(issue => issue.is_popular || issue.isPopular);
-    
-    // 카테고리 필터 적용
-    if (currentCategory !== '전체') {
-        popularIssues = popularIssues.filter(issue => issue.category === currentCategory);
-    }
-    
-    // 검색 필터 적용
-    if (currentSearch) {
-        popularIssues = popularIssues.filter(issue => 
-            issue.title.toLowerCase().includes(currentSearch.toLowerCase())
-        );
-    }
-    
-    // 정렬 적용
-    popularIssues = sortIssues(popularIssues, currentSort);
-    
-    // 최대 4개까지만 표시
-    popularIssues = popularIssues.slice(0, 4);
+    // 인기 이슈는 필터링하지 않고 항상 고정된 인기 이슈를 표시
+    const popularIssues = allIssues
+        .filter(issue => issue.is_popular || issue.isPopular)
+        .slice(0, 8); // 최대 8개까지 표시
     
     if (popularIssues.length === 0) {
-        grid.innerHTML = `
-            <div class="col-span-full text-center py-12">
-                <i data-lucide="star" class="w-12 h-12 mx-auto text-gray-300 mb-4"></i>
-                <p class="text-gray-500">조건에 맞는 인기 이슈가 없습니다.</p>
+        listContainer.innerHTML = `
+            <div class="text-center py-8">
+                <i data-lucide="star" class="w-8 h-8 mx-auto text-gray-300 mb-3"></i>
+                <p class="text-gray-500">인기 이슈가 없습니다.</p>
             </div>
         `;
         return;
     }
     
-    grid.innerHTML = popularIssues.map(issue => createIssueCard(issue)).join('');
+    listContainer.innerHTML = popularIssues.map((issue, index) => {
+        const yesPrice = issue.yesPercentage || issue.yes_price || 50;
+        const timeLeft = getTimeLeft(issue.end_date || issue.endDate);
+        
+        return `
+            <div class="popular-issue-item flex items-center justify-between p-4 hover:bg-gray-50 transition-colors cursor-pointer border-b border-gray-100 last:border-b-0" 
+                 data-issue-id="${issue.id}"
+                 onclick="scrollToIssueInAllSection(${issue.id})">
+                <div class="flex items-center space-x-4 flex-1">
+                    <div class="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-sm">
+                        ${index + 1}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center space-x-2 mb-1">
+                            <span class="inline-block px-2 py-1 text-xs font-medium rounded" style="${getCategoryBadgeStyle(issue.category)}">
+                                ${issue.category}
+                            </span>
+                            <span class="text-xs text-gray-500 flex items-center">
+                                <i data-lucide="clock" class="w-3 h-3 mr-1"></i>
+                                ${timeLeft}
+                            </span>
+                        </div>
+                        <h3 class="text-sm font-medium text-gray-900 truncate">${issue.title}</h3>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4 flex-shrink-0">
+                    <div class="text-right">
+                        <div class="text-sm font-bold text-green-600">Yes ${yesPrice}%</div>
+                        <div class="text-xs text-gray-500">${formatVolume(issue.total_volume || issue.totalVolume || 0)} 감</div>
+                    </div>
+                    <div class="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-green-500 to-red-500 rounded-full relative">
+                            <div class="absolute top-0 w-1 h-full bg-white shadow-sm" style="left: ${yesPrice}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
     
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
@@ -419,6 +439,60 @@ function getCategoryBadgeStyle(category) {
     };
     
     return categoryColors[category] || 'background: linear-gradient(135deg, #6B7280, #9CA3AF); color: white;';
+}
+
+// Scroll to issue in all section
+function scrollToIssueInAllSection(issueId) {
+    // Scroll to all issues section first
+    document.getElementById('all-issues-section').scrollIntoView({ 
+        behavior: 'smooth' 
+    });
+    
+    // Wait for scroll to complete, then highlight the issue
+    setTimeout(() => {
+        const issueCard = document.querySelector(`[data-id="${issueId}"]`);
+        if (issueCard) {
+            issueCard.scrollIntoView({ 
+                behavior: 'smooth',
+                block: 'center'
+            });
+            
+            // Add highlight effect
+            issueCard.style.boxShadow = '0 0 20px rgba(59, 130, 246, 0.5)';
+            issueCard.style.transform = 'scale(1.02)';
+            
+            // Remove highlight after 2 seconds
+            setTimeout(() => {
+                issueCard.style.boxShadow = '';
+                issueCard.style.transform = '';
+            }, 2000);
+        }
+    }, 500);
+}
+
+// Setup scroll to top functionality
+function setupScrollToTop() {
+    const scrollToTopBtn = document.getElementById('scroll-to-top');
+    if (!scrollToTopBtn) return;
+    
+    // Show/hide button based on scroll position
+    window.addEventListener('scroll', () => {
+        if (window.pageYOffset > 300) {
+            scrollToTopBtn.classList.remove('opacity-0', 'pointer-events-none');
+            scrollToTopBtn.classList.add('opacity-75');
+        } else {
+            scrollToTopBtn.classList.add('opacity-0', 'pointer-events-none');
+            scrollToTopBtn.classList.remove('opacity-75');
+        }
+    });
+    
+    // Click handler
+    scrollToTopBtn.addEventListener('click', () => {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    });
 }
 
 // Comments System

@@ -194,6 +194,32 @@ html {
     animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+/* 맨 위로 가기 버튼 */
+#scroll-to-top {
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+    background: rgba(37, 99, 235, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+#scroll-to-top:hover {
+    background: rgba(29, 78, 216, 0.9);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+}
+
+/* 인기 이슈 목록 스타일 */
+.popular-issue-item:hover {
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+}
+
+.popular-issue-item:hover .w-8.h-8 {
+    background: #2563eb;
+    color: white;
+    transform: scale(1.1);
+}
+
 .modern-card {
     background: white;
     border: 1px solid var(--border-gray);

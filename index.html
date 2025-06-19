@@ -76,16 +76,16 @@
             </section>
 
             <!-- Popular Issues Section -->
-            <section class="container mx-auto px-4 lg:px-8 py-16 md:py-20">
-                <div class="flex items-center justify-between mb-8">
-                    <h2 class="text-2xl md:text-3xl font-bold text-gray-900" id="section-title">인기 예측 이슈</h2>
+            <section class="container mx-auto px-4 lg:px-8 py-12">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl md:text-2xl font-bold text-gray-900" id="section-title">인기 예측 이슈</h2>
                     <button id="scroll-to-all-issues" class="flex items-center text-blue-600 hover:text-blue-700 transition-colors font-medium">
                         <span>전체 보기</span>
                         <i data-lucide="arrow-down" class="w-4 h-4 ml-2"></i>
                     </button>
                 </div>
-                <div id="popular-issues-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <!-- Popular issue cards will be injected here by JavaScript -->
+                <div id="popular-issues-list" class="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                    <!-- Popular issue list will be injected here by JavaScript -->
                 </div>
             </section>
 
@@ -146,6 +146,11 @@
         </footer>
 
     </div>
+
+    <!-- Scroll to Top Button -->
+    <button id="scroll-to-top" class="fixed bottom-6 right-6 bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all duration-300 opacity-0 pointer-events-none">
+        <i data-lucide="arrow-up" class="w-5 h-5"></i>
+    </button>
 
     <script src="js/app-working.js"></script>
 </body>
