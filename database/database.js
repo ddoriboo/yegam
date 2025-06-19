@@ -37,27 +37,50 @@ const getCurrentTimeSQL = () => {
 const getDB = () => {
     return {
         all: async (text, params, callback) => {
+            // SQLite 스타일: db.all(query, callback) 또는 db.all(query, params, callback)
+            if (typeof params === 'function') {
+                callback = params;
+                params = [];
+            }
+            
             try {
                 const result = await pgQuery(text, params || []);
-                callback(null, result.rows);
+                if (callback) callback(null, result.rows);
             } catch (err) {
-                callback(err);
+                if (callback) callback(err);
             }
         },
         get: async (text, params, callback) => {
+            // SQLite 스타일: db.get(query, callback) 또는 db.get(query, params, callback)
+            if (typeof params === 'function') {
+                callback = params;
+                params = [];
+            }
+            
             try {
                 const result = await pgQuery(text, params || []);
-                callback(null, result.rows[0] || null);
+                if (callback) callback(null, result.rows[0] || null);
             } catch (err) {
-                callback(err);
+                if (callback) callback(err);
             }
         },
         run: async (text, params, callback) => {
+            // SQLite 스타일: db.run(query, callback) 또는 db.run(query, params, callback)
+            if (typeof params === 'function') {
+                callback = params;
+                params = [];
+            }
+            
             try {
                 const result = await pgQuery(text, params || []);
-                callback.call({ lastID: result.rows[0]?.id, changes: result.rowCount || 0 });
+                if (callback) {
+                    callback.call({ 
+                        lastID: result.rows[0]?.id || result.insertId, 
+                        changes: result.rowCount || 0 
+                    });
+                }
             } catch (err) {
-                callback(err);
+                if (callback) callback(err);
             }
         }
     };
