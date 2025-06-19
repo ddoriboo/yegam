@@ -718,6 +718,22 @@ function createIssueCard(issue) {
                 ${issue.title}
             </h3>
             
+            ${issue.image_url || issue.imageUrl ? 
+                `<div class="mb-4">
+                    <img src="${issue.image_url || issue.imageUrl}" 
+                         alt="${issue.title}" 
+                         class="w-full h-48 object-cover rounded-lg border border-gray-200 shadow-sm"
+                         loading="lazy"
+                         onerror="this.style.display='none'">
+                </div>` : ''
+            }
+            
+            ${issue.description ? 
+                `<div class="mb-4 p-3 rounded-lg issue-description">
+                    <p class="text-sm text-gray-700 leading-relaxed">${issue.description}</p>
+                </div>` : ''
+            }
+            
             <div class="flex justify-between items-center mb-3">
                 <div class="flex items-center space-x-2">
                     <span class="text-sm font-medium text-green-600">Yes</span>

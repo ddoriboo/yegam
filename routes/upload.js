@@ -48,7 +48,11 @@ router.post('/image', upload.single('image'), async (req, res) => {
             folder: 'yegame/issues', // Cloudinary 폴더 구조
             public_id: `issue_${uuidv4()}`, // 고유한 public_id
             quality: 'auto', // 자동 품질 최적화
-            fetch_format: 'auto' // 자동 포맷 최적화
+            fetch_format: 'auto', // 자동 포맷 최적화
+            width: 800, // 최대 너비 800px로 제한
+            height: 600, // 최대 높이 600px로 제한
+            crop: 'limit', // 비율 유지하면서 크기 제한
+            flags: 'progressive' // 점진적 로딩
         };
 
         // Buffer를 Base64로 변환하여 업로드

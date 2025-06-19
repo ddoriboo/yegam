@@ -30,7 +30,18 @@ export function createIssueCard(issue) {
             <h3 class="text-lg font-semibold text-gray-900 mb-4 leading-tight">${issue.title}</h3>
             
             <!-- Issue Image -->
-            <img src="${getCategoryImage(issue.category)}" alt="${issue.category} 관련 이미지" class="issue-image" loading="lazy">
+            ${issue.image_url || issue.imageUrl ? 
+                `<div class="issue-image-container mb-4">
+                    <img src="${issue.image_url || issue.imageUrl}" alt="${issue.title}" loading="lazy" onerror="this.style.display='none'">
+                </div>` : 
+                `<img src="${getCategoryImage(issue.category)}" alt="${issue.category} 관련 이미지" class="issue-image" loading="lazy">`
+            }
+            
+            ${issue.description ? 
+                `<div class="mb-4 p-3 rounded-lg issue-description">
+                    <p class="text-sm text-gray-700 leading-relaxed">${issue.description}</p>
+                </div>` : ''
+            }
             
             <!-- Prediction Prices -->
             <div class="flex justify-between items-center mb-3">
