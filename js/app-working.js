@@ -988,37 +988,6 @@ function showNotification(message, type = 'info') {
     }, 3000);
 }
 
-function renderPopularIssues(categoryFilter = '전체') {
-    const grid = document.getElementById('popular-issues-grid');
-    if (!grid) return;
-    
-    let filteredIssues = issues;
-    
-    if (categoryFilter !== '전체') {
-        filteredIssues = issues.filter(issue => issue.category === categoryFilter);
-    } else {
-        // Show popular issues or first few issues
-        filteredIssues = issues.filter(issue => issue.isPopular || issue.is_popular).slice(0, 6);
-        if (filteredIssues.length === 0) {
-            filteredIssues = issues.slice(0, 6);
-        }
-    }
-    
-    if (filteredIssues.length === 0) {
-        grid.innerHTML = `
-            <div class="col-span-full text-center py-12">
-                <p class="text-gray-500">해당 카테고리에 이슈가 없습니다.</p>
-            </div>
-        `;
-        return;
-    }
-    
-    grid.innerHTML = filteredIssues.map(issue => createIssueCard(issue)).join('');
-    
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
-    }
-}
 
 function createIssueCard(issue) {
     const yesPrice = issue.yesPercentage || issue.yes_price || 50;
@@ -1027,7 +996,7 @@ function createIssueCard(issue) {
     const volume = issue.total_volume || issue.totalVolume || 0;
     
     return `
-        <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow">
+        <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow" data-id="${issue.id}">
             <div class="flex justify-between items-start mb-4">
                 <span class="px-3 py-1 rounded-full text-xs font-medium" style="${getCategoryBadgeStyle(issue.category)}">
                     ${issue.category}
@@ -2058,9 +2027,9 @@ function showLoading(elementId) {
 }
 
 function showError(message) {
-    const grid = document.getElementById('popular-issues-grid');
-    if (grid) {
-        grid.innerHTML = `
+    const allGrid = document.getElementById('all-issues-grid');
+    if (allGrid) {
+        allGrid.innerHTML = `
             <div class="col-span-full text-center py-12">
                 <p class="text-red-600">${message}</p>
                 <button onclick="location.reload()" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md">다시 시도</button>
