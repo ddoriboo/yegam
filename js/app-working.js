@@ -460,8 +460,38 @@ async function initAdminPage() {
         return;
     }
     
+    // Setup admin page UI events
+    setupAdminPageEvents();
     await loadAdminIssues();
     setupCreateIssueForm();
+}
+
+function setupAdminPageEvents() {
+    // 새 이슈 생성 버튼
+    const createBtn = document.getElementById('create-issue-btn');
+    const modal = document.getElementById('create-issue-modal');
+    const closeBtn = document.getElementById('close-modal-btn');
+    
+    if (createBtn && modal) {
+        createBtn.addEventListener('click', () => {
+            modal.classList.remove('hidden');
+        });
+    }
+    
+    if (closeBtn && modal) {
+        closeBtn.addEventListener('click', () => {
+            modal.classList.add('hidden');
+        });
+    }
+    
+    // 모달 배경 클릭 시 닫기
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.add('hidden');
+            }
+        });
+    }
 }
 
 function checkAdminAccess() {
@@ -504,14 +534,16 @@ function showAdminLogin() {
         </div>
     `;
     
-    document.getElementById('admin-login-form').addEventListener('submit', (e) => {
+    document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const password = document.getElementById('admin-password').value;
         const errorEl = document.getElementById('admin-login-error');
         
         if (password === 'admin123') {
             sessionStorage.setItem('admin-auth', 'authenticated');
-            initAdminPage();
+            setupAdminPageEvents();
+            await loadAdminIssues();
+            setupCreateIssueForm();
         } else {
             errorEl.textContent = '잘못된 관리자 암호입니다.';
             errorEl.classList.remove('hidden');
