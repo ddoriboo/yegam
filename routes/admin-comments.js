@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getDB } = require('../database/init');
+const { query, run, get } = require('../database/database');
 
 // 관리자 권한 확인 미들웨어 (간단 버전)
 const requireAdmin = (req, res, next) => {

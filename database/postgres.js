@@ -36,14 +36,9 @@ const createTables = async () => {
     try {
         await client.query('BEGIN');
         
-        // 기존 테이블 삭제 (스키마 변경을 위해)
-        await client.query('DROP TABLE IF EXISTS gam_transactions CASCADE');
-        await client.query('DROP TABLE IF EXISTS bets CASCADE');
-        await client.query('DROP TABLE IF EXISTS admins CASCADE');
-        await client.query('DROP TABLE IF EXISTS issues CASCADE');
-        await client.query('DROP TABLE IF EXISTS users CASCADE');
-        
-        console.log('✅ 기존 PostgreSQL 테이블 삭제 완료');
+        // ⚠️ 운영 데이터 보호: 테이블 삭제 제거
+        // 기존 테이블을 삭제하지 않고 CREATE TABLE IF NOT EXISTS 사용
+        console.log('✅ 기존 데이터 보존 모드로 테이블 생성 시작');
         
         // 사용자 테이블 (SQLite와 호환)
         await client.query(`
@@ -102,6 +97,39 @@ const createTables = async () => {
             )
         `);
         
+        // 댓글 테이블
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS comments (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                issue_id INTEGER NOT NULL,
+                parent_id INTEGER DEFAULT NULL,
+                content TEXT NOT NULL,
+                likes INTEGER DEFAULT 0,
+                is_highlighted BOOLEAN DEFAULT FALSE,
+                highlight_expires_at TIMESTAMP DEFAULT NULL,
+                deleted_at TIMESTAMP DEFAULT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id),
+                FOREIGN KEY (issue_id) REFERENCES issues (id),
+                FOREIGN KEY (parent_id) REFERENCES comments (id)
+            )
+        `);
+        
+        // 댓글 좋아요 테이블
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS comment_likes (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                comment_id INTEGER NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id),
+                FOREIGN KEY (comment_id) REFERENCES comments (id),
+                UNIQUE(user_id, comment_id)
+            )
+        `);
+        
         await client.query('COMMIT');
         console.log('✅ PostgreSQL 테이블 생성 완료');
         
@@ -126,7 +154,7 @@ const insertInitialData = async () => {
         const count = parseInt(result.rows[0].count);
         
         if (count > 0) {
-            console.log('✅ 초기 데이터가 이미 존재합니다.');
+            console.log('✅ 기존 이슈 데이터 보존 - 초기 데이터 삽입 건너뜀');
             return;
         }
         
