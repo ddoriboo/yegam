@@ -72,6 +72,7 @@ app.get('/mypage', (req, res) => {
 });
 
 // 데이터베이스 초기화 후 서버 시작
+console.log('🔄 데이터베이스 초기화 시작...');
 initDatabase().then(() => {
     console.log('✅ 데이터베이스 초기화 완료');
     
@@ -109,6 +110,17 @@ initDatabase().then(() => {
     });
 }).catch(err => {
     console.error('❌ 데이터베이스 초기화 실패:', err);
+    console.error('❌ 에러 메시지:', err.message);
     console.error('❌ 에러 세부사항:', err.stack);
-    process.exit(1);
+    console.error('❌ 환경 변수 확인:', {
+        NODE_ENV: process.env.NODE_ENV,
+        DATABASE_URL: process.env.DATABASE_URL ? '***설정됨***' : '설정되지 않음',
+        PORT: process.env.PORT
+    });
+    
+    // 에러가 있어도 서버는 시작해서 디버깅할 수 있게 함
+    console.log('⚠️ 데이터베이스 초기화 실패했지만 서버를 시작합니다...');
+    app.listen(PORT, '0.0.0.0', () => {
+        console.log(`🚀 서버가 포트 ${PORT}에서 실행 중입니다 (DB 연결 실패 상태)`);
+    });
 });
