@@ -34,16 +34,16 @@ router.post('/', authMiddleware, async (req, res) => {
     let client;
     
     try {
-        if (isPostgreSQL()) {
-            client = await getClient();
-            await client.query('BEGIN');
-        }
+        client = await getClient();
+        await client.query('BEGIN');
         
         // 사용자 코인 잔액 확인
-        const user = await get('SELECT coins FROM users WHERE id = $1', [userId]);
+        const userResult = await client.query('SELECT coins FROM users WHERE id = $1', [userId]);
+        const user = userResult.rows[0];
         
         if (!user) {
-            if (client) await client.query('ROLLBACK');
+            await client.query('ROLLBACK');
+            client.release();
             return res.status(404).json({ 
                 success: false, 
                 message: '사용자를 찾을 수 없습니다.' 
@@ -52,7 +52,8 @@ router.post('/', authMiddleware, async (req, res) => {
         
         const coinBalance = user.coins || 0;
         if (coinBalance < amount) {
-            if (client) await client.query('ROLLBACK');
+            await client.query('ROLLBACK');
+            client.release();
             return res.status(400).json({ 
                 success: false, 
                 message: '보유 코인이 부족합니다.' 
@@ -60,10 +61,12 @@ router.post('/', authMiddleware, async (req, res) => {
         }
         
         // 이슈 존재 확인
-        const issue = await get('SELECT * FROM issues WHERE id = $1 AND status = $2', [issueId, 'active']);
+        const issueResult = await client.query('SELECT * FROM issues WHERE id = $1 AND status = $2', [issueId, 'active']);
+        const issue = issueResult.rows[0];
         
         if (!issue) {
-            if (client) await client.query('ROLLBACK');
+            await client.query('ROLLBACK');
+            client.release();
             return res.status(404).json({ 
                 success: false, 
                 message: '존재하지 않는 이슈입니다.' 
@@ -71,10 +74,12 @@ router.post('/', authMiddleware, async (req, res) => {
         }
         
         // 이미 베팅했는지 확인
-        const existingBet = await get('SELECT id FROM bets WHERE user_id = $1 AND issue_id = $2', [userId, issueId]);
+        const betResult = await client.query('SELECT id FROM bets WHERE user_id = $1 AND issue_id = $2', [userId, issueId]);
+        const existingBet = betResult.rows[0];
         
         if (existingBet) {
-            if (client) await client.query('ROLLBACK');
+            await client.query('ROLLBACK');
+            client.release();
             return res.status(400).json({ 
                 success: false, 
                 message: '이미 베팅한 이슈입니다.' 
@@ -82,31 +87,30 @@ router.post('/', authMiddleware, async (req, res) => {
         }
         
         // 베팅 기록 생성
-        const betResult = await run('INSERT INTO bets (user_id, issue_id, choice, amount) VALUES ($1, $2, $3, $4)', 
-            [userId, issueId, choice, amount]);
+        const insertBetResult = await client.query(
+            'INSERT INTO bets (user_id, issue_id, choice, amount) VALUES ($1, $2, $3, $4) RETURNING id', 
+            [userId, issueId, choice, amount]
+        );
         
-        const betId = betResult.lastID || betResult.rows[0]?.id;
+        const betId = insertBetResult.rows[0].id;
         
         // 사용자 코인 잔액 차감
-        await run('UPDATE users SET coins = coins - $1 WHERE id = $2', [amount, userId]);
+        await client.query('UPDATE users SET coins = coins - $1 WHERE id = $2', [amount, userId]);
         
         // 이슈 볼륨 및 가격 업데이트
-        const newYesVolume = choice === 'Yes' ? issue.yes_volume + amount : issue.yes_volume;
-        const newNoVolume = choice === 'No' ? issue.no_volume + amount : issue.no_volume;
+        const newYesVolume = choice === 'Yes' ? (issue.yes_volume || 0) + amount : (issue.yes_volume || 0);
+        const newNoVolume = choice === 'No' ? (issue.no_volume || 0) + amount : (issue.no_volume || 0);
         const newTotalVolume = newYesVolume + newNoVolume;
         const newYesPrice = newTotalVolume > 0 ? Math.round((newYesVolume / newTotalVolume) * 100) : 50;
         
-        await run('UPDATE issues SET yes_volume = $1, no_volume = $2, total_volume = $3, yes_price = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5', 
-            [newYesVolume, newNoVolume, newTotalVolume, newYesPrice, issueId]);
+        await client.query(
+            'UPDATE issues SET yes_volume = $1, no_volume = $2, total_volume = $3, yes_price = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5', 
+            [newYesVolume, newNoVolume, newTotalVolume, newYesPrice, issueId]
+        );
         
-        // 코인 거래 내역 기록 (SQLite에는 gam_transactions 테이블이 없으므로 주석 처리)
-        // await run('INSERT INTO gam_transactions (user_id, type, category, amount, description, reference_id) VALUES ($1, $2, $3, $4, $5, $6)',
-        //     [userId, 'SPEND', 'BET', -amount, `${issue.title} - ${choice} 베팅`, betId]);
-        
-        if (client) {
-            await client.query('COMMIT');
-            client.release();
-        }
+        // 트랜잭션 커밋
+        await client.query('COMMIT');
+        client.release();
         
         res.json({
             success: true,
@@ -130,12 +134,17 @@ router.post('/', authMiddleware, async (req, res) => {
     } catch (error) {
         console.error('베팅 오류:', error);
         if (client) {
-            await client.query('ROLLBACK');
+            try {
+                await client.query('ROLLBACK');
+            } catch (rollbackError) {
+                console.error('롤백 오류:', rollbackError);
+            }
             client.release();
         }
         res.status(500).json({ 
             success: false, 
-            message: '베팅 처리 중 오류가 발생했습니다.' 
+            message: '베팅 처리 중 오류가 발생했습니다.',
+            error: error.message
         });
     }
 });

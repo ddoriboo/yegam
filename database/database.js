@@ -33,6 +33,10 @@ const getCurrentTimeSQL = () => {
     return 'NOW()';
 };
 
+const isPostgreSQL = () => {
+    return true; // 이제 PostgreSQL만 사용
+};
+
 // 임시 호환성 함수 - 기존 코드와의 호환성을 위해
 const getDB = () => {
     return {
@@ -93,5 +97,6 @@ module.exports = {
     get,
     getClient,
     getCurrentTimeSQL,
-    getDB
+    getDB,
+    isPostgreSQL
 };
