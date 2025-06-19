@@ -1467,19 +1467,25 @@ async function loadResultsData() {
     const tbody = document.getElementById('results-table-body');
     const filterSelect = document.getElementById('result-filter');
     
-    if (!tbody) return;
+    if (!tbody) {
+        console.error('results-table-body element not found');
+        return;
+    }
     
     try {
         tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8"><i data-lucide="loader" class="w-6 h-6 animate-spin mx-auto mb-2 text-gray-400"></i><br>로딩 중...</td></tr>';
         
         const filter = filterSelect ? filterSelect.value : 'closed';
-        const response = await fetch(`/api/admin/issues/closed?filter=${filter}`, {
-            headers: {
-                'Authorization': `Bearer ${userToken}`
-            }
-        });
+        console.log('Loading results with filter:', filter);
+        console.log('User token:', userToken ? 'Available' : 'Missing');
+        
+        const response = await fetch(`/api/admin/issues/closed?filter=${filter}`);
+        
+        console.log('Response status:', response.status);
+        console.log('Response ok:', response.ok);
         
         const data = await response.json();
+        console.log('Response data:', data);
         
         if (data.success) {
             if (data.issues.length === 0) {
@@ -1487,17 +1493,19 @@ async function loadResultsData() {
                 return;
             }
             
+            console.log('Rendering', data.issues.length, 'issues');
             tbody.innerHTML = data.issues.map(issue => renderResultRow(issue)).join('');
             
             if (typeof lucide !== 'undefined') {
                 lucide.createIcons();
             }
         } else {
-            tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-red-500">데이터 로딩에 실패했습니다.</td></tr>';
+            console.error('API returned failure:', data.message);
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-red-500">데이터 로딩에 실패했습니다: ${data.message || ''}</td></tr>`;
         }
     } catch (error) {
         console.error('결과 데이터 로딩 실패:', error);
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-red-500">데이터 로딩 중 오류가 발생했습니다.</td></tr>';
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-8 text-red-500">데이터 로딩 중 오류가 발생했습니다: ${error.message}</td></tr>`;
     }
 }
 

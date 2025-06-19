@@ -260,6 +260,12 @@ router.get('/issues/closed', adminMiddleware, async (req, res) => {
                      WHERE result IS NOT NULL 
                      ORDER BY decided_at DESC`;
             break;
+        case 'all':
+            // 디버깅용: 모든 이슈 표시
+            query = `SELECT id, title, category, end_date, status, result, yes_price, total_volume 
+                     FROM issues 
+                     ORDER BY end_date ASC`;
+            break;
     }
     
     // 데이터베이스 쿼리 실행
