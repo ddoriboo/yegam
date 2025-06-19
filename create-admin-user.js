@@ -1,6 +1,6 @@
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
-const { initDatabase } = require('./database/init');
+const { initDatabase } = require('./database/database');
 const { createUser, findUserByEmail, executeQuery } = require('./utils/database');
 
 async function createAdminUser() {

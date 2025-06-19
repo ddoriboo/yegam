@@ -1,4 +1,4 @@
-const { getDB } = require('../database/init');
+const { getDB } = require('../database/database');
 
 class GamService {
     constructor() {

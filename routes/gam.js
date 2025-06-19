@@ -64,7 +64,7 @@ router.post('/highlight-comment/:userId', async (req, res) => {
         const result = await gamService.burnCommentHighlight(userId, commentId);
         if (result.success) {
             // 댓글 강조 처리 (24시간)
-            const { getDB } = require('../database/init');
+            const { getDB } = require('../database/database');
             const db = getDB();
             
             const expiresAt = new Date();
@@ -124,7 +124,7 @@ router.get('/stats/:userId', async (req, res) => {
     const { userId } = req.params;
     
     try {
-        const { getDB } = require('../database/init');
+        const { getDB } = require('../database/database');
         const db = getDB();
         
         // 감 통계 조회

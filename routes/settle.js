@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getDB } = require('../database/init');
+const { getDB } = require('../database/database');
 const gamService = require('../services/gamService');
 
 // 이슈 정산 (관리자만 호출)

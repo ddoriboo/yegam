@@ -1,5 +1,5 @@
 const bcrypt = require('bcryptjs');
-const { getDB, initDatabase } = require('./database/init');
+const { getDB, initDatabase } = require('./database/database');
 const gamService = require('./services/gamService');
 
 async function createTestUser() {

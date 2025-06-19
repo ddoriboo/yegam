@@ -1,4 +1,4 @@
-const { getDB } = require('../database/init');
+const { getDB } = require('../database/database');
 
 const executeQuery = (query, params = []) => {
     return new Promise((resolve, reject) => {

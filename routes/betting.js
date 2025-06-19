@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getDB } = require('../database/init');
+const { getDB } = require('../database/database');
 const gamService = require('../services/gamService');
 
 // 베팅 가능 여부 및 예상 수익 계산

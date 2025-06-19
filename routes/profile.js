@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getDB } = require('../database/init');
+const { getDB } = require('../database/database');
 const gamService = require('../services/gamService');
 const crypto = require('crypto');
 
