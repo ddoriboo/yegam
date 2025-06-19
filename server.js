@@ -45,8 +45,7 @@ app.use('/api/comments', commentRoutes);
 app.use('/api/admin/comments', adminCommentRoutes);
 app.use('/api/upload', uploadRoutes);
 
-// 업로드된 파일 정적 서빙
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// Cloudinary를 사용하므로 로컬 파일 서빙 불필요
 
 // 프론트엔드 라우트
 app.get('/', (req, res) => {

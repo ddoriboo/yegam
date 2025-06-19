@@ -8,7 +8,8 @@
 - **예측 시스템**: Yes/No 형태의 예측 참여
 - **감(Gam) 시스템**: 가상 화폐를 이용한 예측 참여
 - **실시간 확률**: 참여자들의 예측에 따른 실시간 확률 업데이트
-- **관리자 페이지**: 이슈 생성, 수정, 삭제 기능
+- **이슈별 토론 시스템**: 댓글 작성, 좋아요/싫어요, 대댓글 기능
+- **관리자 페이지**: 이슈 생성/수정/삭제, 이미지 업로드, 댓글 관리
 - **회원 시스템**: 로그인/회원가입, 마이페이지
 
 ## 🎨 UI/UX 특징
@@ -26,10 +27,12 @@
 - **Tailwind CSS**: 유틸리티 기반 스타일링
 - **Lucide Icons**: 아이콘 시스템
 
-### 계획 중인 Backend
+### Backend
 - **Node.js + Express**: 서버 프레임워크
-- **SQLite/PostgreSQL**: 데이터베이스
-- **JWT**: 사용자 인증
+- **PostgreSQL (Railway) / SQLite (Local)**: 데이터베이스
+- **JWT**: 사용자 인증 
+- **Cloudinary**: 이미지 저장소
+- **Multer**: 파일 업로드
 
 ## 📁 프로젝트 구조
 
@@ -52,41 +55,62 @@ project/
 
 ## 🚀 시작하기
 
-### 현재 버전 (프론트엔드만)
+### 로컬 개발 환경 설정
+
 1. 저장소 클론
 ```bash
-git clone [저장소 URL]
-cd project
+git clone https://github.com/ddoriboo/yegam.git
+cd yegam
 ```
 
-2. 로컬 서버 실행
+2. 의존성 설치
 ```bash
-# Python 3
-python -m http.server 8000
-
-# 또는 Node.js serve
-npx serve .
+npm install
 ```
 
-3. 브라우저에서 접속
-```
-http://localhost:8000
+3. 환경 변수 설정
+```bash
+cp .env.example .env
 ```
 
-### 관리자 접속
-- URL: `/admin.html`
-- 관리자 암호: `admin123`
+4. Cloudinary 설정 (이미지 업로드용)
+   - [Cloudinary](https://cloudinary.com/) 계정 생성
+   - Dashboard에서 Cloud Name, API Key, API Secret 확인
+   - `.env` 파일에 설정 추가:
+```env
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
+```
+
+5. 로컬 서버 실행
+```bash
+npm run dev
+```
+
+6. 브라우저에서 접속
+```
+http://localhost:3000
+```
+
+### 배포된 서비스
+- **Production URL**: https://yegam-production.up.railway.app/
+- **관리자 페이지**: https://yegam-production.up.railway.app/admin
 
 ## 🔮 로드맵
 
-### Phase 1: 백엔드 구축
-- [ ] Node.js/Express 서버 구축
-- [ ] 데이터베이스 스키마 설계
-- [ ] REST API 개발
-- [ ] 사용자 인증 시스템
+### Phase 1: 백엔드 구축 ✅
+- [x] Node.js/Express 서버 구축
+- [x] 데이터베이스 스키마 설계
+- [x] REST API 개발
+- [x] 사용자 인증 시스템
+- [x] 이슈별 토론 시스템 구현
+- [x] 관리자 페이지 완성
 
-### Phase 2: 배포 및 운영
-- [ ] 클라우드 배포 (Vercel, Railway 등)
+### Phase 2: 배포 및 운영 ✅
+- [x] 클라우드 배포 (Railway)
+- [x] PostgreSQL 데이터베이스 연동
+- [x] Cloudinary 이미지 저장소 구축
 - [ ] 도메인 연결
 - [ ] 모니터링 시스템
 
