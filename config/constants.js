@@ -73,7 +73,7 @@ const MESSAGES = {
     ERROR: {
         LOGIN_REQUIRED: '예측을 하려면 로그인이 필요합니다.',
         INVALID_AMOUNT: '예측 금액은 0보다 큰 숫자여야 합니다.',
-        INSUFFICIENT_COINS: '보유 감이 부족합니다.',
+        INSUFFICIENT_COINS: '보유 GAM이 부족합니다.',
         BETTING_FAILED: '예측 실패',
         ALREADY_BETTED: '이미 베팅한 이슈',
         INVALID_CREDENTIALS: '이메일 또는 비밀번호가 올바르지 않습니다.',

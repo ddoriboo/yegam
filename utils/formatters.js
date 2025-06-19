@@ -58,7 +58,7 @@ function formatDate(date) {
  * @returns {string} Formatted currency string
  */
 function formatCurrency(amount) {
-    return amount.toLocaleString() + ' 감';
+    return amount.toLocaleString() + ' GAM';
 }
 
 /**

@@ -13,7 +13,7 @@ router.post('/calculate', async (req, res) => {
     
     if (amount < 100) {
         return res.status(400).json({ 
-            error: '최소 베팅 금액은 100감입니다.',
+            error: '최소 베팅 금액은 100 GAM입니다.',
             minBet: 100
         });
     }
@@ -29,14 +29,14 @@ router.post('/calculate', async (req, res) => {
         
         if (amount > maxBet) {
             return res.status(400).json({ 
-                error: `최대 베팅 금액은 ${maxBet.toLocaleString()}감입니다.`,
+                error: `최대 베팅 금액은 ${maxBet.toLocaleString()} GAM입니다.`,
                 maxBet: maxBet
             });
         }
         
         if (userBalance < amount) {
             return res.status(400).json({ 
-                error: '감이 부족합니다.',
+                error: 'GAM이 부족합니다.',
                 currentBalance: userBalance,
                 required: amount
             });
@@ -221,7 +221,7 @@ router.get('/limits/:userId', async (req, res) => {
                 minBet: 100,
                 maxBet: maxBet,
                 currentBalance: userBalance,
-                maxBetReason: maxBet === 1000000 ? '절대 한도 (100만감)' : '보유 감의 50%'
+                maxBetReason: maxBet === 1000000 ? '절대 한도 (100만 GAM)' : '보유 GAM의 50%'
             }
         });
         

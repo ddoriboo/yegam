@@ -297,7 +297,7 @@ function renderPopularIssues() {
                 <div class="flex items-center space-x-4 flex-shrink-0">
                     <div class="text-right">
                         <div class="text-sm font-bold text-green-600">Yes ${yesPrice}%</div>
-                        <div class="text-xs text-gray-500">${formatVolume(issue.total_volume || issue.totalVolume || 0)} 감</div>
+                        <div class="text-xs text-gray-500">${formatVolume(issue.total_volume || issue.totalVolume || 0)} GAM</div>
                     </div>
                     <div class="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
                         <div class="h-full bg-gradient-to-r from-green-500 to-red-500 rounded-full relative">
@@ -1057,7 +1057,7 @@ function createIssueCard(issue) {
             </div>
             
             <div class="pt-4 border-t border-gray-200 flex justify-between items-center">
-                <span class="text-sm text-gray-600">총 참여 감</span>
+                <span class="text-sm text-gray-600">총 참여 GAM</span>
                 <span class="font-semibold text-gray-900 flex items-center">
                     <i data-lucide="coins" class="w-4 h-4 mr-1 text-yellow-500"></i>
                     ${formatVolume(volume)}
@@ -1092,7 +1092,7 @@ async function placeBet(issueId, choice) {
         return;
     }
     
-    const amount = prompt(`'${choice}'에 얼마나 예측하시겠습니까?\\n보유 감: ${(currentUser.gam_balance || currentUser.coins || 0).toLocaleString()}`, "1000");
+    const amount = prompt(`'${choice}'에 얼마나 예측하시겠습니까?\\n보유 GAM: ${(currentUser.gam_balance || currentUser.coins || 0).toLocaleString()}`, "1000");
     
     if (!amount || isNaN(amount) || parseInt(amount) <= 0) {
         return;
@@ -1101,7 +1101,7 @@ async function placeBet(issueId, choice) {
     const betAmount = parseInt(amount);
     
     if (betAmount > (currentUser.gam_balance || currentUser.coins || 0)) {
-        alert('보유 감이 부족합니다.');
+        alert('보유 GAM이 부족합니다.');
         return;
     }
     
@@ -1583,7 +1583,7 @@ function renderResultRow(issue) {
             <td class="px-6 py-4">
                 <div class="text-sm text-gray-900">
                     <div>참여 정보</div>
-                    <div class="text-xs text-gray-500">${totalVolume.toLocaleString()} 감</div>
+                    <div class="text-xs text-gray-500">${totalVolume.toLocaleString()} GAM</div>
                     <div class="text-xs text-gray-500">Yes 확률: ${issue.yes_price}%</div>
                 </div>
             </td>
@@ -2014,7 +2014,7 @@ function renderAdminIssueTable() {
                 </span>
             </td>
             <td class="px-6 py-4 text-sm text-gray-900">${issue.yesPercentage || issue.yes_price || 50}%</td>
-            <td class="px-6 py-4 text-sm text-gray-900">${formatVolume(issue.total_volume || issue.totalVolume || 0)} 감</td>
+            <td class="px-6 py-4 text-sm text-gray-900">${formatVolume(issue.total_volume || issue.totalVolume || 0)} GAM</td>
             <td class="px-6 py-4">
                 <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${(issue.isPopular || issue.is_popular) ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
                     ${(issue.isPopular || issue.is_popular) ? '인기' : '일반'}
@@ -2378,6 +2378,18 @@ function showError(message) {
     }
 }
 
+function showSuccess(message) {
+    const allGrid = document.getElementById('all-issues-grid');
+    if (allGrid) {
+        allGrid.innerHTML = `
+            <div class="col-span-full text-center py-12">
+                <p class="text-green-600">${message}</p>
+                <button onclick="location.reload()" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md">새로고침</button>
+            </div>
+        `;
+    }
+}
+
 // OAuth functions (placeholder)
 function loginWithGoogle() {
     alert('Google 로그인은 현재 설정 중입니다. 이메일로 로그인해주세요.');
@@ -2407,12 +2419,12 @@ async function initMyPage() {
 function showMyPageLogin() {
     document.getElementById('user-name').textContent = '로그인이 필요합니다';
     document.getElementById('user-email').textContent = '로그인 후 내 정보를 확인하세요';
-    document.getElementById('user-coins').textContent = '0 감';
+    document.getElementById('user-coins').textContent = '0 GAM';
     document.getElementById('user-joined').textContent = '로그인 필요';
     
     document.getElementById('total-bets').textContent = '0';
     document.getElementById('win-rate').textContent = '0%';
-    document.getElementById('total-volume').textContent = '0 감';
+    document.getElementById('total-volume').textContent = '0 GAM';
     
     document.getElementById('user-bets-loading').classList.add('hidden');
     document.getElementById('user-bets-empty').classList.remove('hidden');
@@ -2427,7 +2439,7 @@ async function loadMyPageData() {
         // Update user info
         document.getElementById('user-name').textContent = currentUser.username;
         document.getElementById('user-email').textContent = currentUser.email;
-        document.getElementById('user-coins').textContent = `${currentUser.coins?.toLocaleString() || 0} 감`;
+        document.getElementById('user-coins').textContent = `${currentUser.coins?.toLocaleString() || 0} GAM`;
         
         const joinedDate = new Date(currentUser.created_at || currentUser.createdAt || Date.now());
         document.getElementById('user-joined').textContent = `${joinedDate.getFullYear()}.${String(joinedDate.getMonth() + 1).padStart(2, '0')}.${String(joinedDate.getDate()).padStart(2, '0')} 가입`;
@@ -2462,7 +2474,7 @@ async function loadUserBets() {
             document.getElementById('total-bets').textContent = bets.length;
             
             const totalVolume = bets.reduce((sum, bet) => sum + bet.amount, 0);
-            document.getElementById('total-volume').textContent = `${totalVolume.toLocaleString()} 감`;
+            document.getElementById('total-volume').textContent = `${totalVolume.toLocaleString()} GAM`;
             
             // Calculate win rate (placeholder - would need actual results)
             const winRate = bets.length > 0 ? Math.floor(Math.random() * 100) : 0;
@@ -2475,7 +2487,7 @@ async function loadUserBets() {
             // No bets found
             document.getElementById('total-bets').textContent = '0';
             document.getElementById('win-rate').textContent = '0%';
-            document.getElementById('total-volume').textContent = '0 감';
+            document.getElementById('total-volume').textContent = '0 GAM';
             
             document.getElementById('user-bets-loading').classList.add('hidden');
             document.getElementById('user-bets-empty').classList.remove('hidden');
@@ -2521,7 +2533,7 @@ function renderUserBets(bets) {
                             </span>
                             <span class="flex items-center">
                                 <i data-lucide="coins" class="w-4 h-4 mr-1 text-yellow-500"></i>
-                                ${bet.amount?.toLocaleString() || 0} 감
+                                ${bet.amount?.toLocaleString() || 0} GAM
                             </span>
                         </div>
                     </div>
