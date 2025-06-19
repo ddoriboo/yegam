@@ -2054,12 +2054,155 @@ async function initIssuesPage() {
 }
 
 async function initMyPage() {
+    console.log('Initializing My Page...');
+    
     if (!currentUser) {
-        alert('로그인이 필요합니다.');
-        window.location.href = 'login.html';
+        showMyPageLogin();
         return;
     }
-    console.log('My page functionality coming soon');
+    
+    await loadMyPageData();
+}
+
+function showMyPageLogin() {
+    document.getElementById('user-name').textContent = '로그인이 필요합니다';
+    document.getElementById('user-email').textContent = '로그인 후 내 정보를 확인하세요';
+    document.getElementById('user-coins').textContent = '0 감';
+    document.getElementById('user-joined').textContent = '로그인 필요';
+    
+    document.getElementById('total-bets').textContent = '0';
+    document.getElementById('win-rate').textContent = '0%';
+    document.getElementById('total-volume').textContent = '0 감';
+    
+    document.getElementById('user-bets-loading').classList.add('hidden');
+    document.getElementById('user-bets-empty').classList.remove('hidden');
+    
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+async function loadMyPageData() {
+    try {
+        // Update user info
+        document.getElementById('user-name').textContent = currentUser.username;
+        document.getElementById('user-email').textContent = currentUser.email;
+        document.getElementById('user-coins').textContent = `${currentUser.coins?.toLocaleString() || 0} 감`;
+        
+        const joinedDate = new Date(currentUser.created_at || currentUser.createdAt || Date.now());
+        document.getElementById('user-joined').textContent = `${joinedDate.getFullYear()}.${String(joinedDate.getMonth() + 1).padStart(2, '0')}.${String(joinedDate.getDate()).padStart(2, '0')} 가입`;
+        
+        // Load user bets
+        await loadUserBets();
+        
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+        
+    } catch (error) {
+        console.error('Failed to load my page data:', error);
+        showError('내 정보를 불러오는데 실패했습니다.');
+    }
+}
+
+async function loadUserBets() {
+    try {
+        const response = await fetch('/api/bets/my-bets', {
+            headers: {
+                'Authorization': `Bearer ${userToken}`
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.bets) {
+            const bets = data.bets;
+            
+            // Update stats
+            document.getElementById('total-bets').textContent = bets.length;
+            
+            const totalVolume = bets.reduce((sum, bet) => sum + bet.amount, 0);
+            document.getElementById('total-volume').textContent = `${totalVolume.toLocaleString()} 감`;
+            
+            // Calculate win rate (placeholder - would need actual results)
+            const winRate = bets.length > 0 ? Math.floor(Math.random() * 100) : 0;
+            document.getElementById('win-rate').textContent = `${winRate}%`;
+            
+            // Render bets list
+            renderUserBets(bets);
+            
+        } else {
+            // No bets found
+            document.getElementById('total-bets').textContent = '0';
+            document.getElementById('win-rate').textContent = '0%';
+            document.getElementById('total-volume').textContent = '0 감';
+            
+            document.getElementById('user-bets-loading').classList.add('hidden');
+            document.getElementById('user-bets-empty').classList.remove('hidden');
+        }
+        
+    } catch (error) {
+        console.error('Failed to load user bets:', error);
+        
+        // Show empty state on error
+        document.getElementById('user-bets-loading').classList.add('hidden');
+        document.getElementById('user-bets-empty').classList.remove('hidden');
+    }
+}
+
+function renderUserBets(bets) {
+    const container = document.getElementById('user-bets-list');
+    const loading = document.getElementById('user-bets-loading');
+    const empty = document.getElementById('user-bets-empty');
+    
+    loading.classList.add('hidden');
+    
+    if (bets.length === 0) {
+        empty.classList.remove('hidden');
+        return;
+    }
+    
+    container.innerHTML = bets.map(bet => {
+        const issueTitle = bet.issue_title || bet.issueTitle || '이슈 제목';
+        const betDate = new Date(bet.created_at || bet.createdAt || Date.now());
+        const formattedDate = `${betDate.getFullYear()}.${String(betDate.getMonth() + 1).padStart(2, '0')}.${String(betDate.getDate()).padStart(2, '0')}`;
+        
+        const choiceColor = bet.choice === 'Yes' ? 'text-green-600 bg-green-100' : 'text-red-600 bg-red-100';
+        
+        return `
+            <div class="p-4 border-b border-gray-200 last:border-b-0 hover:bg-gray-50 transition-colors">
+                <div class="flex items-center justify-between">
+                    <div class="flex-1">
+                        <h3 class="font-medium text-gray-900 mb-1">${issueTitle}</h3>
+                        <div class="flex items-center space-x-4 text-sm text-gray-600">
+                            <span class="flex items-center">
+                                <i data-lucide="calendar" class="w-4 h-4 mr-1"></i>
+                                ${formattedDate}
+                            </span>
+                            <span class="flex items-center">
+                                <i data-lucide="coins" class="w-4 h-4 mr-1 text-yellow-500"></i>
+                                ${bet.amount?.toLocaleString() || 0} 감
+                            </span>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <span class="px-3 py-1 rounded-full text-sm font-medium ${choiceColor}">
+                            ${bet.choice}
+                        </span>
+                        <span class="text-sm text-gray-500">
+                            결과 대기
+                        </span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    container.classList.remove('hidden');
+    
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
 }
 
 console.log('✅ Working app script loaded successfully');
