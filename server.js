@@ -17,6 +17,9 @@ const issueScheduler = require('./services/scheduler');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// 버전 정보 - PostgreSQL 완전 통일 버전
+console.log('🚀 예겜 서버 v2.0 - PostgreSQL 완전 통일 버전');
+
 // 미들웨어 (개발/프로덕션 환경에 따라 보안 설정 조정)
 if (process.env.NODE_ENV === 'production') {
     app.use(helmet({
