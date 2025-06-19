@@ -233,7 +233,7 @@ router.patch('/issues/:id/toggle-popular', adminMiddleware, (req, res) => {
 });
 
 // 결과 관리용 이슈 조회 (마감된 이슈만)
-router.get('/issues/closed', adminMiddleware, (req, res) => {
+router.get('/issues/closed', adminMiddleware, async (req, res) => {
     const { filter = 'closed' } = req.query;
     const db = getDB();
     
@@ -242,49 +242,48 @@ router.get('/issues/closed', adminMiddleware, (req, res) => {
     
     switch (filter) {
         case 'closed':
-            query = `SELECT *, 
-                        (SELECT COUNT(*) FROM bets WHERE issue_id = issues.id) as bet_count,
-                        (SELECT COUNT(*) FROM bets WHERE issue_id = issues.id AND choice = 'Yes') as yes_count,
-                        (SELECT COUNT(*) FROM bets WHERE issue_id = issues.id AND choice = 'No') as no_count,
-                        (SELECT SUM(amount) FROM bets WHERE issue_id = issues.id AND choice = 'Yes') as yes_volume,
-                        (SELECT SUM(amount) FROM bets WHERE issue_id = issues.id AND choice = 'No') as no_volume
+            // 마감된 이슈이지만 결과가 아직 결정되지 않은 이슈들
+            query = `SELECT id, title, category, end_date, status, result, yes_price, total_volume 
                      FROM issues 
                      WHERE (status = 'closed' OR end_date < datetime('now')) AND result IS NULL 
                      ORDER BY end_date ASC`;
             break;
         case 'pending':
-            query = `SELECT *, 
-                        (SELECT COUNT(*) FROM bets WHERE issue_id = issues.id) as bet_count,
-                        (SELECT COUNT(*) FROM bets WHERE issue_id = issues.id AND choice = 'Yes') as yes_count,
-                        (SELECT COUNT(*) FROM bets WHERE issue_id = issues.id AND choice = 'No') as no_count,
-                        (SELECT SUM(amount) FROM bets WHERE issue_id = issues.id AND choice = 'Yes') as yes_volume,
-                        (SELECT SUM(amount) FROM bets WHERE issue_id = issues.id AND choice = 'No') as no_volume
+            query = `SELECT id, title, category, end_date, status, result, yes_price, total_volume 
                      FROM issues 
                      WHERE status = 'pending' 
                      ORDER BY end_date ASC`;
             break;
         case 'resolved':
-            query = `SELECT *, 
-                        (SELECT COUNT(*) FROM bets WHERE issue_id = issues.id) as bet_count,
-                        (SELECT COUNT(*) FROM bets WHERE issue_id = issues.id AND choice = 'Yes') as yes_count,
-                        (SELECT COUNT(*) FROM bets WHERE issue_id = issues.id AND choice = 'No') as no_count,
-                        (SELECT SUM(amount) FROM bets WHERE issue_id = issues.id AND choice = 'Yes') as yes_volume,
-                        (SELECT SUM(amount) FROM bets WHERE issue_id = issues.id AND choice = 'No') as no_volume,
-                        (SELECT username FROM users WHERE id = issues.decided_by) as decided_by_name
+            query = `SELECT id, title, category, end_date, status, result, yes_price, total_volume 
                      FROM issues 
                      WHERE result IS NOT NULL 
                      ORDER BY decided_at DESC`;
             break;
     }
     
-    db.all(query, params, (err, issues) => {
-        if (err) {
+    // 데이터베이스 쿼리 실행
+    if (typeof db.all === 'function') {
+        // SQLite 방식
+        db.all(query, params, (err, issues) => {
+            if (err) {
+                console.error('결과 관리용 이슈 조회 실패:', err);
+                return res.status(500).json({ success: false, message: '이슈 조회에 실패했습니다.' });
+            }
+            
+            res.json({ success: true, issues });
+        });
+    } else {
+        // 새로운 인터페이스 사용
+        try {
+            const { query: dbQuery } = require('../database/database');
+            const result = await dbQuery(query, params);
+            res.json({ success: true, issues: result.rows });
+        } catch (err) {
             console.error('결과 관리용 이슈 조회 실패:', err);
             return res.status(500).json({ success: false, message: '이슈 조회에 실패했습니다.' });
         }
-        
-        res.json({ success: true, issues });
-    });
+    }
 });
 
 // 이슈 결과 설정 및 보상 지급

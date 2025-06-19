@@ -1505,9 +1505,10 @@ function renderResultRow(issue) {
     const endDate = new Date(issue.end_date);
     const formattedEndDate = `${endDate.getFullYear()}.${String(endDate.getMonth() + 1).padStart(2, '0')}.${String(endDate.getDate()).padStart(2, '0')}`;
     
-    const totalVolume = (issue.yes_volume || 0) + (issue.no_volume || 0);
-    const yesCount = issue.yes_count || 0;
-    const noCount = issue.no_count || 0;
+    // 임시로 단순화된 데이터 사용
+    const totalVolume = issue.total_volume || 0;
+    const yesCount = 0; // 임시로 0 설정
+    const noCount = 0; // 임시로 0 설정
     
     let statusBadge = '';
     let resultBadge = '';
@@ -1564,12 +1565,9 @@ function renderResultRow(issue) {
             <td class="px-6 py-4 text-sm text-gray-900">${formattedEndDate}</td>
             <td class="px-6 py-4">
                 <div class="text-sm text-gray-900">
-                    <div>총 ${yesCount + noCount}명 참여</div>
+                    <div>참여 정보</div>
                     <div class="text-xs text-gray-500">${totalVolume.toLocaleString()} 감</div>
-                    <div class="text-xs">
-                        <span class="text-green-600">Yes: ${yesCount}명</span> / 
-                        <span class="text-red-600">No: ${noCount}명</span>
-                    </div>
+                    <div class="text-xs text-gray-500">Yes 확률: ${issue.yes_price}%</div>
                 </div>
             </td>
             <td class="px-6 py-4">${statusBadge}</td>
