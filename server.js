@@ -73,6 +73,8 @@ app.get('/mypage', (req, res) => {
 
 // 데이터베이스 초기화 후 서버 시작
 initDatabase().then(() => {
+    console.log('✅ 데이터베이스 초기화 완료');
+    
     app.listen(PORT, '0.0.0.0', () => {
         console.log(`🚀 예겜 서버가 포트 ${PORT}에서 실행 중입니다.`);
         if (process.env.NODE_ENV === 'production') {
@@ -83,9 +85,30 @@ initDatabase().then(() => {
         }
         
         // 이슈 자동 마감 스케줄러 시작
-        issueScheduler.start();
+        try {
+            console.log('🔄 스케줄러 초기화 중...');
+            issueScheduler.start();
+            console.log('✅ 스케줄러 시작 성공');
+        } catch (schedulerError) {
+            console.error('❌ 스케줄러 시작 실패:', schedulerError);
+            console.error('❌ 서버는 계속 실행되지만 스케줄러는 비활성화됩니다.');
+        }
+        
+        // 데이터베이스 연결 상태 재확인
+        try {
+            const { getDB } = require('./database/database');
+            const testDb = getDB();
+            if (testDb) {
+                console.log('✅ 서버 시작 후 데이터베이스 연결 확인됨');
+            } else {
+                console.error('❌ 서버 시작 후 데이터베이스 연결 실패');
+            }
+        } catch (dbTestError) {
+            console.error('❌ 데이터베이스 연결 테스트 실패:', dbTestError);
+        }
     });
 }).catch(err => {
-    console.error('데이터베이스 초기화 실패:', err);
+    console.error('❌ 데이터베이스 초기화 실패:', err);
+    console.error('❌ 에러 세부사항:', err.stack);
     process.exit(1);
 });

@@ -236,8 +236,28 @@ router.patch('/issues/:id/toggle-popular', adminMiddleware, (req, res) => {
 // 결과 관리용 이슈 조회 (마감된 이슈만)
 router.get('/issues/closed', adminMiddleware, async (req, res) => {
     const { filter = 'closed' } = req.query;
-    const db = getDB();
+    console.log(`🔍 관리자 이슈 조회 요청 - 필터: ${filter}`);
     
+    try {
+        const db = getDB();
+        if (!db) {
+            console.error('❌ 데이터베이스 연결을 가져올 수 없습니다');
+            return res.status(500).json({ 
+                success: false, 
+                message: '데이터베이스 연결 오류가 발생했습니다.' 
+            });
+        }
+        
+        console.log('✅ 데이터베이스 연결 확인됨');
+    } catch (dbError) {
+        console.error('❌ 데이터베이스 연결 실패:', dbError);
+        return res.status(500).json({ 
+            success: false, 
+            message: '데이터베이스 연결에 실패했습니다.' 
+        });
+    }
+    
+    const db = getDB();
     let query = '';
     let params = [];
     
@@ -269,37 +289,59 @@ router.get('/issues/closed', adminMiddleware, async (req, res) => {
             break;
     }
     
+    console.log(`📝 실행할 쿼리: ${query}`);
+    console.log(`📊 파라미터: ${JSON.stringify(params)}`);
+    
     // 데이터베이스 쿼리 실행
     if (typeof db.all === 'function') {
+        console.log('🗃️ SQLite 방식으로 쿼리 실행');
         // SQLite 방식 - params가 빈 배열일 때는 생략
         if (params.length > 0) {
             db.all(query, params, (err, issues) => {
                 if (err) {
-                    console.error('결과 관리용 이슈 조회 실패:', err);
-                    return res.status(500).json({ success: false, message: '이슈 조회에 실패했습니다.' });
+                    console.error('❌ 결과 관리용 이슈 조회 실패 (with params):', err);
+                    console.error('❌ 쿼리:', query);
+                    console.error('❌ 파라미터:', params);
+                    return res.status(500).json({ 
+                        success: false, 
+                        message: `데이터베이스 쿼리 오류: ${err.message}` 
+                    });
                 }
                 
+                console.log(`✅ 이슈 조회 성공: ${issues.length}개 발견`);
                 res.json({ success: true, issues });
             });
         } else {
             db.all(query, (err, issues) => {
                 if (err) {
-                    console.error('결과 관리용 이슈 조회 실패:', err);
-                    return res.status(500).json({ success: false, message: '이슈 조회에 실패했습니다.' });
+                    console.error('❌ 결과 관리용 이슈 조회 실패 (no params):', err);
+                    console.error('❌ 쿼리:', query);
+                    return res.status(500).json({ 
+                        success: false, 
+                        message: `데이터베이스 쿼리 오류: ${err.message}` 
+                    });
                 }
                 
+                console.log(`✅ 이슈 조회 성공: ${issues.length}개 발견`);
                 res.json({ success: true, issues });
             });
         }
     } else {
+        console.log('🐘 PostgreSQL 방식으로 쿼리 실행');
         // 새로운 인터페이스 사용
         try {
             const { query: dbQuery } = require('../database/database');
             const result = await dbQuery(query, params);
+            console.log(`✅ 이슈 조회 성공: ${result.rows.length}개 발견`);
             res.json({ success: true, issues: result.rows });
         } catch (err) {
-            console.error('결과 관리용 이슈 조회 실패:', err);
-            return res.status(500).json({ success: false, message: '이슈 조회에 실패했습니다.' });
+            console.error('❌ 결과 관리용 이슈 조회 실패 (PostgreSQL):', err);
+            console.error('❌ 쿼리:', query);
+            console.error('❌ 파라미터:', params);
+            return res.status(500).json({ 
+                success: false, 
+                message: `데이터베이스 쿼리 오류: ${err.message}` 
+            });
         }
     }
 });
@@ -552,8 +594,34 @@ router.get('/issues/:id', adminMiddleware, async (req, res) => {
 
 // 스케줄러 상태 조회
 router.get('/scheduler/status', adminMiddleware, (req, res) => {
+    console.log('🔍 스케줄러 상태 조회 요청');
+    
     try {
+        // 스케줄러 모듈 유효성 검사
+        if (!issueScheduler) {
+            console.error('❌ issueScheduler 모듈이 로드되지 않았습니다');
+            return res.status(500).json({ 
+                success: false, 
+                message: '스케줄러 모듈 로드 오류가 발생했습니다.' 
+            });
+        }
+        
+        console.log('✅ issueScheduler 모듈 확인됨');
+        
+        // getStatus 메서드 유효성 검사
+        if (typeof issueScheduler.getStatus !== 'function') {
+            console.error('❌ issueScheduler.getStatus가 함수가 아닙니다');
+            return res.status(500).json({ 
+                success: false, 
+                message: '스케줄러 상태 조회 메서드가 유효하지 않습니다.' 
+            });
+        }
+        
+        console.log('✅ getStatus 메서드 확인됨');
+        
         const status = issueScheduler.getStatus();
+        console.log('📊 스케줄러 상태:', status);
+        
         res.json({
             success: true,
             scheduler: {
@@ -562,28 +630,56 @@ router.get('/scheduler/status', adminMiddleware, (req, res) => {
                 currentTime: new Date().toISOString()
             }
         });
+        
+        console.log('✅ 스케줄러 상태 조회 성공');
+        
     } catch (error) {
-        console.error('스케줄러 상태 조회 실패:', error);
+        console.error('❌ 스케줄러 상태 조회 실패:', error);
+        console.error('❌ 에러 스택:', error.stack);
         res.status(500).json({ 
             success: false, 
-            message: '스케줄러 상태 조회에 실패했습니다.' 
+            message: `스케줄러 상태 조회 오류: ${error.message}` 
         });
     }
 });
 
 // 스케줄러 수동 실행
 router.post('/scheduler/run', adminMiddleware, async (req, res) => {
+    console.log('🔍 스케줄러 수동 실행 요청');
+    
     try {
+        // 스케줄러 모듈 유효성 검사
+        if (!issueScheduler) {
+            console.error('❌ issueScheduler 모듈이 로드되지 않았습니다');
+            return res.status(500).json({ 
+                success: false, 
+                message: '스케줄러 모듈 로드 오류가 발생했습니다.' 
+            });
+        }
+        
+        // runManualCheck 메서드 유효성 검사
+        if (typeof issueScheduler.runManualCheck !== 'function') {
+            console.error('❌ issueScheduler.runManualCheck가 함수가 아닙니다');
+            return res.status(500).json({ 
+                success: false, 
+                message: '스케줄러 수동 실행 메서드가 유효하지 않습니다.' 
+            });
+        }
+        
+        console.log('✅ 스케줄러 수동 실행 시작');
         await issueScheduler.runManualCheck();
+        console.log('✅ 스케줄러 수동 실행 완료');
+        
         res.json({
             success: true,
             message: '이슈 만료 검사가 수동으로 실행되었습니다.'
         });
     } catch (error) {
-        console.error('스케줄러 수동 실행 실패:', error);
+        console.error('❌ 스케줄러 수동 실행 실패:', error);
+        console.error('❌ 에러 스택:', error.stack);
         res.status(500).json({ 
             success: false, 
-            message: '스케줄러 수동 실행에 실패했습니다.' 
+            message: `스케줄러 수동 실행 오류: ${error.message}` 
         });
     }
 });
