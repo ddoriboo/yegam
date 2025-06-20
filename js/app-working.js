@@ -6,6 +6,9 @@ let currentUser = null;
 let issues = [];
 let userToken = localStorage.getItem('yegame-token');
 
+// Comments pagination state
+const commentsPagination = new Map(); // issueId -> { currentPage, totalComments, allComments }
+
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('DOM loaded, initializing app...');
     
@@ -741,14 +744,16 @@ async function toggleComments(issueId) {
     }
 }
 
-async function loadComments(issueId) {
+async function loadComments(issueId, loadMore = false) {
     const commentsSection = document.querySelector(`.comments-section[data-issue-id="${issueId}"]`);
     const loadingEl = commentsSection.querySelector('.comments-loading');
     const containerEl = commentsSection.querySelector('.comments-container');
     
     try {
-        loadingEl.classList.remove('hidden');
-        containerEl.classList.add('hidden');
+        if (!loadMore) {
+            loadingEl.classList.remove('hidden');
+            containerEl.classList.add('hidden');
+        }
         
         const response = await fetch(`/api/comments/issue/${issueId}`);
         const data = await response.json();
@@ -757,7 +762,18 @@ async function loadComments(issueId) {
             if (currentUser) {
                 await loadUserLikeStatus(issueId);
             }
-            containerEl.innerHTML = renderComments(data.comments);
+            
+            // 페이지네이션 상태 초기화 또는 업데이트
+            if (!commentsPagination.has(issueId) || !loadMore) {
+                commentsPagination.set(issueId, {
+                    currentPage: 1,
+                    totalComments: data.comments.length,
+                    allComments: data.comments,
+                    commentsPerPage: 3
+                });
+            }
+            
+            containerEl.innerHTML = renderPaginatedComments(issueId);
             if (typeof lucide !== 'undefined') {
                 lucide.createIcons();
             }
@@ -792,6 +808,59 @@ async function loadUserLikeStatus(issueId) {
     }
 }
 
+function renderPaginatedComments(issueId) {
+    const pagination = commentsPagination.get(issueId);
+    if (!pagination) return '';
+    
+    const { currentPage, allComments, commentsPerPage, totalComments } = pagination;
+    
+    if (totalComments === 0) {
+        return `
+            <div class="text-center py-8 text-gray-500">
+                <i data-lucide="message-circle" class="w-8 h-8 mx-auto mb-3 text-gray-300"></i>
+                <p>첫 번째 댓글을 작성해보세요!</p>
+            </div>
+        `;
+    }
+    
+    // 현재 페이지까지의 댓글들 표시
+    const endIndex = currentPage * commentsPerPage;
+    const visibleComments = allComments.slice(0, endIndex);
+    const hasMore = endIndex < totalComments;
+    
+    let html = `
+        <div class="comments-header mb-4">
+            <div class="flex items-center justify-between">
+                <h4 class="font-semibold text-gray-900">댓글 ${totalComments}개</h4>
+                ${totalComments > commentsPerPage ? `
+                    <span class="text-sm text-gray-500">
+                        ${Math.min(endIndex, totalComments)}/${totalComments}개 표시
+                    </span>
+                ` : ''}
+            </div>
+        </div>
+        <div class="comments-list space-y-4">
+            ${visibleComments.map(comment => renderComment(comment)).join('')}
+        </div>
+    `;
+    
+    // 더보기 버튼
+    if (hasMore) {
+        const remainingComments = totalComments - endIndex;
+        html += `
+            <div class="comments-load-more mt-6 text-center">
+                <button class="load-more-comments-btn inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border border-blue-200 rounded-lg text-blue-700 font-medium transition-all duration-200 hover:shadow-md" 
+                        onclick="loadMoreComments(${issueId})">
+                    <i data-lucide="chevron-down" class="w-4 h-4 mr-2"></i>
+                    댓글 ${Math.min(10, remainingComments)}개 더보기
+                </button>
+            </div>
+        `;
+    }
+    
+    return html;
+}
+
 function renderComments(comments) {
     if (comments.length === 0) {
         return `
@@ -804,6 +873,33 @@ function renderComments(comments) {
     
     return comments.map(comment => renderComment(comment)).join('');
 }
+
+// 더보기 댓글 로드 함수
+function loadMoreComments(issueId) {
+    const pagination = commentsPagination.get(issueId);
+    if (!pagination) return;
+    
+    // 현재 표시된 댓글 수에 10개 더 추가
+    const currentShowing = pagination.currentPage * pagination.commentsPerPage;
+    const newCommentsToShow = Math.min(10, pagination.totalComments - currentShowing);
+    
+    // 새로운 페이지 계산
+    const newTotalShowing = currentShowing + newCommentsToShow;
+    pagination.currentPage = Math.ceil(newTotalShowing / pagination.commentsPerPage);
+    
+    // 댓글 섹션 다시 렌더링
+    const commentsSection = document.querySelector(`.comments-section[data-issue-id="${issueId}"]`);
+    const containerEl = commentsSection.querySelector('.comments-container');
+    
+    containerEl.innerHTML = renderPaginatedComments(issueId);
+    
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+// 전역으로 노출
+window.loadMoreComments = loadMoreComments;
 
 function renderComment(comment) {
     const isLiked = userLikedComments.has(comment.id);
@@ -1047,6 +1143,8 @@ async function handleCommentSubmit(form, issueId, parentId = null) {
         const data = await response.json();
         
         if (data.success) {
+            // 페이지네이션 상태 리셋하고 댓글 다시 로드
+            commentsPagination.delete(issueId);
             await loadComments(issueId);
             form.reset();
             
@@ -1138,6 +1236,8 @@ async function handleCommentDelete(commentId) {
             const commentEl = document.querySelector(`[data-comment-id="${commentId}"]`);
             const issueId = commentEl.closest('.comments-section').dataset.issueId;
             
+            // 페이지네이션 상태 리셋하고 댓글 다시 로드
+            commentsPagination.delete(issueId);
             await loadComments(issueId);
             showNotification('댓글이 삭제되었습니다.', 'success');
         } else {
