@@ -1,6 +1,6 @@
 const express = require('express');
 const { query, run, get, getDB } = require('../database/database');
-const { authMiddleware, tempAdminMiddleware } = require('../middleware/auth');
+const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 
 // 임시 관리자 미들웨어
 const tempAdminMiddleware = (req, res, next) => {
