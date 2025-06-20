@@ -280,6 +280,90 @@ app.get('/tier_guide', (req, res) => {
     res.sendFile(path.join(__dirname, 'tier_guide.html'));
 });
 
+// 관리자 테이블 강제 수정 엔드포인트
+app.get('/fix-admin-table', async (req, res) => {
+    try {
+        const { query } = require('./database/database');
+        const bcrypt = require('bcryptjs');
+        
+        const steps = [];
+        
+        // Step 1: 기존 테이블에 username 컬럼 추가 시도
+        try {
+            await query('ALTER TABLE admins ADD COLUMN IF NOT EXISTS username VARCHAR(50) UNIQUE');
+            steps.push('username 컬럼 추가 성공');
+        } catch (e) {
+            steps.push(`username 컬럼 추가 실패: ${e.message}`);
+        }
+        
+        // Step 2: 다른 필요한 컬럼들 추가
+        const columnsToAdd = [
+            'email VARCHAR(100) UNIQUE',
+            'password_hash VARCHAR(255)',
+            'full_name VARCHAR(100)',
+            'role VARCHAR(20) DEFAULT \'admin\'',
+            'is_active BOOLEAN DEFAULT true',
+            'last_login TIMESTAMP',
+            'created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP',
+            'updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP'
+        ];
+        
+        for (const column of columnsToAdd) {
+            try {
+                const columnName = column.split(' ')[0];
+                await query(`ALTER TABLE admins ADD COLUMN IF NOT EXISTS ${column}`);
+                steps.push(`${columnName} 컬럼 추가 성공`);
+            } catch (e) {
+                steps.push(`${column} 컬럼 추가 실패: ${e.message}`);
+            }
+        }
+        
+        // Step 3: 관리자 계정 생성 시도
+        try {
+            const defaultPassword = 'TempAdmin2025!';
+            const hashedPassword = await bcrypt.hash(defaultPassword, 12);
+            
+            const result = await query(`
+                INSERT INTO admins (username, email, password_hash, full_name, role) 
+                VALUES ($1, $2, $3, $4, $5) 
+                ON CONFLICT (username) DO UPDATE SET 
+                    password_hash = EXCLUDED.password_hash,
+                    updated_at = CURRENT_TIMESTAMP
+                RETURNING id
+            `, ['superadmin', 'admin@yegam.com', hashedPassword, '시스템 관리자', 'super_admin']);
+            
+            steps.push(`관리자 계정 생성/업데이트 성공: ID ${result.rows[0].id}`);
+            
+            res.json({
+                success: true,
+                message: '관리자 테이블 수정 및 계정 생성 완료',
+                steps: steps,
+                loginInfo: {
+                    url: req.protocol + '://' + req.get('host') + '/admin-login',
+                    username: 'superadmin',
+                    password: defaultPassword
+                }
+            });
+            
+        } catch (e) {
+            steps.push(`관리자 계정 생성 실패: ${e.message}`);
+            res.json({
+                success: false,
+                message: '관리자 계정 생성 중 오류 발생',
+                steps: steps,
+                error: e.message
+            });
+        }
+        
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: '테이블 수정 중 오류 발생',
+            error: error.message
+        });
+    }
+});
+
 // 404 핸들러
 app.use('*', (req, res) => {
     res.status(404).json({
