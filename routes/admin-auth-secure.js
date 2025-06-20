@@ -7,7 +7,7 @@ const { query, get, run } = require('../database/database');
 const router = express.Router();
 
 // 관리자 전용 JWT 시크릿 (일반 사용자와 분리)
-const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || 'yegam-admin-super-secure-secret-2025-' + crypto.randomBytes(32).toString('hex');
+const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET || 'yegam-admin-super-secure-secret-2025-fixed-key-for-development';
 
 // 관리자 활동 로그 기록 함수
 async function logAdminActivity(adminId, action, resourceType = null, resourceId = null, details = null, req = null) {
