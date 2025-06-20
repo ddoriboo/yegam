@@ -1,7 +1,17 @@
 const errorHandler = (err, req, res, next) => {
-    console.error('Error:', err);
+    // 향상된 로깅
+    const timestamp = new Date().toISOString();
+    console.error(`[${timestamp}] Error:`, {
+        message: err.message,
+        stack: err.stack,
+        url: req.url,
+        method: req.method,
+        ip: req.ip,
+        userAgent: req.get('User-Agent')
+    });
 
-    if (err.code === 'SQLITE_CONSTRAINT') {
+    // PostgreSQL 제약 조건 에러
+    if (err.code && err.code.startsWith('23')) {
         return res.status(400).json({
             success: false,
             message: '데이터 제약 조건 위반입니다.',

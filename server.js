@@ -14,6 +14,7 @@ const adminRoutes = require('./routes/admin');
 const uploadRoutes = require('./routes/upload');
 const { initDatabase } = require('./database/database');
 const issueScheduler = require('./services/scheduler');
+const { errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -79,6 +80,17 @@ app.get('/mypage', (req, res) => {
 app.get('/tier_guide', (req, res) => {
     res.sendFile(path.join(__dirname, 'tier_guide.html'));
 });
+
+// 404 핸들러
+app.use('*', (req, res) => {
+    res.status(404).json({
+        success: false,
+        message: '요청하신 페이지를 찾을 수 없습니다.'
+    });
+});
+
+// 전역 에러 핸들러
+app.use(errorHandler);
 
 // 데이터베이스 초기화 후 서버 시작
 console.log('🔄 데이터베이스 초기화 시작...');

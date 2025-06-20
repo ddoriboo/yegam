@@ -4,7 +4,11 @@ const jwt = require('jsonwebtoken');
 const { query, run, get } = require('../database/database');
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'yegame-dev-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET is required in production');
+}
 
 // 회원가입
 router.post('/signup', async (req, res) => {

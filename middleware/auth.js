@@ -1,6 +1,10 @@
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'yegame-dev-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET is required in production');
+}
 
 const authMiddleware = (req, res, next) => {
     try {
@@ -24,14 +28,40 @@ const authMiddleware = (req, res, next) => {
     }
 };
 
-const adminMiddleware = (req, res, next) => {
-    // 임시로 인증 없이 admin 기능 허용 (개발용)
-    // TODO: 실제 관리자 권한 체크 구현
-    next();
-    
-    // For now, we'll assume all authenticated users can access admin functions
-    // In a real app, you'd check user roles/permissions
-    // authMiddleware(req, res, next);
+const adminMiddleware = async (req, res, next) => {
+    try {
+        // 먼저 인증 확인
+        const token = req.headers.authorization?.split(' ')[1];
+        
+        if (!token) {
+            return res.status(401).json({ 
+                success: false, 
+                message: '관리자 인증이 필요합니다.' 
+            });
+        }
+        
+        const decoded = jwt.verify(token, JWT_SECRET || 'dev-key');
+        req.user = decoded;
+        
+        // 관리자 권한 확인
+        const { get } = require('../database/database');
+        const admin = await get('SELECT id FROM admins WHERE user_id = $1', [decoded.userId]);
+        
+        if (!admin) {
+            return res.status(403).json({ 
+                success: false, 
+                message: '관리자 권한이 필요합니다.' 
+            });
+        }
+        
+        next();
+    } catch (error) {
+        console.error('관리자 권한 확인 실패:', error);
+        return res.status(401).json({ 
+            success: false, 
+            message: '유효하지 않은 관리자 토큰입니다.' 
+        });
+    }
 };
 
 module.exports = {
