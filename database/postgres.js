@@ -166,6 +166,17 @@ const createTables = async () => {
             )
         `);
         
+        // 성능 최적화를 위한 인덱스 생성
+        console.log('🔧 데이터베이스 인덱스 생성 중...');
+        await client.query('CREATE INDEX IF NOT EXISTS idx_issues_status ON issues(status)');
+        await client.query('CREATE INDEX IF NOT EXISTS idx_issues_category ON issues(category)');
+        await client.query('CREATE INDEX IF NOT EXISTS idx_issues_end_date ON issues(end_date)');
+        await client.query('CREATE INDEX IF NOT EXISTS idx_bets_user_issue ON bets(user_id, issue_id)');
+        await client.query('CREATE INDEX IF NOT EXISTS idx_comments_issue_id ON comments(issue_id)');
+        await client.query('CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id)');
+        await client.query('CREATE INDEX IF NOT EXISTS idx_comment_likes_comment_id ON comment_likes(comment_id)');
+        console.log('✅ 데이터베이스 인덱스 생성 완료');
+        
         await client.query('COMMIT');
         console.log('✅ PostgreSQL 테이블 생성 완료');
         
