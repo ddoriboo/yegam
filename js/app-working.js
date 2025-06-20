@@ -1258,7 +1258,7 @@ function createIssueCard(issue) {
     `;
 }
 
-// Betting function
+// Betting function - 이제 새로운 모달을 사용
 async function placeBet(issueId, choice) {
     if (!currentUser) {
         alert('예측을 하려면 로그인이 필요합니다.');
@@ -1266,6 +1266,28 @@ async function placeBet(issueId, choice) {
         return;
     }
     
+    // 이슈 정보 찾기
+    let issueTitle = '';
+    try {
+        const allIssues = [...(issues || [])];
+        const issue = allIssues.find(i => i.id === issueId);
+        issueTitle = issue ? issue.title : `이슈 #${issueId}`;
+    } catch (error) {
+        console.error('이슈 정보 조회 실패:', error);
+        issueTitle = `이슈 #${issueId}`;
+    }
+    
+    // 새로운 베팅 모달 열기
+    if (typeof window.openBettingModal === 'function') {
+        window.openBettingModal(issueId, choice, issueTitle, currentUser);
+    } else {
+        // 폴백: 기존 방식
+        await placeBetLegacy(issueId, choice);
+    }
+}
+
+// 기존 베팅 로직 (폴백용)
+async function placeBetLegacy(issueId, choice) {
     const amount = prompt(`'${choice}'에 얼마나 예측하시겠습니까?\\n보유 GAM: ${(currentUser.gam_balance || currentUser.coins || 0).toLocaleString()}`, "1000");
     
     if (!amount || isNaN(amount) || parseInt(amount) <= 0) {
