@@ -291,6 +291,39 @@ function calculateTier(gamAmount) {
 }
 
 /**
+ * 티어 아이콘만 생성 (원형)
+ * @param {Object} tierInfo - calculateTier()에서 반환된 티어 정보
+ * @param {string} size - 'sm', 'md', 'lg' 중 하나 (기본값: 'md')
+ * @returns {string} HTML 문자열
+ */
+function generateTierIcon(tierInfo, size = 'md') {
+    const sizes = {
+        sm: {
+            container: 'w-6 h-6 text-xs',
+            icon: 'text-sm'
+        },
+        md: {
+            container: 'w-8 h-8 text-sm',
+            icon: 'text-base'
+        },
+        lg: {
+            container: 'w-12 h-12 text-base',
+            icon: 'text-2xl'
+        }
+    };
+    
+    const sizeClass = sizes[size] || sizes.md;
+    
+    return `
+        <div class="inline-flex items-center justify-center ${sizeClass.container} rounded-full font-semibold"
+             style="color: ${tierInfo.color}; background-color: ${tierInfo.bgColor}; border: 2px solid ${tierInfo.borderColor};"
+             title="${tierInfo.name} (${tierInfo.gamAmount.toLocaleString()} GAM)">
+            <span class="${sizeClass.icon}">${tierInfo.icon}</span>
+        </div>
+    `;
+}
+
+/**
  * 티어 뱃지 HTML 생성
  * @param {Object} tierInfo - calculateTier()에서 반환된 티어 정보
  * @param {string} size - 'sm', 'md', 'lg' 중 하나 (기본값: 'md')
@@ -379,6 +412,7 @@ function getTierRequirements(tierName) {
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         calculateTier,
+        generateTierIcon,
         generateTierBadge,
         generateTierProgress,
         getAllTiers,
@@ -389,6 +423,7 @@ if (typeof module !== 'undefined' && module.exports) {
     // 브라우저 환경에서는 전역 객체로 노출
     window.TierSystem = {
         calculateTier,
+        generateTierIcon,
         generateTierBadge,
         generateTierProgress,
         getAllTiers,

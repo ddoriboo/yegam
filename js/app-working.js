@@ -965,9 +965,7 @@ function renderComment(comment) {
         <div class="comment ${highlightClass} border rounded-lg p-4 mb-4" data-comment-id="${comment.id}">
             <div class="flex items-start space-x-3 mb-3">
                 <div class="flex-shrink-0">
-                    <div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                        ${comment.username.charAt(0).toUpperCase()}
-                    </div>
+                    ${generateCommentTierIcon(comment.user_coins)}
                 </div>
                 <div class="flex-grow min-w-0">
                     <div class="flex items-center space-x-2 mb-1">
@@ -1021,9 +1019,7 @@ function renderReply(reply) {
         <div class="reply border-b border-gray-100 pb-3 mb-3 last:border-b-0 last:pb-0 last:mb-0" data-comment-id="${reply.id}">
             <div class="flex items-start space-x-3">
                 <div class="flex-shrink-0">
-                    <div class="w-6 h-6 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
-                        ${reply.username.charAt(0).toUpperCase()}
-                    </div>
+                    ${generateReplyTierIcon(reply.user_coins)}
                 </div>
                 <div class="flex-grow min-w-0">
                     <div class="flex items-center space-x-2 mb-1">
@@ -2995,17 +2991,109 @@ function updateUserTier(gamAmount) {
     
     const tierInfo = window.TierSystem.calculateTier(gamAmount);
     
+    // 사용자 프로필 티어 아이콘 표시 (큰 크기)
+    const tierIconEl = document.getElementById('user-tier-icon');
+    if (tierIconEl) {
+        // 기존 스타일을 유지하면서 티어 정보로 업데이트
+        tierIconEl.style.color = tierInfo.color;
+        tierIconEl.style.backgroundColor = tierInfo.bgColor;
+        tierIconEl.style.borderColor = tierInfo.borderColor;
+        tierIconEl.style.border = `3px solid ${tierInfo.borderColor}`;
+        tierIconEl.innerHTML = `
+            <div class="text-4xl" title="${tierInfo.name} (${tierInfo.gamAmount.toLocaleString()} GAM)">
+                ${tierInfo.icon}
+            </div>
+        `;
+    }
+    
     // 티어 뱃지 표시
     const tierBadgeEl = document.getElementById('user-tier-badge');
     if (tierBadgeEl) {
         tierBadgeEl.innerHTML = window.TierSystem.generateTierBadge(tierInfo, 'md');
     }
     
-    // 티어 진행률 표시
+    // 향상된 티어 진행률 표시
     const tierProgressEl = document.getElementById('user-tier-progress');
     if (tierProgressEl) {
-        tierProgressEl.innerHTML = window.TierSystem.generateTierProgress(tierInfo);
+        tierProgressEl.innerHTML = generateEnhancedTierProgress(tierInfo);
     }
+}
+
+// 향상된 티어 진행률 표시 (동기부여 포함)
+function generateEnhancedTierProgress(tierInfo) {
+    if (tierInfo.name === '모든 것을 보는 눈') {
+        return `
+            <div class="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center space-x-2">
+                        <div class="text-2xl">${tierInfo.icon}</div>
+                        <div>
+                            <div class="font-bold text-yellow-800">최고 티어 달성!</div>
+                            <div class="text-sm text-yellow-700">축하합니다! 모든 업적을 달성했습니다.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="w-full bg-yellow-200 rounded-full h-3">
+                    <div class="h-3 rounded-full bg-gradient-to-r from-yellow-400 to-orange-400" style="width: 100%;"></div>
+                </div>
+                <div class="flex justify-between text-sm text-yellow-800 mt-2">
+                    <span>완료</span>
+                    <span class="font-semibold">${tierInfo.gamAmount.toLocaleString()} GAM</span>
+                </div>
+            </div>
+        `;
+    }
+    
+    // 현재 티어와 다음 티어 정보
+    const nextTierIndex = tierInfo.tierIndex + 1;
+    const allTiers = window.TierSystem.getAllTiers();
+    const nextTier = nextTierIndex < allTiers.length ? allTiers[nextTierIndex] : null;
+    
+    if (!nextTier) {
+        return window.TierSystem.generateTierProgress(tierInfo);
+    }
+    
+    return `
+        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center space-x-3">
+                    <div class="flex items-center space-x-1">
+                        <div class="text-lg" title="현재 티어">${tierInfo.icon}</div>
+                        <i data-lucide="arrow-right" class="w-4 h-4 text-gray-400"></i>
+                        <div class="text-lg" title="다음 티어">${nextTier.icon}</div>
+                    </div>
+                    <div>
+                        <div class="font-semibold text-gray-900">${tierInfo.name} → ${nextTier.name}</div>
+                        <div class="text-sm text-gray-600">${tierInfo.remainingGam.toLocaleString()} GAM 더 필요</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="w-full bg-gray-200 rounded-full h-3 mb-2">
+                <div class="h-3 rounded-full bg-gradient-to-r from-blue-400 to-indigo-500 transition-all duration-500" 
+                     style="width: ${tierInfo.progress}%;"></div>
+            </div>
+            
+            <div class="flex justify-between items-center text-sm">
+                <span class="text-gray-600">${tierInfo.gamAmount.toLocaleString()} GAM</span>
+                <div class="flex items-center space-x-2">
+                    <span class="text-gray-600">목표:</span>
+                    <span class="font-semibold text-indigo-600">${nextTier.minGam.toLocaleString()} GAM</span>
+                    <div class="flex items-center space-x-1 ml-2 px-2 py-1 bg-indigo-100 rounded-full">
+                        <div class="text-sm">${nextTier.icon}</div>
+                        <span class="text-xs font-medium text-indigo-700">${nextTier.name}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-3 pt-3 border-t border-blue-200">
+                <div class="text-xs text-blue-700 text-center">
+                    <i data-lucide="target" class="w-3 h-3 inline mr-1"></i>
+                    예측에 참여하여 GAM을 획득하고 더 높은 등급을 달성해보세요!
+                </div>
+            </div>
+        </div>
+    `;
 }
 
 // 댓글 시스템용 티어 뱃지 생성
@@ -3016,6 +3104,36 @@ function generateCommentTierBadge(userCoins) {
     
     const tierInfo = window.TierSystem.calculateTier(userCoins || 0);
     return window.TierSystem.generateTierBadge(tierInfo, 'sm');
+}
+
+// 댓글 시스템용 티어 아이콘 생성 (아바타 대체용)
+function generateCommentTierIcon(userCoins) {
+    if (typeof window.TierSystem === 'undefined') {
+        // 기본 아바타 폴백
+        return `
+            <div class="w-8 h-8 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                ?
+            </div>
+        `;
+    }
+    
+    const tierInfo = window.TierSystem.calculateTier(userCoins || 0);
+    return window.TierSystem.generateTierIcon(tierInfo, 'md');
+}
+
+// 답글 시스템용 티어 아이콘 생성 (작은 크기)
+function generateReplyTierIcon(userCoins) {
+    if (typeof window.TierSystem === 'undefined') {
+        // 기본 아바타 폴백
+        return `
+            <div class="w-6 h-6 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
+                ?
+            </div>
+        `;
+    }
+    
+    const tierInfo = window.TierSystem.calculateTier(userCoins || 0);
+    return window.TierSystem.generateTierIcon(tierInfo, 'sm');
 }
 
 async function loadUserBets() {
