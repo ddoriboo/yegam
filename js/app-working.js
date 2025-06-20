@@ -11,6 +11,15 @@ window.currentUser = currentUser;
 window.updateCurrentUser = (newUserData) => {
     currentUser = newUserData;
     window.currentUser = currentUser;
+    // 헤더 업데이트도 함께 실행
+    updateHeader(true);
+};
+
+// 헤더 강제 업데이트 함수 (베팅 후 호출용)
+window.forceUpdateHeader = () => {
+    if (currentUser) {
+        updateHeader(true);
+    }
 };
 
 // Comments pagination state
@@ -102,12 +111,15 @@ function updateHeader(isLoggedIn) {
     updateIssueRequestButtons(isLoggedIn);
     
     if (isLoggedIn && currentUser) {
-        const userCoins = currentUser.gam_balance || currentUser.coins || 0;
+        // 최신 사용자 정보를 sessionStorage에서 가져오기 (베팅 후 업데이트된 정보)
+        const sessionUser = sessionStorage.getItem('yegame-user');
+        const latestUser = sessionUser ? JSON.parse(sessionUser) : currentUser;
+        const userCoins = latestUser.gam_balance || latestUser.coins || 0;
         const tierBadge = generateCommentTierBadge(userCoins);
         
         userActionsContainer.innerHTML = `
             <div class="flex items-center space-x-2">
-                <span class="text-sm font-medium text-gray-600 hidden sm:block">${currentUser.username}</span>
+                <span class="text-sm font-medium text-gray-600 hidden sm:block">${latestUser.username}</span>
                 <div class="hidden sm:block">${tierBadge}</div>
             </div>
             <div class="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-md border border-gray-200 shadow-sm">

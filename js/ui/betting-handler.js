@@ -59,6 +59,11 @@ async function placeBet(issueId, choice, cardElement) {
             if (window.updateCurrentUser) {
                 window.updateCurrentUser(updatedUser);
             }
+            
+            // 헤더 강제 업데이트
+            if (window.forceUpdateHeader) {
+                window.forceUpdateHeader();
+            }
         } else {
             alert(`${MESSAGES.ERROR.BETTING_FAILED}: ${result.message}`);
         }
