@@ -37,6 +37,13 @@ const isPostgreSQL = () => {
     return true; // 이제 PostgreSQL만 사용
 };
 
+// SQLite 플레이스홀더를 PostgreSQL로 변환하는 헬퍼 함수
+const convertSQLiteToPostgreSQL = (query, params = []) => {
+    let paramIndex = 1;
+    const convertedQuery = query.replace(/\?/g, () => `$${paramIndex++}`);
+    return { query: convertedQuery, params };
+};
+
 // 임시 호환성 함수 - 기존 코드와의 호환성을 위해
 const getDB = () => {
     return {
@@ -48,9 +55,13 @@ const getDB = () => {
             }
             
             try {
-                const result = await pgQuery(text, params || []);
+                const { query: convertedQuery, params: convertedParams } = convertSQLiteToPostgreSQL(text, params || []);
+                const result = await pgQuery(convertedQuery, convertedParams);
                 if (callback) callback(null, result.rows);
             } catch (err) {
+                console.error('PostgreSQL all 쿼리 실패:', err);
+                console.error('원본 쿼리:', text);
+                console.error('파라미터:', params);
                 if (callback) callback(err);
             }
         },
@@ -62,9 +73,13 @@ const getDB = () => {
             }
             
             try {
-                const result = await pgQuery(text, params || []);
+                const { query: convertedQuery, params: convertedParams } = convertSQLiteToPostgreSQL(text, params || []);
+                const result = await pgQuery(convertedQuery, convertedParams);
                 if (callback) callback(null, result.rows[0] || null);
             } catch (err) {
+                console.error('PostgreSQL get 쿼리 실패:', err);
+                console.error('원본 쿼리:', text);
+                console.error('파라미터:', params);
                 if (callback) callback(err);
             }
         },
@@ -76,7 +91,8 @@ const getDB = () => {
             }
             
             try {
-                const result = await pgQuery(text, params || []);
+                const { query: convertedQuery, params: convertedParams } = convertSQLiteToPostgreSQL(text, params || []);
+                const result = await pgQuery(convertedQuery, convertedParams);
                 if (callback) {
                     callback.call({ 
                         lastID: result.rows[0]?.id || result.insertId, 
@@ -84,6 +100,9 @@ const getDB = () => {
                     });
                 }
             } catch (err) {
+                console.error('PostgreSQL run 쿼리 실패:', err);
+                console.error('원본 쿼리:', text);
+                console.error('파라미터:', params);
                 if (callback) callback(err);
             }
         }
