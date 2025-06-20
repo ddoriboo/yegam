@@ -214,7 +214,8 @@ router.get('/admin/all', tempAdminMiddleware, async (req, res) => {
 router.put('/:id/approve', tempAdminMiddleware, async (req, res) => {
     try {
         const requestId = req.params.id;
-        const adminId = req.user?.id || 1; // 임시 관리자 ID
+        // 임시로 approved_by를 NULL로 설정 (FK 제약 조건 회피)
+        const adminId = null;
         const { adminComments } = req.body;
         
         // 신청 존재 확인
@@ -243,16 +244,16 @@ router.put('/:id/approve', tempAdminMiddleware, async (req, res) => {
             const issueId = issueResult.rows[0].id;
             console.log('✅ 이슈 생성 성공:', issueId);
             
-            // 2. 신청 상태 업데이트
+            // 2. 신청 상태 업데이트 (approved_by는 NULL로 설정)
             await run(`
                 UPDATE issue_requests 
                 SET status = 'approved', 
-                    approved_by = $1, 
+                    approved_by = NULL, 
                     approved_at = NOW(),
-                    admin_comments = $2,
+                    admin_comments = $1,
                     updated_at = NOW()
-                WHERE id = $3
-            `, [adminId, adminComments || '', requestId]);
+                WHERE id = $2
+            `, [adminComments || '임시 관리자에 의해 승인됨', requestId]);
             
             // 3. 신청자에게 1000 GAM 지급
             await run(`
@@ -290,7 +291,8 @@ router.put('/:id/approve', tempAdminMiddleware, async (req, res) => {
 router.put('/:id/reject', tempAdminMiddleware, async (req, res) => {
     try {
         const requestId = req.params.id;
-        const adminId = req.user?.id || 1; // 임시 관리자 ID
+        // 임시로 approved_by를 NULL로 설정 (FK 제약 조건 회피)
+        const adminId = null;
         const { adminComments } = req.body;
         
         // 신청 존재 확인
@@ -306,16 +308,16 @@ router.put('/:id/reject', tempAdminMiddleware, async (req, res) => {
             });
         }
         
-        // 신청 상태 업데이트
+        // 신청 상태 업데이트 (approved_by는 NULL로 설정)
         await run(`
             UPDATE issue_requests 
             SET status = 'rejected', 
-                approved_by = $1, 
+                approved_by = NULL, 
                 approved_at = NOW(),
-                admin_comments = $2,
+                admin_comments = $1,
                 updated_at = NOW()
-            WHERE id = $3
-        `, [adminId, adminComments || '승인 기준에 부합하지 않음', requestId]);
+            WHERE id = $2
+        `, [adminComments || '임시 관리자에 의해 거부됨', requestId]);
         
         res.json({
             success: true,
