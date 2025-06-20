@@ -288,7 +288,15 @@ app.get('/fix-admin-table', async (req, res) => {
         
         const steps = [];
         
-        // Step 1: 기존 테이블에 username 컬럼 추가 시도
+        // Step 1: user_id 컬럼 문제 해결 (NULL 허용으로 변경)
+        try {
+            await query('ALTER TABLE admins ALTER COLUMN user_id DROP NOT NULL');
+            steps.push('user_id 컬럼 NOT NULL 제약 조건 제거 성공');
+        } catch (e) {
+            steps.push(`user_id 컬럼 수정 실패: ${e.message}`);
+        }
+        
+        // Step 2: 기존 테이블에 username 컬럼 추가 시도
         try {
             await query('ALTER TABLE admins ADD COLUMN IF NOT EXISTS username VARCHAR(50) UNIQUE');
             steps.push('username 컬럼 추가 성공');
@@ -296,7 +304,7 @@ app.get('/fix-admin-table', async (req, res) => {
             steps.push(`username 컬럼 추가 실패: ${e.message}`);
         }
         
-        // Step 2: 다른 필요한 컬럼들 추가
+        // Step 3: 다른 필요한 컬럼들 추가
         const columnsToAdd = [
             'email VARCHAR(100) UNIQUE',
             'password_hash VARCHAR(255)',
@@ -318,7 +326,7 @@ app.get('/fix-admin-table', async (req, res) => {
             }
         }
         
-        // Step 3: 관리자 계정 생성 시도
+        // Step 4: 관리자 계정 생성 시도
         try {
             const defaultPassword = 'TempAdmin2025!';
             const hashedPassword = await bcrypt.hash(defaultPassword, 12);
