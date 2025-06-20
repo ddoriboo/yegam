@@ -11,6 +11,7 @@ const betRoutes = require('./routes/bets');
 const commentRoutes = require('./routes/comments');
 const adminCommentRoutes = require('./routes/admin-comments');
 const adminRoutes = require('./routes/admin');
+const adminAuthRoutes = require('./routes/admin-auth');
 const uploadRoutes = require('./routes/upload');
 const { initDatabase } = require('./database/database');
 const issueScheduler = require('./services/scheduler');
@@ -51,6 +52,7 @@ app.use('/api/issue-requests', issueRequestRoutes);
 app.use('/api/bets', betRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/admin/comments', adminCommentRoutes);
+app.use('/api/admin/auth', adminAuthRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/upload', uploadRoutes);
 

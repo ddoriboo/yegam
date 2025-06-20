@@ -16,8 +16,8 @@ export function setupAdminFunctions() {
 }
 
 function checkAdminAccess() {
-    const adminAuth = sessionStorage.getItem('admin-auth');
-    return adminAuth === 'authenticated';
+    const adminToken = localStorage.getItem('yegame-admin-token');
+    return adminToken && adminToken !== 'null';
 }
 
 function showAdminLogin() {
@@ -30,12 +30,26 @@ function showAdminLogin() {
                 <h2 class="text-2xl font-bold text-center mb-6">관리자 로그인</h2>
                 <form id="admin-login-form">
                     <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">관리자 암호</label>
-                        <input type="password" id="admin-password" class="modern-input w-full" placeholder="관리자 암호를 입력하세요" required>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">이메일</label>
+                        <input type="email" id="admin-email" class="modern-input w-full" placeholder="관리자 이메일을 입력하세요" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">비밀번호</label>
+                        <input type="password" id="admin-password" class="modern-input w-full" placeholder="비밀번호를 입력하세요" required>
                     </div>
                     <button type="submit" class="btn-primary w-full">로그인</button>
                     <div id="admin-login-error" class="hidden mt-3 text-red-600 text-sm text-center"></div>
                 </form>
+                
+                <div class="mt-6 p-4 bg-blue-50 rounded-lg">
+                    <h3 class="text-sm font-medium text-blue-800 mb-2">💡 관리자 계정 생성 방법</h3>
+                    <p class="text-xs text-blue-700">
+                        서버에서 다음 명령어로 관리자 계정을 생성하세요:<br>
+                        <code class="bg-blue-100 px-2 py-1 rounded text-xs">
+                            node create-admin-user.js [이메일] [사용자명] [비밀번호]
+                        </code>
+                    </p>
+                </div>
             </div>
         </div>
     `;
@@ -45,15 +59,53 @@ function showAdminLogin() {
 
 async function handleAdminLogin(e) {
     e.preventDefault();
+    const email = document.getElementById('admin-email').value;
     const password = document.getElementById('admin-password').value;
     const errorEl = document.getElementById('admin-login-error');
+    const submitBtn = e.target.querySelector('button[type="submit"]');
     
-    if (password === APP_CONFIG.ADMIN_PASSWORD) {
-        sessionStorage.setItem('admin-auth', 'authenticated');
-        await renderAdminPage();
-    } else {
-        errorEl.textContent = MESSAGES.ERROR.ADMIN_AUTH_FAILED;
+    // 로딩 상태
+    submitBtn.disabled = true;
+    submitBtn.textContent = '로그인 중...';
+    
+    try {
+        const response = await fetch('/api/admin/auth/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, password })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // 관리자 토큰 저장
+            localStorage.setItem('yegame-admin-token', data.adminToken);
+            
+            // 성공 메시지
+            errorEl.textContent = '관리자 로그인 성공!';
+            errorEl.className = 'mt-3 text-green-600 text-sm text-center';
+            errorEl.classList.remove('hidden');
+            
+            // 관리자 페이지 렌더링
+            setTimeout(async () => {
+                await renderAdminPage();
+            }, 1000);
+        } else {
+            errorEl.textContent = data.message || '로그인에 실패했습니다.';
+            errorEl.className = 'mt-3 text-red-600 text-sm text-center';
+            errorEl.classList.remove('hidden');
+        }
+    } catch (error) {
+        console.error('관리자 로그인 오류:', error);
+        errorEl.textContent = '서버 연결에 실패했습니다.';
+        errorEl.className = 'mt-3 text-red-600 text-sm text-center';
         errorEl.classList.remove('hidden');
+    } finally {
+        // 로딩 상태 해제
+        submitBtn.disabled = false;
+        submitBtn.textContent = '로그인';
     }
 }
 
@@ -218,4 +270,52 @@ function getCategoryBadgeStyle(category) {
     };
     
     return categoryColors[category] || 'background: #F3F4F6; color: #6B7280;';
+}
+
+// 관리자 헤더 설정
+function setupAdminHeader() {
+    const logoutBtn = document.getElementById('admin-logout-btn');
+    const profileBtn = document.getElementById('admin-profile-btn');
+    
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', handleAdminLogout);
+    }
+    
+    if (profileBtn) {
+        profileBtn.addEventListener('click', showAdminProfile);
+    }
+}
+
+function handleAdminLogout() {
+    if (confirm('정말 로그아웃 하시겠습니까?')) {
+        localStorage.removeItem('yegame-admin-token');
+        showAdminLogin();
+    }
+}
+
+async function showAdminProfile() {
+    try {
+        const adminToken = localStorage.getItem('yegame-admin-token');
+        const response = await fetch('/api/admin/auth/profile', {
+            headers: {
+                'Authorization': `Bearer ${adminToken}`
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            const admin = data.admin;
+            alert(`관리자 정보:
+이름: ${admin.username}
+이메일: ${admin.email}
+가입일: ${new Date(admin.memberSince).toLocaleDateString()}
+관리자 등록일: ${new Date(admin.adminSince).toLocaleDateString()}`);
+        } else {
+            alert('프로필 정보를 불러올 수 없습니다.');
+        }
+    } catch (error) {
+        console.error('프로필 조회 오류:', error);
+        alert('프로필 정보 조회 중 오류가 발생했습니다.');
+    }
 }

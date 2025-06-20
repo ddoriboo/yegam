@@ -1,7 +1,6 @@
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
-const { initDatabase } = require('./database/database');
-const { createUser, findUserByEmail, executeQuery } = require('./utils/database');
+const { initDatabase, query, get } = require('./database/database');
 
 async function createAdminUser() {
     try {
@@ -17,7 +16,7 @@ async function createAdminUser() {
         }
         
         // 기존 사용자 확인
-        const existingUser = await findUserByEmail(email);
+        const existingUser = await get('SELECT id FROM users WHERE email = $1', [email]);
         if (existingUser) {
             console.error('이미 존재하는 이메일입니다.');
             process.exit(1);
@@ -27,23 +26,28 @@ async function createAdminUser() {
         const hashedPassword = await bcrypt.hash(password, 10);
         
         // 사용자 생성
-        const result = await createUser({
-            username,
-            email,
-            hashedPassword,
-            verificationToken: null
-        });
+        const userResult = await query(`
+            INSERT INTO users (username, email, password_hash, coins, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, NOW(), NOW())
+            RETURNING id
+        `, [username, email, hashedPassword, 50000]); // 관리자는 초기 GAM 많이 지급
         
-        // 이메일 인증 완료로 설정
-        await executeQuery('UPDATE users SET verified = TRUE WHERE id = ?', [result.id]);
+        const userId = userResult.rows[0].id;
         
         // 관리자 권한 부여
-        await executeQuery('INSERT INTO admins (user_id) VALUES (?)', [result.id]);
+        await query('INSERT INTO admins (user_id, created_at) VALUES ($1, NOW())', [userId]);
         
         console.log('✅ 관리자 계정이 성공적으로 생성되었습니다!');
         console.log(`이메일: ${email}`);
         console.log(`사용자명: ${username}`);
-        console.log(`사용자 ID: ${result.id}`);
+        console.log(`사용자 ID: ${userId}`);
+        console.log('');
+        console.log('🔐 관리자 로그인 정보:');
+        console.log(`- URL: /admin.html`);
+        console.log(`- 이메일: ${email}`);
+        console.log(`- 비밀번호: ${password}`);
+        console.log('');
+        console.log('⚠️ 보안을 위해 비밀번호를 안전한 곳에 보관하세요!');
         
         process.exit(0);
     } catch (error) {
