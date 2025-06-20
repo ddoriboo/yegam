@@ -4,8 +4,6 @@ const path = require('path');
 const fs = require('fs');
 const { getDB, getCurrentTimeSQL } = require('../database/database');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
-const { tempAdminMiddleware } = require('../middleware/admin-auth');
-
 // 임시 관리자 미들웨어 (Railway 콘솔 접근 어려울 때)
 const tempAdminMiddleware = (req, res, next) => {
     // 임시로 모든 요청 허용
