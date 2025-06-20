@@ -84,11 +84,17 @@ function updateHeader(isLoggedIn) {
     if (!userActionsContainer) return;
     
     if (isLoggedIn && currentUser) {
+        const userCoins = currentUser.gam_balance || currentUser.coins || 0;
+        const tierBadge = generateCommentTierBadge(userCoins);
+        
         userActionsContainer.innerHTML = `
-            <span class="text-sm font-medium text-gray-600 hidden sm:block">${currentUser.username}</span>
+            <div class="flex items-center space-x-2">
+                <span class="text-sm font-medium text-gray-600 hidden sm:block">${currentUser.username}</span>
+                <div class="hidden sm:block">${tierBadge}</div>
+            </div>
             <div class="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-md border border-gray-200 shadow-sm">
                 <i data-lucide="coins" class="w-4 h-4 text-yellow-500"></i>
-                <span class="text-sm font-semibold text-gray-900">${(currentUser.gam_balance || currentUser.coins || 0).toLocaleString()}</span>
+                <span class="text-sm font-semibold text-gray-900">${userCoins.toLocaleString()}</span>
             </div>
             <button onclick="logout()" class="text-gray-600 hover:text-gray-900 transition-colors text-sm">로그아웃</button>
         `;
@@ -820,6 +826,7 @@ function renderComment(comment) {
                 <div class="flex-grow min-w-0">
                     <div class="flex items-center space-x-2 mb-1">
                         <span class="font-medium text-gray-900">${comment.username}</span>
+                        ${generateCommentTierBadge(comment.user_coins)}
                         ${highlightBadge}
                         <span class="text-xs text-gray-500">${comment.timeAgo}</span>
                     </div>
@@ -875,6 +882,7 @@ function renderReply(reply) {
                 <div class="flex-grow min-w-0">
                     <div class="flex items-center space-x-2 mb-1">
                         <span class="font-medium text-gray-900 text-sm">${reply.username}</span>
+                        ${generateCommentTierBadge(reply.user_coins)}
                         <span class="text-xs text-gray-500">${reply.timeAgo}</span>
                     </div>
                     <p class="text-gray-800 text-sm leading-relaxed">${reply.content}</p>
@@ -2622,6 +2630,9 @@ async function loadMyPageData() {
         const joinedDate = new Date(currentUser.created_at || currentUser.createdAt || Date.now());
         document.getElementById('user-joined').textContent = `${joinedDate.getFullYear()}.${String(joinedDate.getMonth() + 1).padStart(2, '0')}.${String(joinedDate.getDate()).padStart(2, '0')} 가입`;
         
+        // Update user tier
+        updateUserTier(currentUser.coins || 0);
+        
         // Load user bets
         await loadUserBets();
         
@@ -2633,6 +2644,38 @@ async function loadMyPageData() {
         console.error('Failed to load my page data:', error);
         showError('내 정보를 불러오는데 실패했습니다.');
     }
+}
+
+// 사용자 티어 업데이트 함수
+function updateUserTier(gamAmount) {
+    if (typeof window.TierSystem === 'undefined') {
+        console.warn('TierSystem not loaded');
+        return;
+    }
+    
+    const tierInfo = window.TierSystem.calculateTier(gamAmount);
+    
+    // 티어 뱃지 표시
+    const tierBadgeEl = document.getElementById('user-tier-badge');
+    if (tierBadgeEl) {
+        tierBadgeEl.innerHTML = window.TierSystem.generateTierBadge(tierInfo, 'md');
+    }
+    
+    // 티어 진행률 표시
+    const tierProgressEl = document.getElementById('user-tier-progress');
+    if (tierProgressEl) {
+        tierProgressEl.innerHTML = window.TierSystem.generateTierProgress(tierInfo);
+    }
+}
+
+// 댓글 시스템용 티어 뱃지 생성
+function generateCommentTierBadge(userCoins) {
+    if (typeof window.TierSystem === 'undefined') {
+        return '';
+    }
+    
+    const tierInfo = window.TierSystem.calculateTier(userCoins || 0);
+    return window.TierSystem.generateTierBadge(tierInfo, 'sm');
 }
 
 async function loadUserBets() {
