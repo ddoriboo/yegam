@@ -734,11 +734,155 @@
                 lucide.createIcons();
             }
             
-            // 관리자 페이지 기능들 초기화 (필요한 것들만)
-            // 이곳에 관리자 페이지 전용 로직 추가
+            // 탭 시스템 초기화
+            initAdminTabs();
+            
+            // 이슈 관리 기능 초기화
+            initIssueManagement();
+            
+            // 새 이슈 생성 버튼 이벤트
+            initCreateIssueButton();
+            
+            // 모바일 메뉴 초기화
+            initMobileMenu();
             
             console.log('✅ 관리자 페이지 초기화 완료');
         }
+        
+        // 탭 시스템 초기화
+        function initAdminTabs() {
+            const tabs = document.querySelectorAll('.admin-tab');
+            const sections = document.querySelectorAll('[id$="-section"]');
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // 모든 탭 스타일 초기화
+                    tabs.forEach(t => {
+                        t.classList.remove('active', 'border-blue-500', 'text-blue-600');
+                        t.classList.add('border-transparent', 'text-gray-500');
+                    });
+                    
+                    // 모든 섹션 숨기기
+                    sections.forEach(s => s.classList.add('hidden'));
+                    
+                    // 클릭된 탭 활성화
+                    tab.classList.add('active', 'border-blue-500', 'text-blue-600');
+                    tab.classList.remove('border-transparent', 'text-gray-500');
+                    
+                    // 해당 섹션 표시
+                    const tabId = tab.id.replace('-tab', '');
+                    const targetSection = document.getElementById(tabId + '-section');
+                    if (targetSection) {
+                        targetSection.classList.remove('hidden');
+                    }
+                });
+            });
+            
+            // 첫 번째 탭(이슈 관리) 활성화
+            const firstTab = document.getElementById('issues-tab');
+            if (firstTab) {
+                firstTab.click();
+            }
+        }
+        
+        // 이슈 관리 기능 초기화
+        function initIssueManagement() {
+            // 이슈 목록 로드
+            loadAdminIssues();
+        }
+        
+        // 관리자용 이슈 목록 로드
+        async function loadAdminIssues() {
+            try {
+                const response = await window.adminFetch('/api/admin/issues');
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderAdminIssues(data.issues);
+                } else {
+                    console.error('이슈 로드 실패:', data.message);
+                }
+            } catch (error) {
+                console.error('이슈 로드 오류:', error);
+            }
+        }
+        
+        // 관리자 이슈 목록 렌더링
+        function renderAdminIssues(issues) {
+            const tbody = document.querySelector('#issues-section tbody');
+            if (!tbody) return;
+            
+            if (issues.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-500">등록된 이슈가 없습니다.</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = issues.map(issue => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 text-sm font-medium text-gray-900">${issue.id}</td>
+                    <td class="px-6 py-4 text-sm text-gray-900">${issue.title}</td>
+                    <td class="px-6 py-4 text-sm text-gray-900">${issue.category}</td>
+                    <td class="px-6 py-4 text-sm text-gray-900">${issue.yes_price || 50}%</td>
+                    <td class="px-6 py-4 text-sm text-gray-900">${formatVolume(issue.total_volume || 0)} GAM</td>
+                    <td class="px-6 py-4 text-sm">
+                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${issue.isPopular ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+                            ${issue.isPopular ? '인기' : '일반'}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-sm font-medium space-x-2">
+                        <button onclick="editIssue(${issue.id})" class="text-blue-600 hover:text-blue-900">수정</button>
+                        <button onclick="deleteIssue(${issue.id})" class="text-red-600 hover:text-red-900">삭제</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+        // 새 이슈 생성 버튼 초기화
+        function initCreateIssueButton() {
+            const createBtn = document.getElementById('create-issue-btn');
+            if (createBtn) {
+                createBtn.addEventListener('click', () => {
+                    console.log('새 이슈 생성 버튼 클릭됨');
+                    // 새 이슈 생성 모달 또는 폼 표시
+                    alert('새 이슈 생성 기능 (구현 예정)');
+                });
+            }
+        }
+        
+        // 모바일 메뉴 초기화
+        function initMobileMenu() {
+            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            const mobileMenu = document.getElementById('mobile-menu');
+            
+            if (mobileMenuBtn && mobileMenu) {
+                mobileMenuBtn.addEventListener('click', () => {
+                    mobileMenu.classList.toggle('hidden');
+                });
+            }
+        }
+        
+        // 유틸리티 함수들
+        function formatVolume(volume) {
+            if (volume >= 1000000) {
+                return (volume / 1000000).toFixed(1) + 'M';
+            } else if (volume >= 1000) {
+                return (volume / 1000).toFixed(1) + 'K';
+            }
+            return volume.toString();
+        }
+        
+        // 전역 함수들 (HTML에서 onclick으로 호출)
+        window.editIssue = function(issueId) {
+            console.log('이슈 수정:', issueId);
+            alert('이슈 수정 기능 (구현 예정)');
+        };
+        
+        window.deleteIssue = function(issueId) {
+            if (confirm('정말로 이 이슈를 삭제하시겠습니까?')) {
+                console.log('이슈 삭제:', issueId);
+                alert('이슈 삭제 기능 (구현 예정)');
+            }
+        };
         
         // API 요청 시 관리자 토큰 자동 추가 함수
         window.adminFetch = async function(url, options = {}) {
