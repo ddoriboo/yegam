@@ -717,7 +717,28 @@
             }
             
             console.log('✅ 관리자 인증 완료 - 페이지 로드 중...');
+            
+            // 일반 사용자 인증 우회 - 관리자는 별도 시스템 사용
+            window.currentUser = null; // 일반 사용자 인증 무효화
+            
+            // 관리자 전용 초기화 (app-working.js 대신)
+            initAdminPage();
         });
+        
+        // 관리자 페이지 전용 초기화 함수
+        function initAdminPage() {
+            console.log('🔧 관리자 페이지 초기화 중...');
+            
+            // Lucide 아이콘 초기화
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+            
+            // 관리자 페이지 기능들 초기화 (필요한 것들만)
+            // 이곳에 관리자 페이지 전용 로직 추가
+            
+            console.log('✅ 관리자 페이지 초기화 완료');
+        }
         
         // API 요청 시 관리자 토큰 자동 추가 함수
         window.adminFetch = async function(url, options = {}) {
@@ -749,6 +770,7 @@
     </script>
     
     <script src="utils/tierSystem.js"></script>
-    <script src="js/app-working.js"></script>
+    <!-- 일반 사용자 앱 스크립트 제거 - 관리자는 별도 인증 사용 -->
+    <!-- <script src="js/app-working.js"></script> -->
 </body>
 </html>
