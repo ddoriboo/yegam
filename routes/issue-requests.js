@@ -222,10 +222,10 @@ router.put('/:id/approve', adminMiddleware, async (req, res) => {
         // 승인 처리 (기존 데이터베이스 방식 사용)
         const db = getDB();
         
-        // 1. 정식 이슈로 등록 (기존 admin.js와 동일한 방식)
+        // 1. 정식 이슈로 등록 (PostgreSQL boolean 타입 대응)
         db.run(`
             INSERT INTO issues (title, category, description, image_url, yes_price, end_date, is_popular)
-            VALUES (?, ?, ?, ?, ?, ?, 0)
+            VALUES (?, ?, ?, ?, ?, ?, false)
         `, [request.title, request.category, request.description, '', 50, request.deadline], async function(err) {
             if (err) {
                 console.error('이슈 생성 실패:', err);

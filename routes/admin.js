@@ -87,7 +87,7 @@ router.post('/issues', adminMiddleware, (req, res) => {
     
     db.run(`
         INSERT INTO issues (title, category, description, image_url, yes_price, end_date, is_popular)
-        VALUES (?, ?, ?, ?, ?, ?, 0)
+        VALUES (?, ?, ?, ?, ?, ?, false)
     `, [title, category, description, image_url, yes_price, end_date], function(err) {
         if (err) {
             console.error('이슈 생성 실패:', err);
