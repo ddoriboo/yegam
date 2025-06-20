@@ -2686,8 +2686,107 @@ function loginWithGithub() {
 
 // Placeholder functions for other pages
 async function initIssuesPage() {
-    console.log('Issues page - redirecting to home with all issues anchor');
-    window.location.href = 'index.html#all-issues';
+    console.log('Initializing Issues page...');
+    
+    try {
+        // Load issues from API
+        const response = await fetch('/api/issues');
+        const data = await response.json();
+        
+        if (data.success) {
+            allIssues = data.issues;
+            issues = data.issues; // Keep for backward compatibility
+            console.log('Loaded', allIssues.length, 'issues on Issues page');
+            
+            setupIssuesPageEvents();
+            renderAllIssuesOnPage();
+            
+        } else {
+            throw new Error(data.message || 'Failed to load issues');
+        }
+    } catch (error) {
+        console.error('Failed to load issues on Issues page:', error);
+        showError('이슈를 불러오는데 실패했습니다.');
+    }
+}
+
+function setupIssuesPageEvents() {
+    // Issues page specific event setup
+    const searchInput = document.getElementById('search-input');
+    const categoryFilter = document.getElementById('category-filter');
+    const sortFilter = document.getElementById('sort-filter');
+    
+    if (searchInput) {
+        searchInput.addEventListener('input', debounce((e) => {
+            currentSearch = e.target.value;
+            currentPage = 1;
+            renderAllIssuesOnPage();
+        }, 300));
+    }
+    
+    if (categoryFilter) {
+        categoryFilter.addEventListener('change', (e) => {
+            currentCategory = e.target.value === 'all' ? '전체' : e.target.value;
+            currentPage = 1;
+            renderAllIssuesOnPage();
+        });
+    }
+    
+    if (sortFilter) {
+        sortFilter.addEventListener('change', (e) => {
+            currentSort = e.target.value;
+            currentPage = 1;
+            renderAllIssuesOnPage();
+        });
+    }
+    
+    // Setup comments system for issues page
+    initCommentsSystem();
+}
+
+function renderAllIssuesOnPage() {
+    const grid = document.getElementById('all-issues-grid');
+    if (!grid) return;
+    
+    // Filter and sort issues
+    let filteredIssues = allIssues;
+    
+    // Apply category filter
+    if (currentCategory !== '전체') {
+        filteredIssues = filteredIssues.filter(issue => issue.category === currentCategory);
+    }
+    
+    // Apply search filter
+    if (currentSearch) {
+        filteredIssues = filteredIssues.filter(issue => 
+            issue.title.toLowerCase().includes(currentSearch.toLowerCase())
+        );
+    }
+    
+    // Apply sorting
+    filteredIssues = sortIssues(filteredIssues, currentSort);
+    
+    if (filteredIssues.length === 0) {
+        grid.innerHTML = `
+            <div class="col-span-full text-center py-12">
+                <i data-lucide="search" class="w-12 h-12 mx-auto text-gray-300 mb-4"></i>
+                <p class="text-gray-500">검색 결과가 없습니다.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Render all issues on the dedicated page
+    grid.innerHTML = filteredIssues.map(issue => createIssueCard(issue)).join('');
+    
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+    
+    // 이슈 렌더링 후 배당률 로드
+    setTimeout(() => {
+        loadAllBettingOdds();
+    }, 100);
 }
 
 async function initMyPage() {
