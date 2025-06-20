@@ -253,23 +253,35 @@ router.put('/:id/approve', adminMiddleware, async (req, res) => {
                 // 3. 신청자에게 1000 GAM 지급
                 await run(`
                     UPDATE users 
-                    SET gam_balance = COALESCE(gam_balance, 0) + 1000,
-                        coins = COALESCE(coins, 0) + 1000
+                    SET coins = COALESCE(coins, 0) + 1000
                     WHERE id = $1
                 `, [request.user_id]);
                 
                 console.log('✅ GAM 지급 완료:', request.user_id);
                 
-                // 4. GAM 거래 로그 기록 (있다면)
+                // 4. GAM 거래 로그 기록 (선택적 - 테이블이 있는 경우만)
                 try {
-                    await run(`
-                        INSERT INTO gam_transactions (
-                            user_id, amount, type, description, created_at
-                        ) VALUES ($1, 1000, 'reward', '이슈 신청 승인 보상', CURRENT_TIMESTAMP)
-                    `, [request.user_id]);
+                    // 테이블 존재 여부 확인 후 로그 기록
+                    const tableCheck = await query(`
+                        SELECT EXISTS (
+                            SELECT 1 FROM information_schema.tables 
+                            WHERE table_name = 'gam_transactions'
+                        )
+                    `);
+                    
+                    if (tableCheck.rows[0]?.exists) {
+                        await run(`
+                            INSERT INTO gam_transactions (
+                                user_id, amount, type, description, created_at
+                            ) VALUES ($1, 1000, 'reward', '이슈 신청 승인 보상', CURRENT_TIMESTAMP)
+                        `, [request.user_id]);
+                        console.log('✅ GAM 거래 로그 기록 완료');
+                    } else {
+                        console.log('📝 GAM 거래 로그 테이블 없음 - 스킵');
+                    }
                 } catch (logError) {
-                    // 로그 테이블이 없어도 계속 진행
-                    console.log('GAM 거래 로그 기록 스킵:', logError.message);
+                    // 로그 기록 실패해도 계속 진행
+                    console.log('📝 GAM 거래 로그 기록 실패 (무시):', logError.message);
                 }
                 
                 res.json({
