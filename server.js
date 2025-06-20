@@ -386,7 +386,7 @@ app.get('/fix-admin-table', async (req, res) => {
     }
 });
 
-// 404 핸들러
+// 404 핸들러 (모든 라우트 정의 후)
 app.use('*', (req, res) => {
     res.status(404).json({
         success: false,
