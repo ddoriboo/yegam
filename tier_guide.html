@@ -3,254 +3,390 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>등급 안내 - 예겜 (YeGame)</title>
+    <title>업적 안내 | 예겜</title>
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
     <link rel="stylesheet" href="css/style.css">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        .tier-card {
-            background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05));
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 12px;
-            transition: all 0.3s ease;
+        .achievement-card {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
         }
         
-        .tier-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-            border-color: rgba(255,255,255,0.3);
+        .achievement-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            transition: left 0.6s;
+        }
+        
+        .achievement-card:hover::before {
+            left: 100%;
+        }
+        
+        .achievement-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
         }
         
         .tier-icon {
-            font-size: 2.5rem;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            font-size: 3rem;
+            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
+            animation: float 3s ease-in-out infinite;
         }
         
-        .tier-name {
-            background: linear-gradient(135deg, #667eea, #764ba2);
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-6px); }
+        }
+        
+        .sparkle {
+            position: absolute;
+            background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: sparkle 2s linear infinite;
+        }
+        
+        @keyframes sparkle {
+            0% { transform: scale(0) rotate(0deg); opacity: 1; }
+            50% { transform: scale(1) rotate(180deg); opacity: 0.8; }
+            100% { transform: scale(0) rotate(360deg); opacity: 0; }
+        }
+        
+        .legendary-glow {
+            position: relative;
+        }
+        
+        .legendary-glow::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #ffc107, #ff6b6b);
+            border-radius: 16px;
+            z-index: -1;
+            animation: rainbow-border 3s linear infinite;
+            background-size: 400% 400%;
+        }
+        
+        @keyframes rainbow-border {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .mythic-pulse {
+            animation: mythic-pulse 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes mythic-pulse {
+            0% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); }
+            100% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.6), 0 0 60px rgba(139, 92, 246, 0.4); }
+        }
+        
+        .divine-aura {
+            position: relative;
+            overflow: visible;
+        }
+        
+        .divine-aura::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            background: conic-gradient(from 0deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #ffc107, #ff6b6b);
+            border-radius: 20px;
+            z-index: -1;
+            animation: divine-rotate 4s linear infinite;
+            filter: blur(8px);
+            opacity: 0.7;
+        }
+        
+        @keyframes divine-rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .number-format {
+            font-family: 'Inter', sans-serif;
+            font-weight: 600;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
-        }
-        
-        .gam-range {
-            background: linear-gradient(135deg, #ffeaa7, #fdcb6e);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-        
-        .legendary-tier {
-            background: linear-gradient(135deg, #fd79a8, #fdcb6e, #e17055);
-            animation: rainbow 3s ease-in-out infinite alternate;
-        }
-        
-        @keyframes rainbow {
-            0% { filter: hue-rotate(0deg); }
-            100% { filter: hue-rotate(60deg); }
-        }
-        
-        .mythic-tier {
-            background: linear-gradient(135deg, #6c5ce7, #a29bfe, #74b9ff);
-            animation: cosmic 4s ease-in-out infinite alternate;
-        }
-        
-        @keyframes cosmic {
-            0% { filter: hue-rotate(0deg) brightness(1); }
-            50% { filter: hue-rotate(120deg) brightness(1.2); }
-            100% { filter: hue-rotate(240deg) brightness(1); }
-        }
-        
-        .god-tier {
-            background: linear-gradient(135deg, #f093fb, #f5576c, #4facfe, #00f2fe);
-            animation: divine 5s ease-in-out infinite;
-        }
-        
-        @keyframes divine {
-            0%, 100% { filter: hue-rotate(0deg) brightness(1) saturate(1); }
-            25% { filter: hue-rotate(90deg) brightness(1.3) saturate(1.2); }
-            50% { filter: hue-rotate(180deg) brightness(1.1) saturate(1.4); }
-            75% { filter: hue-rotate(270deg) brightness(1.2) saturate(1.3); }
         }
     </style>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-    <!-- Navigation -->
-    <nav class="bg-black bg-opacity-50 backdrop-filter backdrop-blur-lg border-b border-white border-opacity-20 sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex items-center space-x-8">
-                    <a href="/" class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                        예겜
-                    </a>
-                    <div class="hidden md:flex space-x-6">
-                        <a href="/" class="text-gray-300 hover:text-white transition-colors">홈</a>
-                        <a href="/issues" class="text-gray-300 hover:text-white transition-colors">전체 이슈</a>
-                        <a href="/tier_guide" class="text-white font-semibold">등급 안내</a>
-                    </div>
+<body class="bg-white text-gray-900 font-sans">
+
+    <div id="app-container" class="min-h-screen flex flex-col">
+
+        <!-- Header -->
+        <header class="bg-white/90 backdrop-blur-sm sticky top-0 z-50 border-b border-gray-200">
+            <nav class="container mx-auto px-4 lg:px-8 py-3 flex justify-between items-center">
+                <a href="index.html" class="flex items-center space-x-3">
+                    <img src="https://github.com/ddoriboo/yegam/raw/refs/heads/main/logo.png" alt="예겜 로고" class="h-8 w-auto">
+                    <span class="text-xl font-bold tracking-tight text-gray-900">예겜</span>
+                </a>
+                
+                <!-- Desktop Navigation -->
+                <div class="hidden md:flex items-center space-x-6 text-sm font-medium text-gray-600">
+                    <a href="issues.html" class="hover:text-gray-900 transition-colors">전체 이슈</a>
+                    <a href="tier_guide.html" class="text-blue-600 font-semibold">업적 안내</a>
+                    <a href="mypage.html" class="hover:text-gray-900 transition-colors">내 정보</a>
                 </div>
                 
-                <div class="flex items-center space-x-4">
-                    <div id="user-info" class="hidden items-center space-x-3">
-                        <div id="user-tier-display" class="flex items-center space-x-2"></div>
-                        <span id="user-name" class="text-white"></span>
-                        <span id="user-coins" class="bg-yellow-500 text-black px-3 py-1 rounded-full text-sm font-bold"></span>
-                        <a href="/mypage" class="text-gray-300 hover:text-white transition-colors">마이페이지</a>
-                        <button id="logout-btn" class="text-gray-300 hover:text-white transition-colors">로그아웃</button>
+                <!-- Mobile & User Actions Container -->
+                <div class="flex items-center space-x-2">
+                    <!-- Mobile Menu Button -->
+                    <button id="mobile-menu-btn" class="md:hidden p-2 rounded-md hover:bg-gray-100 transition-colors">
+                        <i data-lucide="menu" class="w-5 h-5 text-gray-600"></i>
+                    </button>
+                    
+                    <!-- User Actions -->
+                    <div id="header-user-actions" class="flex items-center space-x-2">
+                        <!-- This will be dynamically populated by js/app.js -->
                     </div>
-                    <div id="auth-buttons" class="flex space-x-4">
-                        <a href="/login" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">로그인</a>
+                </div>
+            </nav>
+            
+            <!-- Mobile Navigation Menu -->
+            <div id="mobile-menu" class="hidden md:hidden bg-white/95 backdrop-blur-sm border-t border-gray-200">
+                <div class="container mx-auto px-4 py-4 space-y-3">
+                    <a href="issues.html" class="block px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
+                        <i data-lucide="list" class="w-4 h-4 inline mr-2"></i>전체 이슈
+                    </a>
+                    <a href="tier_guide.html" class="block px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-md transition-colors">
+                        <i data-lucide="award" class="w-4 h-4 inline mr-2"></i>업적 안내
+                    </a>
+                    <a href="mypage.html" class="block px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
+                        <i data-lucide="user" class="w-4 h-4 inline mr-2"></i>내 정보
+                    </a>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-grow bg-gradient-to-br from-gray-50 via-white to-gray-50">
+            <!-- Hero Section -->
+            <section class="container mx-auto px-4 lg:px-8 py-16 text-center">
+                <div class="max-w-4xl mx-auto">
+                    <h1 class="text-4xl md:text-6xl font-bold mb-6">
+                        <span class="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                            🏆 예겜 업적 시스템
+                        </span>
+                    </h1>
+                    <p class="text-xl text-gray-600 mb-8 leading-relaxed">
+                        정확한 예측으로 GAM을 모아 특별한 업적을 달성하세요!<br>
+                        총 21단계의 업적이 여러분을 기다리고 있습니다.
+                    </p>
+                    
+                    <!-- GAM 설명 -->
+                    <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 mb-12">
+                        <div class="flex items-center justify-center mb-4">
+                            <div class="bg-yellow-100 rounded-full p-3">
+                                <i data-lucide="coins" class="w-8 h-8 text-yellow-600"></i>
+                            </div>
+                        </div>
+                        <h2 class="text-2xl font-bold text-gray-900 mb-4">GAM이란?</h2>
+                        <p class="text-gray-600 leading-relaxed">
+                            GAM(감)은 예겜에서 사용하는 예측 능력 포인트입니다. 정확한 예측으로 베팅에서 승리하면 GAM을 획득할 수 있으며, 
+                            누적된 GAM에 따라 당신의 업적이 결정됩니다. 높은 업적일수록 더 특별한 혜택과 명예를 얻을 수 있습니다.
+                        </p>
+                        <div class="mt-6 inline-flex items-center space-x-2 text-sm text-gray-500">
+                            <i data-lucide="info" class="w-4 h-4"></i>
+                            <span>GAM은 환전이 불가능한 게임 내 포인트입니다</span>
+                        </div>
                     </div>
                 </div>
+            </section>
+
+            <!-- Achievement Grid -->
+            <section class="container mx-auto px-4 lg:px-8 pb-16">
+                <div class="text-center mb-12">
+                    <h2 class="text-3xl font-bold text-gray-900 mb-4">업적 목록</h2>
+                    <p class="text-gray-600">티끌부터 모든 것을 보는 눈까지, 21단계의 업적을 확인해보세요</p>
+                </div>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="achievement-grid">
+                    <!-- Achievement cards will be generated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- Achievement Categories -->
+            <section class="container mx-auto px-4 lg:px-8 pb-16">
+                <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
+                    <h3 class="text-2xl font-bold text-gray-900 mb-6 text-center">업적 단계</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div class="text-center p-6 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl">
+                            <div class="text-3xl mb-3">🌱</div>
+                            <h4 class="font-bold text-gray-900 mb-2">초급 업적 (0-5단계)</h4>
+                            <p class="text-sm text-gray-600">예측 여정의 첫 걸음</p>
+                        </div>
+                        <div class="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl">
+                            <div class="text-3xl mb-3">⚔️</div>
+                            <h4 class="font-bold text-gray-900 mb-2">중급 업적 (6-10단계)</h4>
+                            <p class="text-sm text-gray-600">안정적인 예측 실력</p>
+                        </div>
+                        <div class="text-center p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl">
+                            <div class="text-3xl mb-3">🏆</div>
+                            <h4 class="font-bold text-gray-900 mb-2">고급 업적 (11-16단계)</h4>
+                            <p class="text-sm text-gray-600">뛰어난 통찰력과 경험</p>
+                        </div>
+                        <div class="text-center p-6 bg-gradient-to-br from-yellow-50 to-amber-100 rounded-xl">
+                            <div class="text-3xl mb-3">👁️‍🗨️</div>
+                            <h4 class="font-bold text-gray-900 mb-2">전설 업적 (17-20단계)</h4>
+                            <p class="text-sm text-gray-600">예측의 신화와 전설</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="bg-gray-50 border-t border-gray-200">
+            <div class="container mx-auto px-4 lg:px-8 py-8">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center text-center md:text-left space-y-4 md:space-y-0">
+                    <div class="max-w-md">
+                        <a href="index.html" class="flex items-center justify-center md:justify-start space-x-2 mb-3">
+                             <img src="https://github.com/ddoriboo/yegam/raw/refs/heads/main/logo.png" alt="예겜 로고" class="h-6 w-auto">
+                             <span class="font-semibold text-gray-900">예겜</span>
+                        </a>
+                        <p class="text-xs text-gray-500 leading-relaxed">본 서비스는 현금 베팅을 제공하지 않는 예측 정보 플랫폼이며, 사용되는 GAM은 환전 및 현금화가 불가능한 사이버 자산입니다.</p>
+                    </div>
+                    <div class="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-6 text-sm text-gray-500">
+                        <a href="#" class="hover:text-gray-900 transition-colors">사이트 정보</a>
+                        <a href="#" class="hover:text-gray-900 transition-colors">이용약관</a>
+                        <a href="#" class="hover:text-gray-900 transition-colors">개인정보처리방침</a>
+                    </div>
+                </div>
+                <div class="mt-6 border-t border-gray-200 pt-4 text-center text-xs text-gray-500">
+                    &copy; 2025 예겜. All Rights Reserved.
+                </div>
             </div>
-        </div>
-    </nav>
+        </footer>
 
-    <!-- Main Content -->
-    <main class="container mx-auto px-4 py-8">
-        <!-- Header -->
-        <div class="text-center mb-12">
-            <h1 class="text-5xl font-bold text-white mb-4">
-                <span class="bg-gradient-to-r from-yellow-400 via-purple-400 to-blue-400 bg-clip-text text-transparent">
-                    예겜 등급 시스템
-                </span>
-            </h1>
-            <p class="text-xl text-gray-300 mb-6">GAM을 축적하여 더 높은 등급에 도전하세요!</p>
-            <div class="bg-white bg-opacity-10 backdrop-filter backdrop-blur-lg rounded-lg p-6 max-w-2xl mx-auto">
-                <h2 class="text-2xl font-semibold text-white mb-3">GAM이란?</h2>
-                <p class="text-gray-300 leading-relaxed">
-                    GAM(감)은 예겜의 예측 능력을 나타내는 포인트입니다. 정확한 예측으로 베팅에서 승리하면 GAM을 획득할 수 있으며, 
-                    누적된 GAM에 따라 당신의 등급이 결정됩니다. 높은 등급일수록 더 특별한 혜택과 명예를 얻을 수 있습니다.
-                </p>
-            </div>
-        </div>
+    </div>
 
-        <!-- Tier Grid -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="tier-grid">
-            <!-- Tier cards will be generated by JavaScript -->
-        </div>
-
-        <!-- Legend -->
-        <div class="mt-12 bg-white bg-opacity-10 backdrop-filter backdrop-blur-lg rounded-lg p-6">
-            <h3 class="text-2xl font-semibold text-white mb-4 text-center">등급 구분</h3>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
-                <div class="bg-gray-600 bg-opacity-30 rounded-lg p-4">
-                    <h4 class="text-white font-semibold mb-2">초급 등급 (0-4)</h4>
-                    <p class="text-gray-300 text-sm">예측 여정의 시작</p>
-                </div>
-                <div class="bg-blue-600 bg-opacity-30 rounded-lg p-4">
-                    <h4 class="text-white font-semibold mb-2">중급 등급 (5-9)</h4>
-                    <p class="text-gray-300 text-sm">안정적인 예측력</p>
-                </div>
-                <div class="bg-purple-600 bg-opacity-30 rounded-lg p-4">
-                    <h4 class="text-white font-semibold mb-2">고급 등급 (10-14)</h4>
-                    <p class="text-gray-300 text-sm">뛰어난 통찰력</p>
-                </div>
-                <div class="bg-gradient-to-r from-yellow-400 to-pink-400 bg-opacity-30 rounded-lg p-4">
-                    <h4 class="text-white font-semibold mb-2">전설 등급 (15-20)</h4>
-                    <p class="text-gray-300 text-sm">예측의 신화</p>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <!-- Footer -->
-    <footer class="bg-black bg-opacity-50 backdrop-filter backdrop-blur-lg border-t border-white border-opacity-20 mt-16">
-        <div class="container mx-auto px-4 py-8 text-center">
-            <p class="text-gray-400">© 2025 예겜 (YeGame). 모든 권리 보유.</p>
-        </div>
-    </footer>
-
-    <script type="module">
-        import * as auth from './js/auth.js';
-
-        // 티어 데이터
-        const tierData = [
-            { level: 0, icon: '⚪', name: '티끌', nameEn: 'Mote', minGam: 0, maxGam: 9999 },
-            { level: 1, icon: '🪨', name: '조약돌', nameEn: 'Pebble', minGam: 10000, maxGam: 24999 },
-            { level: 2, icon: '⛏️', name: '원석 채굴자', nameEn: 'Miner', minGam: 25000, maxGam: 49999 },
-            { level: 3, icon: '⛓️', name: '강철 연마가', nameEn: 'Steel Polisher', minGam: 50000, maxGam: 89999 },
-            { level: 4, icon: '🛡️', name: '아이언 실드', nameEn: 'Iron Shield', minGam: 90000, maxGam: 149999 },
-            { level: 5, icon: '⚔️', name: '스틸 소드', nameEn: 'Steel Sword', minGam: 150000, maxGam: 249999 },
-            { level: 6, icon: '🥉', name: '브론즈 윙', nameEn: 'Bronze Wing', minGam: 250000, maxGam: 399999 },
-            { level: 7, icon: '🥈', name: '실버 윙', nameEn: 'Silver Wing', minGam: 400000, maxGam: 649999 },
-            { level: 8, icon: '🥇', name: '골드 윙', nameEn: 'Gold Wing', minGam: 650000, maxGam: 999999 },
-            { level: 9, icon: '🏆', name: '플래티넘 챔피언', nameEn: 'Platinum Champion', minGam: 1000000, maxGam: 1499999 },
-            { level: 10, icon: '👑', name: '황금 왕관', nameEn: 'Golden Crown', minGam: 1500000, maxGam: 2499999 },
-            { level: 11, icon: '📜', name: '룬석 예언가', nameEn: 'Runestone Seer', minGam: 2500000, maxGam: 3999999 },
-            { level: 12, icon: '🐉', name: '용기의 문장', nameEn: 'Crest of the Dragon', minGam: 4000000, maxGam: 6499999 },
-            { level: 13, icon: '🌳', name: '세계수의 의지', nameEn: 'Will of the World Tree', minGam: 6500000, maxGam: 9999999 },
-            { level: 14, icon: '⏳', name: '시간의 모래시계', nameEn: 'Hourglass of Time', minGam: 10000000, maxGam: 15999999 },
-            { level: 15, icon: '📔', name: '아카식 레코드', nameEn: 'Akashic Records', minGam: 16000000, maxGam: 24999999 },
-            { level: 16, icon: '✨', name: '별의 조각', nameEn: 'Stardust', minGam: 25000000, maxGam: 39999999 },
-            { level: 17, icon: '☄️', name: '혜성의 인도자', nameEn: 'Comet Guide', minGam: 40000000, maxGam: 64999999 },
-            { level: 18, icon: '🌟', name: '찬란한 성좌', nameEn: 'Constellation', minGam: 65000000, maxGam: 99999999 },
-            { level: 19, icon: '🌌', name: '은하의 지배자', nameEn: 'Galaxy Lord', minGam: 100000000, maxGam: 149999999 },
-            { level: 20, icon: '👁️‍🗨️', name: '모든 것을 보는 눈', nameEn: 'All-Seeing Eye', minGam: 150000000, maxGam: null }
-        ];
-
-        // 숫자 포맷팅 함수
-        function formatNumber(num) {
-            if (num >= 1000000) {
-                return (num / 1000000).toFixed(1) + 'M';
-            } else if (num >= 1000) {
-                return (num / 1000).toFixed(1) + 'K';
+    <script src="utils/tierSystem.js"></script>
+    <script src="js/app-working.js"></script>
+    <script>
+        // 한국어 숫자 포맷팅 함수
+        function formatKoreanNumber(num) {
+            if (num >= 100000000) {
+                return Math.floor(num / 100000000).toLocaleString() + '억';
+            } else if (num >= 10000) {
+                return Math.floor(num / 10000).toLocaleString() + '만';
+            } else {
+                return num.toLocaleString();
             }
-            return num.toLocaleString();
         }
 
-        // 티어 카드 생성
-        function createTierCard(tier) {
-            const tierGrid = document.getElementById('tier-grid');
+        // 반짝이는 효과 생성
+        function createSparkles(element) {
+            const sparkleCount = 3;
+            for (let i = 0; i < sparkleCount; i++) {
+                setTimeout(() => {
+                    const sparkle = document.createElement('div');
+                    sparkle.className = 'sparkle';
+                    sparkle.style.width = Math.random() * 6 + 4 + 'px';
+                    sparkle.style.height = sparkle.style.width;
+                    sparkle.style.left = Math.random() * 100 + '%';
+                    sparkle.style.top = Math.random() * 100 + '%';
+                    sparkle.style.animationDelay = Math.random() * 2 + 's';
+                    
+                    element.appendChild(sparkle);
+                    
+                    setTimeout(() => {
+                        if (sparkle.parentNode) {
+                            sparkle.parentNode.removeChild(sparkle);
+                        }
+                    }, 2000);
+                }, i * 300);
+            }
+        }
+
+        // 업적 카드 생성
+        function createAchievementCard(tier) {
+            const gamRange = tier.maxGam 
+                ? `${formatKoreanNumber(tier.minGam)} ~ ${formatKoreanNumber(tier.maxGam)} GAM`
+                : `${formatKoreanNumber(tier.minGam)} GAM 이상`;
             
             let specialClass = '';
-            if (tier.level >= 15) specialClass = 'legendary-tier';
-            if (tier.level >= 18) specialClass = 'mythic-tier';
-            if (tier.level >= 20) specialClass = 'god-tier';
+            let specialEffect = '';
             
-            const gamRange = tier.maxGam 
-                ? `${formatNumber(tier.minGam)} - ${formatNumber(tier.maxGam)}`
-                : `${formatNumber(tier.minGam)}+`;
+            // 특별 효과 클래스 결정
+            if (tier.level >= 17) {
+                specialClass = 'legendary-glow';
+                specialEffect = 'legendary';
+            }
+            if (tier.level >= 19) {
+                specialClass = 'mythic-pulse';
+                specialEffect = 'mythic';
+            }
+            if (tier.level >= 20) {
+                specialClass = 'divine-aura';
+                specialEffect = 'divine';
+            }
             
-            const tierCard = document.createElement('div');
-            tierCard.className = `tier-card p-6 text-center ${specialClass}`;
-            tierCard.innerHTML = `
-                <div class="tier-icon mb-4">${tier.icon}</div>
-                <div class="mb-2">
-                    <span class="text-lg font-bold text-gray-400">Lv.${tier.level}</span>
-                </div>
-                <h3 class="tier-name text-xl font-bold mb-2">${tier.name}</h3>
-                <p class="text-gray-400 text-sm mb-3">${tier.nameEn}</p>
-                <div class="gam-range text-lg font-semibold">
-                    ${gamRange} GAM
+            const card = document.createElement('div');
+            card.className = `achievement-card bg-white rounded-xl shadow-lg border border-gray-200 p-6 text-center ${specialClass}`;
+            card.style.backgroundColor = tier.bgColor || '#ffffff';
+            card.style.borderColor = tier.borderColor || '#e5e7eb';
+            
+            card.innerHTML = `
+                <div class="relative">
+                    <div class="tier-icon mb-4">${tier.icon}</div>
+                    <div class="mb-2">
+                        <span class="inline-block bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-semibold">
+                            Lv.${tier.level}
+                        </span>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2" style="color: ${tier.color || '#374151'}">${tier.name}</h3>
+                    <p class="text-gray-500 text-sm mb-4">${tier.nameEn}</p>
+                    <div class="number-format text-lg font-bold">
+                        ${gamRange}
+                    </div>
                 </div>
             `;
             
-            tierGrid.appendChild(tierCard);
-        }
-
-        // 사용자 티어 계산 함수
-        function getUserTier(gam) {
-            for (let i = tierData.length - 1; i >= 0; i--) {
-                const tier = tierData[i];
-                if (gam >= tier.minGam) {
-                    return tier;
-                }
+            // 특별 효과가 있는 카드에 반짝이는 효과 추가
+            if (specialEffect) {
+                card.addEventListener('mouseenter', () => {
+                    createSparkles(card);
+                });
             }
-            return tierData[0];
+            
+            return card;
         }
 
-        // 전역으로 함수 노출
-        window.getUserTier = getUserTier;
-        window.tierData = tierData;
-
-        // 페이지 로드 시 실행
+        // 페이지 로드 시 업적 카드 생성
         document.addEventListener('DOMContentLoaded', () => {
-            // 티어 카드들 생성
-            tierData.forEach(tier => createTierCard(tier));
+            const achievementGrid = document.getElementById('achievement-grid');
             
-            // 사용자 인증 상태 확인
-            auth.checkAuth();
+            if (typeof window.TierSystem !== 'undefined' && window.TierSystem.TIERS) {
+                window.TierSystem.TIERS.forEach(tier => {
+                    const card = createAchievementCard(tier);
+                    achievementGrid.appendChild(card);
+                });
+            }
+            
+            // Lucide 아이콘 초기화
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
         });
     </script>
 </body>
