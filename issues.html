@@ -27,6 +27,7 @@
                 <!-- Desktop Navigation -->
                 <div class="hidden md:flex items-center space-x-6 text-sm font-medium text-gray-600">
                     <a href="issues.html" class="text-gray-900 font-semibold">전체 이슈</a>
+                    <button id="desktop-issue-request-btn" class="hidden hover:text-gray-900 transition-colors cursor-pointer bg-transparent border-none text-sm font-medium">이슈 신청</button>
                     <a href="tier_guide.html" class="hover:text-gray-900 transition-colors">업적 안내</a>
                     <a href="mypage.html" class="hover:text-gray-900 transition-colors">내 정보</a>
                 </div>
@@ -51,6 +52,9 @@
                     <a href="issues.html" class="block px-3 py-2 text-sm font-medium text-gray-900 bg-gray-50 rounded-md transition-colors">
                         <i data-lucide="list" class="w-4 h-4 inline mr-2"></i>전체 이슈
                     </a>
+                    <button id="mobile-issue-request-btn" class="hidden w-full text-left px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
+                        <i data-lucide="plus-circle" class="w-4 h-4 inline mr-2"></i>이슈 신청
+                    </button>
                     <a href="tier_guide.html" class="block px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
                         <i data-lucide="award" class="w-4 h-4 inline mr-2"></i>업적 안내
                     </a>
@@ -164,6 +168,7 @@
     <script src="utils/tierSystem.js"></script>
     <script src="js/animations/coin-explosion.js"></script>
     <script src="js/ui/betting-modal.js"></script>
+    <script src="js/ui/issue-request-modal.js"></script>
     <script src="js/ui/premium-notifications.js"></script>
     <script src="js/app-working.js"></script>
 </body>

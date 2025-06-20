@@ -6,6 +6,7 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
 const issueRoutes = require('./routes/issues');
+const issueRequestRoutes = require('./routes/issue-requests');
 const betRoutes = require('./routes/bets');
 const commentRoutes = require('./routes/comments');
 const adminCommentRoutes = require('./routes/admin-comments');
@@ -45,6 +46,7 @@ app.use(express.static(path.join(__dirname), {
 // API 라우트
 app.use('/api/auth', authRoutes);
 app.use('/api/issues', issueRoutes);
+app.use('/api/issue-requests', issueRequestRoutes);
 app.use('/api/bets', betRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/admin/comments', adminCommentRoutes);

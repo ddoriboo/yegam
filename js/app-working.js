@@ -98,6 +98,9 @@ function updateHeader(isLoggedIn) {
     const userActionsContainer = document.getElementById('header-user-actions');
     if (!userActionsContainer) return;
     
+    // 이슈 신청 버튼 표시/숨김 처리
+    updateIssueRequestButtons(isLoggedIn);
+    
     if (isLoggedIn && currentUser) {
         const userCoins = currentUser.gam_balance || currentUser.coins || 0;
         const tierBadge = generateCommentTierBadge(userCoins);
@@ -124,6 +127,30 @@ function updateHeader(isLoggedIn) {
     // Reinitialize icons
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
+    }
+}
+
+// 이슈 신청 버튼 표시/숨김 및 이벤트 설정
+function updateIssueRequestButtons(isLoggedIn) {
+    const desktopBtn = document.getElementById('desktop-issue-request-btn');
+    const mobileBtn = document.getElementById('mobile-issue-request-btn');
+    
+    if (desktopBtn) {
+        if (isLoggedIn) {
+            desktopBtn.classList.remove('hidden');
+            desktopBtn.onclick = () => openIssueRequestModal(currentUser);
+        } else {
+            desktopBtn.classList.add('hidden');
+        }
+    }
+    
+    if (mobileBtn) {
+        if (isLoggedIn) {
+            mobileBtn.classList.remove('hidden');
+            mobileBtn.onclick = () => openIssueRequestModal(currentUser);
+        } else {
+            mobileBtn.classList.add('hidden');
+        }
     }
 }
 
@@ -1787,33 +1814,40 @@ function setupAdminPageEvents() {
 // 관리자 탭 설정
 function setupAdminTabs() {
     const issuesTab = document.getElementById('issues-tab');
+    const issueRequestsTab = document.getElementById('issue-requests-tab');
     const resultsTab = document.getElementById('results-tab');
     const commentsTab = document.getElementById('comments-tab');
     const schedulerTab = document.getElementById('scheduler-tab');
     const issuesSection = document.getElementById('issues-section');
+    const issueRequestsSection = document.getElementById('issue-requests-section');
     const resultsSection = document.getElementById('results-section');
     const commentsSection = document.getElementById('comments-section');
     const schedulerSection = document.getElementById('scheduler-section');
     const createBtn = document.getElementById('create-issue-btn');
     
-    if (!issuesTab || !resultsTab || !commentsTab || !schedulerTab) return;
+    if (!issuesTab || !issueRequestsTab || !resultsTab || !commentsTab || !schedulerTab) return;
     
     issuesTab.addEventListener('click', () => {
-        switchAdminTab('issues', issuesTab, [resultsTab, commentsTab, schedulerTab], [issuesSection], [resultsSection, commentsSection, schedulerSection], createBtn, true);
+        switchAdminTab('issues', issuesTab, [issueRequestsTab, resultsTab, commentsTab, schedulerTab], [issuesSection], [issueRequestsSection, resultsSection, commentsSection, schedulerSection], createBtn, true);
+    });
+    
+    issueRequestsTab.addEventListener('click', () => {
+        switchAdminTab('issue-requests', issueRequestsTab, [issuesTab, resultsTab, commentsTab, schedulerTab], [issueRequestsSection], [issuesSection, resultsSection, commentsSection, schedulerSection], createBtn, false);
+        loadIssueRequests();
     });
     
     resultsTab.addEventListener('click', () => {
-        switchAdminTab('results', resultsTab, [issuesTab, commentsTab, schedulerTab], [resultsSection], [issuesSection, commentsSection, schedulerSection], createBtn, false);
+        switchAdminTab('results', resultsTab, [issuesTab, issueRequestsTab, commentsTab, schedulerTab], [resultsSection], [issuesSection, issueRequestsSection, commentsSection, schedulerSection], createBtn, false);
         loadResultsData();
     });
     
     commentsTab.addEventListener('click', () => {
-        switchAdminTab('comments', commentsTab, [issuesTab, resultsTab, schedulerTab], [commentsSection], [issuesSection, resultsSection, schedulerSection], createBtn, false);
+        switchAdminTab('comments', commentsTab, [issuesTab, issueRequestsTab, resultsTab, schedulerTab], [commentsSection], [issuesSection, issueRequestsSection, resultsSection, schedulerSection], createBtn, false);
         loadAdminComments();
     });
     
     schedulerTab.addEventListener('click', () => {
-        switchAdminTab('scheduler', schedulerTab, [issuesTab, resultsTab, commentsTab], [schedulerSection], [issuesSection, resultsSection, commentsSection], createBtn, false);
+        switchAdminTab('scheduler', schedulerTab, [issuesTab, issueRequestsTab, resultsTab, commentsTab], [schedulerSection], [issuesSection, issueRequestsSection, resultsSection, commentsSection], createBtn, false);
         loadSchedulerStatus();
     });
     
@@ -1823,6 +1857,8 @@ function setupAdminTabs() {
     setupCommentManagementEvents();
     // 스케줄러 관리 이벤트
     setupSchedulerManagementEvents();
+    // 이슈 신청 관리 이벤트
+    setupIssueRequestManagementEvents();
 }
 
 function switchAdminTab(tabName, activeTabEl, inactiveTabEls, activeSectionEls, inactiveSectionEls, createBtn, showCreateBtn) {
@@ -3252,6 +3288,322 @@ function setupSchedulerManagementEvents() {
         manualCheckBtn.addEventListener('click', async () => {
             await runManualSchedulerCheck();
         });
+    }
+}
+
+// 이슈 신청 관리 이벤트 설정
+function setupIssueRequestManagementEvents() {
+    console.log('Setting up issue request management events...');
+    
+    // 상태 필터 변경
+    const statusFilter = document.getElementById('request-status-filter');
+    if (statusFilter) {
+        statusFilter.addEventListener('change', loadIssueRequests);
+    }
+    
+    // 새로고침 버튼
+    const refreshBtn = document.getElementById('refresh-requests-btn');
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', loadIssueRequests);
+    }
+    
+    // 상세 모달 닫기
+    const closeModalBtn = document.getElementById('close-request-modal-btn');
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', closeRequestDetailModal);
+    }
+    
+    // 승인/거부 버튼
+    const approveBtn = document.getElementById('approve-request-btn');
+    const rejectBtn = document.getElementById('reject-request-btn');
+    if (approveBtn) {
+        approveBtn.addEventListener('click', handleApproveRequest);
+    }
+    if (rejectBtn) {
+        rejectBtn.addEventListener('click', handleRejectRequest);
+    }
+}
+
+// 이슈 신청 목록 로드
+async function loadIssueRequests() {
+    try {
+        console.log('Loading issue requests...');
+        
+        const statusFilter = document.getElementById('request-status-filter');
+        const status = statusFilter ? statusFilter.value : 'pending';
+        
+        const tableBody = document.getElementById('issue-requests-table-body');
+        const noRequestsMessage = document.getElementById('no-requests-message');
+        const loadingMessage = document.getElementById('requests-loading');
+        
+        // 로딩 상태 표시
+        if (loadingMessage) loadingMessage.classList.remove('hidden');
+        if (noRequestsMessage) noRequestsMessage.classList.add('hidden');
+        if (tableBody) tableBody.innerHTML = '';
+        
+        const response = await fetch(`/api/issue-requests/admin/all?status=${status}`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('yegame-token')}`
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (loadingMessage) loadingMessage.classList.add('hidden');
+        
+        if (!data.success) {
+            throw new Error(data.message || '이슈 신청을 불러오는데 실패했습니다.');
+        }
+        
+        if (!data.requests || data.requests.length === 0) {
+            if (noRequestsMessage) noRequestsMessage.classList.remove('hidden');
+            return;
+        }
+        
+        // 테이블에 데이터 렌더링
+        if (tableBody) {
+            tableBody.innerHTML = data.requests.map(request => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4">
+                        <div>
+                            <div class="font-medium text-gray-900 truncate max-w-xs" title="${request.title}">
+                                ${request.title}
+                            </div>
+                            <div class="text-sm text-gray-500 mt-1">${request.timeAgo}</div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div>
+                            <div class="font-medium text-gray-900">${request.username}</div>
+                            <div class="text-sm text-gray-500">${request.email}</div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            ${request.category}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-sm text-gray-900">
+                        ${new Date(request.deadline).toLocaleDateString('ko-KR')}
+                    </td>
+                    <td class="px-6 py-4">
+                        ${getStatusBadge(request.status)}
+                    </td>
+                    <td class="px-6 py-4">
+                        <button onclick="showIssueRequestDetails(${request.id})" 
+                                class="text-indigo-600 hover:text-indigo-900 text-sm font-medium">
+                            상세보기
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+        
+    } catch (error) {
+        console.error('이슈 신청 로드 오류:', error);
+        
+        const loadingMessage = document.getElementById('requests-loading');
+        if (loadingMessage) {
+            loadingMessage.innerHTML = `
+                <div class="text-center py-12">
+                    <i data-lucide="alert-circle" class="w-6 h-6 mx-auto mb-2 text-red-400"></i>
+                    <p class="text-red-500">오류: ${error.message}</p>
+                </div>
+            `;
+        }
+    }
+}
+
+// 상태 뱃지 생성
+function getStatusBadge(status) {
+    const badges = {
+        pending: '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">대기 중</span>',
+        approved: '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">승인됨</span>',
+        rejected: '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">거부됨</span>'
+    };
+    return badges[status] || badges.pending;
+}
+
+// 이슈 신청 상세 모달 표시
+async function showIssueRequestDetails(requestId) {
+    try {
+        const response = await fetch(`/api/issue-requests/admin/all`, {
+            headers: {
+                'Authorization': `Bearer ${localStorage.getItem('yegame-token')}`
+            }
+        });
+        
+        const data = await response.json();
+        if (!data.success) throw new Error(data.message);
+        
+        const request = data.requests.find(r => r.id === requestId);
+        if (!request) throw new Error('이슈 신청을 찾을 수 없습니다.');
+        
+        const modal = document.getElementById('request-detail-modal');
+        const content = document.getElementById('request-detail-content');
+        
+        if (content) {
+            content.innerHTML = `
+                <div class="space-y-6">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">기본 정보</h3>
+                        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500">신청자</dt>
+                                <dd class="mt-1 text-sm text-gray-900">${request.username} (${request.email})</dd>
+                            </div>
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500">카테고리</dt>
+                                <dd class="mt-1 text-sm text-gray-900">${request.category}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500">신청일</dt>
+                                <dd class="mt-1 text-sm text-gray-900">${new Date(request.created_at).toLocaleString('ko-KR')}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500">마감일</dt>
+                                <dd class="mt-1 text-sm text-gray-900">${new Date(request.deadline).toLocaleString('ko-KR')}</dd>
+                            </div>
+                        </dl>
+                    </div>
+                    
+                    <div>
+                        <h4 class="text-sm font-medium text-gray-500 mb-2">제목</h4>
+                        <p class="text-gray-900">${request.title}</p>
+                    </div>
+                    
+                    <div>
+                        <h4 class="text-sm font-medium text-gray-500 mb-2">상세 설명</h4>
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <p class="text-gray-900 whitespace-pre-wrap">${request.description}</p>
+                        </div>
+                    </div>
+                    
+                    ${request.admin_comments ? `
+                        <div>
+                            <h4 class="text-sm font-medium text-gray-500 mb-2">관리자 코멘트</h4>
+                            <div class="bg-blue-50 rounded-lg p-4">
+                                <p class="text-blue-900">${request.admin_comments}</p>
+                            </div>
+                        </div>
+                    ` : ''}
+                    
+                    ${request.status !== 'pending' ? `
+                        <div>
+                            <h4 class="text-sm font-medium text-gray-500 mb-2">처리 정보</h4>
+                            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">상태</dt>
+                                    <dd class="mt-1">${getStatusBadge(request.status)}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">처리일</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">${new Date(request.approved_at).toLocaleString('ko-KR')}</dd>
+                                </div>
+                            </dl>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+        
+        // 승인/거부 버튼 상태 설정
+        const approveBtn = document.getElementById('approve-request-btn');
+        const rejectBtn = document.getElementById('reject-request-btn');
+        
+        if (request.status === 'pending') {
+            if (approveBtn) approveBtn.style.display = 'inline-block';
+            if (rejectBtn) rejectBtn.style.display = 'inline-block';
+        } else {
+            if (approveBtn) approveBtn.style.display = 'none';
+            if (rejectBtn) rejectBtn.style.display = 'none';
+        }
+        
+        // 현재 신청 ID 저장
+        window.currentRequestId = requestId;
+        
+        if (modal) {
+            modal.classList.remove('hidden');
+        }
+        
+    } catch (error) {
+        console.error('이슈 신청 상세 로드 오류:', error);
+        alert('이슈 신청 상세 정보를 불러오는데 실패했습니다: ' + error.message);
+    }
+}
+
+// 모달 닫기
+function closeRequestDetailModal() {
+    const modal = document.getElementById('request-detail-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+    window.currentRequestId = null;
+}
+
+// 이슈 신청 승인
+async function handleApproveRequest() {
+    if (!window.currentRequestId) return;
+    
+    const comments = prompt('승인 코멘트를 입력하세요 (선택사항):');
+    if (comments === null) return; // 취소
+    
+    try {
+        const response = await fetch(`/api/issue-requests/${window.currentRequestId}/approve`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('yegame-token')}`
+            },
+            body: JSON.stringify({ adminComments: comments })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('이슈 신청이 승인되었습니다. 신청자에게 1000 GAM이 지급되었습니다.');
+            closeRequestDetailModal();
+            loadIssueRequests();
+        } else {
+            throw new Error(data.message);
+        }
+        
+    } catch (error) {
+        console.error('이슈 신청 승인 오류:', error);
+        alert('이슈 신청 승인 중 오류가 발생했습니다: ' + error.message);
+    }
+}
+
+// 이슈 신청 거부
+async function handleRejectRequest() {
+    if (!window.currentRequestId) return;
+    
+    const comments = prompt('거부 사유를 입력하세요:');
+    if (!comments) return;
+    
+    try {
+        const response = await fetch(`/api/issue-requests/${window.currentRequestId}/reject`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('yegame-token')}`
+            },
+            body: JSON.stringify({ adminComments: comments })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('이슈 신청이 거부되었습니다.');
+            closeRequestDetailModal();
+            loadIssueRequests();
+        } else {
+            throw new Error(data.message);
+        }
+        
+    } catch (error) {
+        console.error('이슈 신청 거부 오류:', error);
+        alert('이슈 신청 거부 중 오류가 발생했습니다: ' + error.message);
     }
 }
 
