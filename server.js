@@ -17,6 +17,7 @@ const uploadRoutes = require('./routes/upload');
 const { initDatabase } = require('./database/database');
 const issueScheduler = require('./services/scheduler');
 const { errorHandler } = require('./middleware/errorHandler');
+const { setupAdminEndpoint } = require('./setup-admin');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -57,6 +58,9 @@ app.use('/api/admin/auth', adminAuthRoutes);
 app.use('/api/admin-auth', secureAdminAuthRoutes); // 보안 관리자 인증 API
 app.use('/api/admin', adminRoutes);
 app.use('/api/upload', uploadRoutes);
+
+// 관리자 초기 설정 엔드포인트 (임시)
+setupAdminEndpoint(app);
 
 // Cloudinary를 사용하므로 로컬 파일 서빙 불필요
 
