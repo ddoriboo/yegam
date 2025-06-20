@@ -483,52 +483,33 @@ router.post('/issues/:id/close', adminMiddleware, (req, res) => {
 router.get('/issues/:id', adminMiddleware, async (req, res) => {
     try {
         const issueId = req.params.id;
-        const db = getDB();
+        console.log(`🔍 관리자 이슈 조회 요청 - ID: ${issueId}`);
         
-        if (typeof db.get === 'function') {
-            db.get('SELECT * FROM issues WHERE id = ?', [issueId], (err, issue) => {
-                if (err) {
-                    console.error('관리자 이슈 조회 실패:', err);
-                    return res.status(500).json({ success: false, message: '이슈 조회에 실패했습니다.' });
-                }
-                
-                if (!issue) {
-                    return res.status(404).json({ 
-                        success: false, 
-                        message: '존재하지 않는 이슈입니다.' 
-                    });
-                }
-                
-                res.json({
-                    success: true,
-                    issue: {
-                        ...issue,
-                        isPopular: Boolean(issue.is_popular)
-                    }
-                });
-            });
-        } else {
-            // 새로운 인터페이스 사용
-            const { get } = require('../database/database');
-            const issue = await get('SELECT * FROM issues WHERE id = $1', [issueId]);
-            
-            if (!issue) {
-                return res.status(404).json({ 
-                    success: false, 
-                    message: '존재하지 않는 이슈입니다.' 
-                });
-            }
-            
-            res.json({
-                success: true,
-                issue: {
-                    ...issue,
-                    isPopular: Boolean(issue.is_popular)
-                }
+        // PostgreSQL 직접 사용
+        const { get } = require('../database/database');
+        const issue = await get('SELECT * FROM issues WHERE id = $1', [issueId]);
+        
+        console.log(`📊 이슈 조회 결과:`, issue ? '찾음' : '없음');
+        
+        if (!issue) {
+            console.log(`❌ 이슈 ID ${issueId}를 찾을 수 없음`);
+            return res.status(404).json({ 
+                success: false, 
+                message: '존재하지 않는 이슈입니다.' 
             });
         }
+        
+        console.log(`✅ 이슈 조회 성공: ${issue.title}`);
+        res.json({
+            success: true,
+            issue: {
+                ...issue,
+                isPopular: Boolean(issue.is_popular)
+            }
+        });
+        
     } catch (error) {
-        console.error('관리자 이슈 조회 오류:', error);
+        console.error('❌ 관리자 이슈 조회 오류:', error);
         res.status(500).json({ 
             success: false, 
             message: '이슈 조회 중 오류가 발생했습니다.' 
