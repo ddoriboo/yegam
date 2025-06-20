@@ -1,5 +1,5 @@
 const express = require('express');
-const { query, run, get } = require('../database/database');
+const { query, run, get, getDB } = require('../database/database');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
@@ -219,63 +219,73 @@ router.put('/:id/approve', adminMiddleware, async (req, res) => {
             });
         }
         
-        // 승인 처리 (PostgreSQL 트랜잭션 사용)
-        try {
-            // 1. 정식 이슈로 등록
-            const issueResult = await run(`
-                INSERT INTO issues (
-                    title, description, category, deadline, status, 
-                    created_by, created_at
-                ) VALUES ($1, $2, $3, $4, 'active', $5, CURRENT_TIMESTAMP)
-                RETURNING id
-            `, [
-                request.title,
-                request.description,
-                request.category,
-                request.deadline,
-                request.user_id
-            ]);
-            
-            // 2. 신청 상태 업데이트
-            await run(`
-                UPDATE issue_requests 
-                SET status = 'approved', 
-                    approved_by = $1, 
-                    approved_at = CURRENT_TIMESTAMP,
-                    admin_comments = $2,
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE id = $3
-            `, [adminId, adminComments || '', requestId]);
-            
-            // 3. 신청자에게 1000 GAM 지급
-            await run(`
-                UPDATE users 
-                SET gam_balance = COALESCE(gam_balance, 0) + 1000,
-                    coins = COALESCE(coins, 0) + 1000
-                WHERE id = $1
-            `, [request.user_id]);
-            
-            // 4. GAM 거래 로그 기록 (있다면)
-            try {
-                await run(`
-                    INSERT INTO gam_transactions (
-                        user_id, amount, type, description, created_at
-                    ) VALUES ($1, 1000, 'reward', '이슈 신청 승인 보상', CURRENT_TIMESTAMP)
-                `, [request.user_id]);
-            } catch (logError) {
-                // 로그 테이블이 없어도 계속 진행
-                console.log('GAM 거래 로그 기록 스킵:', logError.message);
+        // 승인 처리 (기존 데이터베이스 방식 사용)
+        const db = getDB();
+        
+        // 1. 정식 이슈로 등록 (기존 admin.js와 동일한 방식)
+        db.run(`
+            INSERT INTO issues (title, category, description, image_url, yes_price, end_date, is_popular)
+            VALUES (?, ?, ?, ?, ?, ?, 0)
+        `, [request.title, request.category, request.description, '', 50, request.deadline], async function(err) {
+            if (err) {
+                console.error('이슈 생성 실패:', err);
+                return res.status(500).json({ 
+                    success: false, 
+                    message: '이슈 생성에 실패했습니다: ' + err.message 
+                });
             }
             
-            res.json({
-                success: true,
-                message: '이슈 신청이 승인되었습니다.',
-                issueId: issueResult.rows ? issueResult.rows[0]?.id : issueResult.lastID
-            });
+            const issueId = this.lastID;
+            console.log('✅ 이슈 생성 성공:', issueId);
             
-        } catch (error) {
-            throw error;
-        }
+            try {
+                // 2. 신청 상태 업데이트
+                await run(`
+                    UPDATE issue_requests 
+                    SET status = 'approved', 
+                        approved_by = $1, 
+                        approved_at = CURRENT_TIMESTAMP,
+                        admin_comments = $2,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE id = $3
+                `, [adminId, adminComments || '', requestId]);
+                
+                // 3. 신청자에게 1000 GAM 지급
+                await run(`
+                    UPDATE users 
+                    SET gam_balance = COALESCE(gam_balance, 0) + 1000,
+                        coins = COALESCE(coins, 0) + 1000
+                    WHERE id = $1
+                `, [request.user_id]);
+                
+                console.log('✅ GAM 지급 완료:', request.user_id);
+                
+                // 4. GAM 거래 로그 기록 (있다면)
+                try {
+                    await run(`
+                        INSERT INTO gam_transactions (
+                            user_id, amount, type, description, created_at
+                        ) VALUES ($1, 1000, 'reward', '이슈 신청 승인 보상', CURRENT_TIMESTAMP)
+                    `, [request.user_id]);
+                } catch (logError) {
+                    // 로그 테이블이 없어도 계속 진행
+                    console.log('GAM 거래 로그 기록 스킵:', logError.message);
+                }
+                
+                res.json({
+                    success: true,
+                    message: '이슈 신청이 승인되었습니다.',
+                    issueId: issueId
+                });
+                
+            } catch (updateError) {
+                console.error('승인 후 업데이트 실패:', updateError);
+                res.status(500).json({
+                    success: false,
+                    message: '이슈는 생성되었지만 상태 업데이트에 실패했습니다: ' + updateError.message
+                });
+            }
+        });
         
     } catch (error) {
         console.error('이슈 신청 승인 오류:', error);
