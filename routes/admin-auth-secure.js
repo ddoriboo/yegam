@@ -80,10 +80,16 @@ router.post('/login', async (req, res) => {
         const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
         const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000); // 8시간
         
-        await query(`
-            INSERT INTO admin_sessions (admin_id, token_hash, expires_at, ip_address, user_agent)
-            VALUES ($1, $2, $3, $4, $5)
-        `, [admin.id, tokenHash, expiresAt, req.ip, req.get('User-Agent')]);
+        try {
+            await query(`
+                INSERT INTO admin_sessions (admin_id, token_hash, expires_at, ip_address, user_agent)
+                VALUES ($1, $2, $3, $4, $5)
+            `, [admin.id, tokenHash, expiresAt, req.ip, req.get('User-Agent')]);
+            console.log('✅ 관리자 세션 저장 성공:', { adminId: admin.id, tokenHash: tokenHash.substring(0, 10) + '...' });
+        } catch (sessionError) {
+            console.error('❌ 관리자 세션 저장 실패:', sessionError);
+            // 세션 저장 실패해도 토큰은 발급 (일시적 문제일 수 있음)
+        }
         
         // 마지막 로그인 시간 업데이트
         await query(`
@@ -144,17 +150,31 @@ router.get('/verify', async (req, res) => {
         
         // 세션 유효성 확인
         const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-        const session = await get(`
-            SELECT s.*, a.username, a.email, a.full_name, a.role, a.is_active
-            FROM admin_sessions s
-            JOIN admins a ON s.admin_id = a.id
-            WHERE s.token_hash = $1 AND s.is_active = true AND s.expires_at > CURRENT_TIMESTAMP
-        `, [tokenHash]);
+        console.log('🔍 토큰 검증 시도:', { tokenHash: tokenHash.substring(0, 10) + '...', adminId: decoded.adminId });
         
-        if (!session || !session.is_active) {
-            return res.status(401).json({ 
+        let session;
+        try {
+            session = await get(`
+                SELECT s.*, a.username, a.email, a.full_name, a.role, a.is_active
+                FROM admin_sessions s
+                JOIN admins a ON s.admin_id = a.id
+                WHERE s.token_hash = $1 AND s.is_active = true AND s.expires_at > CURRENT_TIMESTAMP
+            `, [tokenHash]);
+            
+            console.log('🔍 세션 조회 결과:', session ? 'found' : 'not found');
+            
+            if (!session || !session.is_active) {
+                console.warn('❌ 세션 없음 또는 비활성:', { hasSession: !!session, isActive: session?.is_active });
+                return res.status(401).json({ 
+                    success: false, 
+                    message: '유효하지 않거나 만료된 관리자 토큰입니다.' 
+                });
+            }
+        } catch (sessionError) {
+            console.error('❌ 세션 조회 중 오류:', sessionError);
+            return res.status(500).json({ 
                 success: false, 
-                message: '유효하지 않거나 만료된 관리자 토큰입니다.' 
+                message: '세션 조회 중 오류가 발생했습니다.' 
             });
         }
         

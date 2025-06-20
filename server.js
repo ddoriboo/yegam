@@ -294,6 +294,61 @@ app.get('/test-admin-auth', (req, res) => {
     });
 });
 
+// 관리자 세션 테이블 확인 엔드포인트
+app.get('/debug-admin-sessions', async (req, res) => {
+    try {
+        const { query } = require('./database/database');
+        
+        // 테이블 존재 확인
+        const tableExists = await query(`
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name = 'admin_sessions'
+            );
+        `);
+        
+        console.log('admin_sessions 테이블 존재 여부:', tableExists.rows[0].exists);
+        
+        if (tableExists.rows[0].exists) {
+            // 활성 세션 개수 확인
+            const sessionCount = await query(`
+                SELECT COUNT(*) as count FROM admin_sessions 
+                WHERE is_active = true AND expires_at > CURRENT_TIMESTAMP
+            `);
+            
+            // 최근 세션 조회
+            const recentSessions = await query(`
+                SELECT s.admin_id, s.expires_at, s.created_at, a.username
+                FROM admin_sessions s 
+                JOIN admins a ON s.admin_id = a.id
+                ORDER BY s.created_at DESC 
+                LIMIT 5
+            `);
+            
+            res.json({
+                success: true,
+                tableExists: true,
+                activeSessionCount: sessionCount.rows[0].count,
+                recentSessions: recentSessions.rows
+            });
+        } else {
+            res.json({
+                success: false,
+                tableExists: false,
+                message: 'admin_sessions 테이블이 존재하지 않습니다.'
+            });
+        }
+        
+    } catch (error) {
+        console.error('Admin sessions debug error:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
 // 관리자 테이블 강제 수정 엔드포인트
 app.get('/fix-admin-table', async (req, res) => {
     try {
