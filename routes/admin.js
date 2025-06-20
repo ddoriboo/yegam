@@ -3,7 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 const { getDB, getCurrentTimeSQL } = require('../database/database');
-const { authMiddleware, adminAuthMiddleware } = require('../middleware/auth');
+const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 const { adminAuthMiddleware } = require('../middleware/admin-auth');
 const issueScheduler = require('../services/scheduler');
 
