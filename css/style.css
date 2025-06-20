@@ -1022,7 +1022,7 @@ html {
 
 /* Category filters mobile optimization */
 .category-filters-mobile {
-    display: none; /* Hidden by default, shown only on mobile */
+    display: none !important; /* Force hidden by default, shown only on mobile */
     overflow-x: auto;
     scrollbar-width: none;
     -ms-overflow-style: none;
@@ -1034,7 +1034,7 @@ html {
 
 /* Desktop category filters - visible by default */
 .category-filters-desktop {
-    display: flex; /* Visible by default on desktop */
+    display: flex !important; /* Force visible by default on desktop */
 }
 
 .category-filters-grid {
@@ -1077,11 +1077,11 @@ html {
     
     /* Category Filters Mobile */
     .category-filters-desktop {
-        display: none;
+        display: none !important;
     }
     
     .category-filters-mobile {
-        display: block;
+        display: block !important;
     }
     
     /* Issue Cards */
