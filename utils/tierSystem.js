@@ -1,68 +1,236 @@
 // 예겜 티어 시스템
-// 롤 스타일의 7단계 티어 시스템 구현
+// 21단계 티어 시스템 (등급 안내 페이지와 일치)
 
-// 티어 정의
+// 티어 정의 - 등급 안내 페이지와 완전히 동일
 const TIERS = [
     {
-        name: '신참',
-        icon: '🔰',
+        level: 0,
+        name: '티끌',
+        nameEn: 'Mote',
+        icon: '⚪',
         minGam: 0,
-        maxGam: 4999,
-        color: '#10B981', // 초록색
-        bgColor: '#ECFDF5',
-        borderColor: '#D1FAE5'
-    },
-    {
-        name: '일반',
-        icon: '🥉',
-        minGam: 5000,
         maxGam: 9999,
-        color: '#CD7F32', // 갈색/구리색
-        bgColor: '#FEF3E2',
-        borderColor: '#FDE68A'
-    },
-    {
-        name: '베테랑',
-        icon: '🥈',
-        minGam: 10000,
-        maxGam: 19999,
-        color: '#6B7280', // 은색
+        color: '#6B7280',
         bgColor: '#F9FAFB',
         borderColor: '#E5E7EB'
     },
     {
-        name: '전문가',
-        icon: '🥇',
-        minGam: 20000,
-        maxGam: 39999,
-        color: '#F59E0B', // 금색
+        level: 1,
+        name: '조약돌',
+        nameEn: 'Pebble',
+        icon: '🪨',
+        minGam: 10000,
+        maxGam: 24999,
+        color: '#78716C',
+        bgColor: '#F5F5F4',
+        borderColor: '#E7E5E4'
+    },
+    {
+        level: 2,
+        name: '원석 채굴자',
+        nameEn: 'Miner',
+        icon: '⛏️',
+        minGam: 25000,
+        maxGam: 49999,
+        color: '#A16207',
         bgColor: '#FFFBEB',
         borderColor: '#FEF3C7'
     },
     {
-        name: '달인',
-        icon: '💎',
-        minGam: 40000,
-        maxGam: 79999,
-        color: '#06B6D4', // 청록색
+        level: 3,
+        name: '강철 연마가',
+        nameEn: 'Steel Polisher',
+        icon: '⛓️',
+        minGam: 50000,
+        maxGam: 89999,
+        color: '#475569',
+        bgColor: '#F8FAFC',
+        borderColor: '#E2E8F0'
+    },
+    {
+        level: 4,
+        name: '아이언 실드',
+        nameEn: 'Iron Shield',
+        icon: '🛡️',
+        minGam: 90000,
+        maxGam: 149999,
+        color: '#6B7280',
+        bgColor: '#F9FAFB',
+        borderColor: '#E5E7EB'
+    },
+    {
+        level: 5,
+        name: '스틸 소드',
+        nameEn: 'Steel Sword',
+        icon: '⚔️',
+        minGam: 150000,
+        maxGam: 249999,
+        color: '#374151',
+        bgColor: '#F9FAFB',
+        borderColor: '#D1D5DB'
+    },
+    {
+        level: 6,
+        name: '브론즈 윙',
+        nameEn: 'Bronze Wing',
+        icon: '🥉',
+        minGam: 250000,
+        maxGam: 399999,
+        color: '#CD7F32',
+        bgColor: '#FEF3E2',
+        borderColor: '#FDE68A'
+    },
+    {
+        level: 7,
+        name: '실버 윙',
+        nameEn: 'Silver Wing',
+        icon: '🥈',
+        minGam: 400000,
+        maxGam: 649999,
+        color: '#6B7280',
+        bgColor: '#F9FAFB',
+        borderColor: '#E5E7EB'
+    },
+    {
+        level: 8,
+        name: '골드 윙',
+        nameEn: 'Gold Wing',
+        icon: '🥇',
+        minGam: 650000,
+        maxGam: 999999,
+        color: '#F59E0B',
+        bgColor: '#FFFBEB',
+        borderColor: '#FEF3C7'
+    },
+    {
+        level: 9,
+        name: '플래티넘 챔피언',
+        nameEn: 'Platinum Champion',
+        icon: '🏆',
+        minGam: 1000000,
+        maxGam: 1499999,
+        color: '#06B6D4',
         bgColor: '#ECFEFF',
         borderColor: '#CFFAFE'
     },
     {
-        name: '고수',
+        level: 10,
+        name: '황금 왕관',
+        nameEn: 'Golden Crown',
         icon: '👑',
-        minGam: 80000,
-        maxGam: 159999,
-        color: '#8B5CF6', // 보라색
-        bgColor: '#F3F4F6',
+        minGam: 1500000,
+        maxGam: 2499999,
+        color: '#F59E0B',
+        bgColor: '#FFFBEB',
+        borderColor: '#FEF3C7'
+    },
+    {
+        level: 11,
+        name: '룬석 예언가',
+        nameEn: 'Runestone Seer',
+        icon: '📜',
+        minGam: 2500000,
+        maxGam: 3999999,
+        color: '#8B5CF6',
+        bgColor: '#F5F3FF',
         borderColor: '#E0E7FF'
     },
     {
-        name: '전설',
-        icon: '⭐',
-        minGam: 160000,
-        maxGam: Infinity,
-        color: '#EF4444', // 빨간색
+        level: 12,
+        name: '용기의 문장',
+        nameEn: 'Crest of the Dragon',
+        icon: '🐉',
+        minGam: 4000000,
+        maxGam: 6499999,
+        color: '#EF4444',
+        bgColor: '#FEF2F2',
+        borderColor: '#FECACA'
+    },
+    {
+        level: 13,
+        name: '세계수의 의지',
+        nameEn: 'Will of the World Tree',
+        icon: '🌳',
+        minGam: 6500000,
+        maxGam: 9999999,
+        color: '#10B981',
+        bgColor: '#ECFDF5',
+        borderColor: '#D1FAE5'
+    },
+    {
+        level: 14,
+        name: '시간의 모래시계',
+        nameEn: 'Hourglass of Time',
+        icon: '⏳',
+        minGam: 10000000,
+        maxGam: 15999999,
+        color: '#F59E0B',
+        bgColor: '#FFFBEB',
+        borderColor: '#FEF3C7'
+    },
+    {
+        level: 15,
+        name: '아카식 레코드',
+        nameEn: 'Akashic Records',
+        icon: '📔',
+        minGam: 16000000,
+        maxGam: 24999999,
+        color: '#8B5CF6',
+        bgColor: '#F5F3FF',
+        borderColor: '#E0E7FF'
+    },
+    {
+        level: 16,
+        name: '별의 조각',
+        nameEn: 'Stardust',
+        icon: '✨',
+        minGam: 25000000,
+        maxGam: 39999999,
+        color: '#EC4899',
+        bgColor: '#FDF2F8',
+        borderColor: '#FBCFE8'
+    },
+    {
+        level: 17,
+        name: '혜성의 인도자',
+        nameEn: 'Comet Guide',
+        icon: '☄️',
+        minGam: 40000000,
+        maxGam: 64999999,
+        color: '#06B6D4',
+        bgColor: '#ECFEFF',
+        borderColor: '#CFFAFE'
+    },
+    {
+        level: 18,
+        name: '찬란한 성좌',
+        nameEn: 'Constellation',
+        icon: '🌟',
+        minGam: 65000000,
+        maxGam: 99999999,
+        color: '#F59E0B',
+        bgColor: '#FFFBEB',
+        borderColor: '#FEF3C7'
+    },
+    {
+        level: 19,
+        name: '은하의 지배자',
+        nameEn: 'Galaxy Lord',
+        icon: '🌌',
+        minGam: 100000000,
+        maxGam: 149999999,
+        color: '#8B5CF6',
+        bgColor: '#F5F3FF',
+        borderColor: '#E0E7FF'
+    },
+    {
+        level: 20,
+        name: '모든 것을 보는 눈',
+        nameEn: 'All-Seeing Eye',
+        icon: '👁️‍🗨️',
+        minGam: 150000000,
+        maxGam: null,
+        color: '#EF4444',
         bgColor: '#FEF2F2',
         borderColor: '#FECACA'
     }
@@ -74,33 +242,51 @@ const TIERS = [
  * @returns {Object} 티어 정보 객체
  */
 function calculateTier(gamAmount) {
-    const tier = TIERS.find(tier => 
-        gamAmount >= tier.minGam && gamAmount <= tier.maxGam
-    );
+    // 21단계 시스템에서 사용자 티어 찾기
+    let tier = null;
+    for (let i = TIERS.length - 1; i >= 0; i--) {
+        const currentTier = TIERS[i];
+        if (gamAmount >= currentTier.minGam) {
+            // maxGam이 null인 경우 (최고 티어) 또는 maxGam 범위 내인 경우
+            if (currentTier.maxGam === null || gamAmount <= currentTier.maxGam) {
+                tier = currentTier;
+                break;
+            }
+        }
+    }
     
     if (!tier) {
         // 기본값으로 첫 번째 티어 반환
-        return { ...TIERS[0], gamAmount };
+        tier = TIERS[0];
     }
     
     // 다음 티어까지 필요한 GAM 계산
-    const nextTierIndex = TIERS.findIndex(t => t.name === tier.name) + 1;
-    const nextTier = TIERS[nextTierIndex];
+    const currentTierIndex = TIERS.findIndex(t => t.level === tier.level);
+    const nextTierIndex = currentTierIndex + 1;
+    const nextTier = nextTierIndex < TIERS.length ? TIERS[nextTierIndex] : null;
     const nextTierGam = nextTier ? nextTier.minGam : null;
-    const remainingGam = nextTierGam ? nextTierGam - gamAmount : 0;
+    const remainingGam = nextTierGam ? Math.max(0, nextTierGam - gamAmount) : 0;
     
     // 현재 티어 내에서의 진행률 계산
-    const tierProgress = tier.maxGam === Infinity ? 100 : 
-        ((gamAmount - tier.minGam) / (tier.maxGam - tier.minGam + 1)) * 100;
+    let tierProgress = 0;
+    if (tier.maxGam === null) {
+        // 최고 티어인 경우 100%
+        tierProgress = 100;
+    } else {
+        // 일반 티어인 경우 진행률 계산
+        const tierRange = tier.maxGam - tier.minGam + 1;
+        const currentProgress = gamAmount - tier.minGam;
+        tierProgress = (currentProgress / tierRange) * 100;
+    }
     
     return {
         ...tier,
         gamAmount,
         nextTier: nextTier?.name || null,
         nextTierGam,
-        remainingGam: Math.max(0, remainingGam),
+        remainingGam,
         progress: Math.min(100, Math.max(0, tierProgress)),
-        tierIndex: TIERS.findIndex(t => t.name === tier.name)
+        tierIndex: currentTierIndex
     };
 }
 
@@ -146,7 +332,7 @@ function generateTierBadge(tierInfo, size = 'md') {
  * @returns {string} HTML 문자열
  */
 function generateTierProgress(tierInfo) {
-    if (tierInfo.name === '전설') {
+    if (tierInfo.name === '모든 것을 보는 눈') {
         return `
             <div class="w-full bg-gray-200 rounded-full h-2">
                 <div class="h-2 rounded-full" style="width: 100%; background-color: ${tierInfo.color};">
