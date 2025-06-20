@@ -116,7 +116,7 @@ function logout() {
     localStorage.removeItem('yegame-token');
     userToken = null;
     currentUser = null;
-    alert('로그아웃되었습니다.');
+    showSuccess('안전하게 로그아웃되었습니다.', '로그아웃 완료');
     window.location.href = 'index.html';
 }
 
@@ -1338,7 +1338,7 @@ function createIssueCard(issue) {
 // Betting function - 이제 새로운 모달을 사용
 async function placeBet(issueId, choice) {
     if (!currentUser) {
-        alert('예측을 하려면 로그인이 필요합니다.');
+        showInfo('예측을 하려면 로그인이 필요합니다.', '로그인 필요');
         window.location.href = 'login.html';
         return;
     }
@@ -1374,7 +1374,7 @@ async function placeBetLegacy(issueId, choice) {
     const betAmount = parseInt(amount);
     
     if (betAmount > (currentUser.gam_balance || currentUser.coins || 0)) {
-        alert('보유 GAM이 부족합니다.');
+        showWarning('보유 GAM이 부족합니다.', '잔액 부족');
         return;
     }
     
@@ -1396,7 +1396,7 @@ async function placeBetLegacy(issueId, choice) {
         const data = await response.json();
         
         if (data.success || response.ok) {
-            alert('예측이 완료되었습니다!');
+            showSuccess('예측이 완료되었습니다!', '베팅 성공');
             
             // Update user balance
             if (data.currentBalance !== undefined) {
@@ -1408,11 +1408,11 @@ async function placeBetLegacy(issueId, choice) {
             // Refresh issues
             await initHomePage();
         } else {
-            alert(data.error || data.message || '예측에 실패했습니다.');
+            showError(data.error || data.message || '예측에 실패했습니다.', '베팅 실패');
         }
     } catch (error) {
         console.error('Betting failed:', error);
-        alert('예측 처리 중 오류가 발생했습니다.');
+        showError('예측 처리 중 오류가 발생했습니다.', '네트워크 오류');
     }
 }
 
@@ -1484,7 +1484,7 @@ async function handleLogin(e) {
             userToken = data.token;
             currentUser = data.user;
             
-            alert(data.message || '로그인 성공!');
+            showSuccess(data.message || '로그인 성공!', '환영합니다');
             window.location.href = 'index.html';
         } else {
             showLoginError(errorEl, data.message || '로그인에 실패했습니다.');
@@ -1527,7 +1527,7 @@ async function handleSignup(e) {
                 currentUser = data.user;
             }
             
-            alert(data.message || '회원가입이 완료되었습니다!');
+            showSuccess(data.message || '회원가입이 완료되었습니다!', '계정 생성 완료');
             window.location.href = 'index.html';
         } else {
             showLoginError(errorEl, data.message || '회원가입에 실패했습니다.');
