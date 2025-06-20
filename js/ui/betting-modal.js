@@ -8,6 +8,7 @@ class BettingModal {
         this.currentUser = null;
         this.selectedAmount = 1000;
         this.maxAmount = 0;
+        this.currentOdds = { yesOdds: 2.0, noOdds: 2.0 }; // 기본값
         
         this.createModal();
         this.setupEventListeners();
@@ -148,7 +149,7 @@ class BettingModal {
         });
     }
     
-    open(issueId, choice, issueTitle, currentUser) {
+    async open(issueId, choice, issueTitle, currentUser) {
         this.currentIssueId = issueId;
         this.currentChoice = choice;
         this.currentUser = currentUser;
@@ -164,6 +165,9 @@ class BettingModal {
         const slider = document.getElementById('betting-amount-slider');
         slider.max = this.maxAmount;
         slider.value = Math.min(1000, this.maxAmount);
+        
+        // 배당률 정보 로드
+        await this.loadBettingOdds();
         
         this.updateAmount(parseInt(slider.value));
         
@@ -193,6 +197,27 @@ class BettingModal {
         }, 300);
     }
     
+    async loadBettingOdds() {
+        try {
+            const response = await fetch(`/api/issues/${this.currentIssueId}/betting-stats`);
+            const data = await response.json();
+            
+            if (data.success && data.stats) {
+                this.currentOdds = {
+                    yesOdds: data.stats.yesOdds || 2.0,
+                    noOdds: data.stats.noOdds || 2.0
+                };
+                console.log('배당률 로드 완료:', this.currentOdds);
+            } else {
+                console.warn('배당률 로드 실패, 기본값 사용');
+                this.currentOdds = { yesOdds: 2.0, noOdds: 2.0 };
+            }
+        } catch (error) {
+            console.error('배당률 로드 오류:', error);
+            this.currentOdds = { yesOdds: 2.0, noOdds: 2.0 };
+        }
+    }
+    
     updateAmount(amount) {
         this.selectedAmount = Math.max(100, Math.min(amount, this.maxAmount));
         
@@ -200,10 +225,13 @@ class BettingModal {
         document.getElementById('betting-amount-display').textContent = this.selectedAmount.toLocaleString();
         document.getElementById('betting-amount-slider').value = this.selectedAmount;
         
-        // 예상 수익 계산 (간단한 2배 계산)
-        const expectedReturn = this.selectedAmount * 2;
-        document.getElementById('betting-prediction-amount').textContent = `+${expectedReturn.toLocaleString()}`;
-        document.getElementById('betting-odds').textContent = '2.0x';
+        // 동적 배당률을 기반으로 예상 수익 계산
+        const currentOdds = this.currentChoice === 'Yes' ? this.currentOdds.yesOdds : this.currentOdds.noOdds;
+        const expectedReturn = Math.round(this.selectedAmount * currentOdds);
+        const profit = expectedReturn - this.selectedAmount;
+        
+        document.getElementById('betting-prediction-amount').textContent = `+${profit.toLocaleString()}`;
+        document.getElementById('betting-odds').textContent = `${currentOdds.toFixed(2)}x`;
         
         // 퀵 버튼 활성화 상태 업데이트
         document.querySelectorAll('.quick-amount-btn').forEach(btn => {

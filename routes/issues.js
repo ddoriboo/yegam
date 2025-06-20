@@ -26,6 +26,92 @@ router.get('/', async (req, res) => {
     }
 });
 
+// 이슈별 베팅 통계 조회
+router.get('/:id/betting-stats', async (req, res) => {
+    try {
+        const issueId = req.params.id;
+        
+        // 이슈 존재 확인
+        const issue = await get('SELECT id, title, status FROM issues WHERE id = $1', [issueId]);
+        if (!issue) {
+            return res.status(404).json({ 
+                success: false, 
+                message: '존재하지 않는 이슈입니다.' 
+            });
+        }
+        
+        // 베팅 통계 계산
+        const statsResult = await query(`
+            SELECT 
+                choice,
+                SUM(amount) as total_amount,
+                COUNT(*) as bet_count
+            FROM bets 
+            WHERE issue_id = $1 
+            GROUP BY choice
+        `, [issueId]);
+        
+        let yesAmount = 0;
+        let noAmount = 0;
+        let totalParticipants = 0;
+        
+        statsResult.rows.forEach(row => {
+            if (row.choice === 'Yes') {
+                yesAmount = parseInt(row.total_amount) || 0;
+            } else if (row.choice === 'No') {
+                noAmount = parseInt(row.total_amount) || 0;
+            }
+            totalParticipants += parseInt(row.bet_count) || 0;
+        });
+        
+        const totalAmount = yesAmount + noAmount;
+        const houseEdge = 0.05; // 5% 수수료
+        const effectivePool = totalAmount * (1 - houseEdge);
+        
+        // 배당률 계산
+        let yesOdds = 1.0;
+        let noOdds = 1.0;
+        
+        if (totalAmount > 0) {
+            if (yesAmount > 0) {
+                yesOdds = Math.max(1.01, effectivePool / yesAmount);
+            }
+            if (noAmount > 0) {
+                noOdds = Math.max(1.01, effectivePool / noAmount);
+            }
+        }
+        
+        // 확률 계산 (배당률 역수)
+        const yesImpliedProbability = yesAmount > 0 ? (yesAmount / totalAmount) * 100 : 50;
+        const noImpliedProbability = noAmount > 0 ? (noAmount / totalAmount) * 100 : 50;
+        
+        res.json({
+            success: true,
+            stats: {
+                issueId: parseInt(issueId),
+                issueTitle: issue.title,
+                issueStatus: issue.status,
+                yesAmount,
+                noAmount,
+                totalAmount,
+                totalParticipants,
+                yesOdds: Math.round(yesOdds * 100) / 100, // 소수점 2자리
+                noOdds: Math.round(noOdds * 100) / 100,
+                yesImpliedProbability: Math.round(yesImpliedProbability * 10) / 10,
+                noImpliedProbability: Math.round(noImpliedProbability * 10) / 10,
+                houseEdge: houseEdge * 100
+            }
+        });
+        
+    } catch (error) {
+        console.error('베팅 통계 조회 오류:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: '베팅 통계를 불러오는 중 오류가 발생했습니다.' 
+        });
+    }
+});
+
 // 특정 이슈 조회
 router.get('/:id', async (req, res) => {
     try {

@@ -484,6 +484,11 @@ function renderPopularIssues() {
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
+    
+    // 인기 이슈 렌더링 후 배당률 로드
+    setTimeout(() => {
+        loadAllBettingOdds();
+    }, 100);
 }
 
 function renderAllIssues(append = false) {
@@ -557,6 +562,11 @@ function renderAllIssues(append = false) {
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
+    
+    // 이슈 렌더링 후 배당률 로드
+    setTimeout(() => {
+        loadAllBettingOdds();
+    }, 100);
 }
 
 function sortIssues(issues, sortType) {
@@ -1163,6 +1173,65 @@ function showNotification(message, type = 'info') {
 }
 
 
+// 배당률 정보를 로드하고 업데이트하는 함수
+async function loadAndUpdateBettingOdds(issueId) {
+    try {
+        const response = await fetch(`/api/issues/${issueId}/betting-stats`);
+        const data = await response.json();
+        
+        const oddsElement = document.getElementById(`odds-${issueId}`);
+        if (!oddsElement) return;
+        
+        if (data.success && data.stats) {
+            const { yesOdds, noOdds } = data.stats;
+            oddsElement.innerHTML = `
+                <div class="flex justify-between items-center text-xs">
+                    <div class="flex items-center space-x-1">
+                        <span class="text-green-600 font-medium">Yes:</span>
+                        <span class="text-green-700 font-bold">${yesOdds.toFixed(2)}배</span>
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        <span class="text-red-600 font-medium">No:</span>
+                        <span class="text-red-700 font-bold">${noOdds.toFixed(2)}배</span>
+                    </div>
+                </div>
+            `;
+        } else {
+            oddsElement.innerHTML = `
+                <div class="flex justify-center items-center text-xs text-gray-500">
+                    <span>배당률 정보 없음</span>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error(`배당률 로드 실패 (이슈 ${issueId}):`, error);
+        const oddsElement = document.getElementById(`odds-${issueId}`);
+        if (oddsElement) {
+            oddsElement.innerHTML = `
+                <div class="flex justify-center items-center text-xs text-gray-500">
+                    <span>배당률 로드 실패</span>
+                </div>
+            `;
+        }
+    }
+}
+
+// 모든 이슈의 배당률을 로드하는 함수
+async function loadAllBettingOdds() {
+    const allIssueCards = document.querySelectorAll('[id^="odds-"]');
+    const promises = [];
+    
+    allIssueCards.forEach(element => {
+        const issueId = element.id.replace('odds-', '');
+        if (issueId && !isNaN(issueId)) {
+            promises.push(loadAndUpdateBettingOdds(parseInt(issueId)));
+        }
+    });
+    
+    // 모든 배당률을 병렬로 로드
+    await Promise.allSettled(promises);
+}
+
 function createIssueCard(issue) {
     const yesPrice = issue.yesPercentage || issue.yes_price || 50;
     const noPrice = 100 - yesPrice;
@@ -1209,6 +1278,14 @@ function createIssueCard(issue) {
                 <div class="flex items-center space-x-2">
                     <span class="text-lg font-bold text-red-500">${noPrice}%</span>
                     <span class="text-sm font-medium text-red-500">No</span>
+                </div>
+            </div>
+            
+            <!-- 배당률 표시 -->
+            <div class="betting-odds-display mb-3 p-2 bg-gray-50 rounded-lg" id="odds-${issue.id}">
+                <div class="flex justify-between items-center text-xs text-gray-600">
+                    <span>배당률 로딩중...</span>
+                    <i data-lucide="loader" class="w-3 h-3 animate-spin"></i>
                 </div>
             </div>
             
