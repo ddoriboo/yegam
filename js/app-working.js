@@ -66,6 +66,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Authentication functions
 async function checkAuthentication() {
+    // 관리자 페이지에서는 별도 인증 처리
+    if (window.isAdminPage && window.adminAuthCompleted) {
+        console.log('🔐 관리자 페이지 - 관리자 인증 사용');
+        updateHeader(true);
+        return;
+    }
+    
     if (!userToken) {
         updateHeader(false);
         return;
@@ -2395,64 +2402,36 @@ async function handleAdminHighlightComment(commentId, action) {
 }
 
 function checkAdminAccess() {
-    // 관리자 인증만 확인 (사용자 토큰 불필요)
-    return sessionStorage.getItem('admin-auth') === 'authenticated';
+    // 새로운 보안 관리자 인증 시스템 확인
+    const adminToken = localStorage.getItem('admin-token');
+    const adminUser = sessionStorage.getItem('admin-user');
+    const adminAuthCompleted = window.adminAuthCompleted;
+    
+    // 관리자 페이지에서는 새로운 인증 시스템 사용
+    if (window.isAdminPage && adminAuthCompleted) {
+        console.log('✅ 관리자 페이지 인증 확인됨 (새 시스템)');
+        return true;
+    }
+    
+    // 관리자 토큰과 사용자 정보가 모두 있으면 인증된 것으로 간주
+    if (adminToken && adminUser) {
+        try {
+            const admin = JSON.parse(adminUser);
+            console.log('✅ 관리자 인증 확인됨:', admin.username);
+            return true;
+        } catch (error) {
+            console.error('관리자 사용자 정보 파싱 오류:', error);
+        }
+    }
+    
+    console.log('❌ 관리자 인증 실패 - 토큰 또는 사용자 정보 없음');
+    return false;
 }
 
 function showAdminLogin() {
-    const mainContent = document.querySelector('main');
-    if (!mainContent) return;
-    
-    // 사용자 로그인 상태 확인
-    if (!userToken) {
-        mainContent.innerHTML = `
-            <div class="max-w-md mx-auto mt-16">
-                <div class="bg-white rounded-lg shadow-lg p-8">
-                    <h2 class="text-2xl font-bold text-center mb-6">관리자 접근 오류</h2>
-                    <p class="text-center text-gray-600 mb-4">관리자 기능을 사용하려면 먼저 사용자 로그인이 필요합니다.</p>
-                    <a href="login.html" class="w-full block bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 text-center">로그인하러 가기</a>
-                </div>
-            </div>
-        `;
-        return;
-    }
-    
-    mainContent.innerHTML = `
-        <div class="max-w-md mx-auto mt-16">
-            <div class="bg-white rounded-lg shadow-lg p-8">
-                <h2 class="text-2xl font-bold text-center mb-6">관리자 로그인</h2>
-                <p class="text-center text-gray-600 mb-4">사용자: <strong>${currentUser?.username || '알 수 없음'}</strong></p>
-                <form id="admin-login-form">
-                    <div class="mb-4">
-                        <label class="block text-sm font-medium text-gray-700 mb-2">관리자 암호</label>
-                        <input type="password" id="admin-password" class="w-full px-3 py-2 border border-gray-300 rounded-md" placeholder="관리자 암호를 입력하세요" required>
-                    </div>
-                    <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">로그인</button>
-                    <div id="admin-login-error" class="hidden mt-3 text-red-600 text-sm text-center"></div>
-                </form>
-            </div>
-        </div>
-    `;
-    
-    document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const password = document.getElementById('admin-password').value;
-        const errorEl = document.getElementById('admin-login-error');
-        
-        if (password === 'admin123') {
-            sessionStorage.setItem('admin-auth', 'authenticated');
-            
-            // 관리자 로그인 폼 숨기고 관리자 UI 표시
-            const adminLoginSection = document.querySelector('main');
-            if (adminLoginSection) {
-                // 관리자 페이지 재초기화
-                await initAdminPage();
-            }
-        } else {
-            errorEl.textContent = '잘못된 관리자 암호입니다.';
-            errorEl.classList.remove('hidden');
-        }
-    });
+    // 새로운 보안 관리자 인증 시스템으로 리다이렉트
+    console.log('❌ 관리자 인증 필요 - 관리자 로그인 페이지로 이동');
+    window.location.href = '/admin-login';
 }
 
 async function loadAdminIssues() {
