@@ -1962,7 +1962,7 @@ async function loadResultsData() {
         console.log('Loading results with filter:', filter);
         console.log('User token:', userToken ? 'Available' : 'Missing');
         
-        const response = await fetch(`/api/admin/issues/closed?filter=${filter}`);
+        const response = await window.adminFetch(`/api/admin/issues/closed?filter=${filter}`);
         
         console.log('Response status:', response.status);
         console.log('Response ok:', response.ok);
@@ -2129,7 +2129,7 @@ async function openResultModal(issueId) {
     
     try {
         // 관리자용 이슈 정보 조회
-        const response = await fetch(`/api/admin/issues/${issueId}`);
+        const response = await window.adminFetch(`/api/admin/issues/${issueId}`);
         
         const data = await response.json();
         
@@ -2172,12 +2172,8 @@ async function handleResultSubmit(e) {
     }
     
     try {
-        const response = await fetch(`/api/admin/issues/${issueId}/result`, {
+        const response = await window.adminFetch(`/api/admin/issues/${issueId}/result`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${userToken}`
-            },
             body: JSON.stringify({ result, reason })
         });
         
@@ -2200,11 +2196,8 @@ async function handleCloseIssue(issueId) {
     if (!confirm('이슈를 수동으로 마감하시겠습니까?')) return;
     
     try {
-        const response = await fetch(`/api/admin/issues/${issueId}/close`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${userToken}`
-            }
+        const response = await window.adminFetch(`/api/admin/issues/${issueId}/close`, {
+            method: 'POST'
         });
         
         const data = await response.json();
@@ -2436,7 +2429,10 @@ function showAdminLogin() {
 
 async function loadAdminIssues() {
     try {
-        const response = await fetch('/api/issues');
+        // adminFetch가 사용 가능하면 사용, 아니면 일반 fetch 사용
+        const response = window.adminFetch ? 
+            await window.adminFetch('/api/issues') : 
+            await fetch('/api/issues');
         const data = await response.json();
         
         if (data.success) {
@@ -2494,12 +2490,8 @@ function setupCreateIssueForm() {
         const isPopular = e.target.isPopular.checked;
         
         try {
-            const response = await fetch('/api/issues', {
+            const response = await window.adminFetch('/api/issues', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${userToken}`
-                },
                 body: JSON.stringify({
                     title,
                     category,
@@ -2547,12 +2539,8 @@ function setupCreateIssueForm() {
             const isPopular = e.target.isPopular.checked;
             
             try {
-                const response = await fetch(`/api/issues/${issueId}`, {
+                const response = await window.adminFetch(`/api/issues/${issueId}`, {
                     method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${userToken}`
-                    },
                     body: JSON.stringify({
                         title,
                         category,
@@ -2757,11 +2745,8 @@ async function deleteIssue(issueId) {
     if (!confirm('정말로 이 이슈를 삭제하시겠습니까?')) return;
     
     try {
-        const response = await fetch(`/api/issues/${issueId}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${userToken}`
-            }
+        const response = await window.adminFetch(`/api/issues/${issueId}`, {
+            method: 'DELETE'
         });
         
         const data = await response.json();
