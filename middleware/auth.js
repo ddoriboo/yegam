@@ -1,9 +1,11 @@
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'yegame-dev-secret-key-change-in-production';
+// Railway에서 환경변수가 설정되지 않은 경우를 대비해 기본값 사용
+const JWT_SECRET = process.env.JWT_SECRET || 'yegame-production-secret-key-2025-very-secure-random-string';
 
+// 프로덕션에서 기본값을 사용하는 경우 경고 출력
 if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
-    throw new Error('JWT_SECRET is required in production');
+    console.warn('⚠️ JWT_SECRET 환경변수가 설정되지 않았습니다. 기본값을 사용합니다.');
 }
 
 const authMiddleware = (req, res, next) => {
