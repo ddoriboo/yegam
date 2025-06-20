@@ -987,11 +987,101 @@ html {
     color: #374151;
 }
 
+/* Mobile Popular Issues Optimization */
+.popular-issues-mobile {
+    display: none;
+}
+
+.popular-issues-scroll {
+    overflow-x: auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+}
+
+.popular-issues-scroll::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+}
+
+.popular-issues-grid {
+    display: flex;
+    gap: 1rem;
+    padding-bottom: 0.5rem;
+}
+
+.popular-issue-card {
+    flex: 0 0 280px; /* Fixed width for mobile cards */
+    min-height: 320px;
+}
+
+/* Touch-friendly button sizes */
+.mobile-touch-btn {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 0.75rem;
+}
+
+/* Category filters mobile optimization */
+.category-filters-mobile {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.category-filters-mobile::-webkit-scrollbar {
+    display: none;
+}
+
+.category-filters-grid {
+    display: flex;
+    gap: 0.75rem;
+    padding-bottom: 0.5rem;
+}
+
+.category-filter-btn {
+    flex: 0 0 auto;
+    white-space: nowrap;
+}
+
+/* Header mobile optimizations */
+.mobile-menu-slide {
+    animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
+    /* Popular Issues Mobile Layout */
+    .popular-issues-desktop {
+        display: none;
+    }
+    
+    .popular-issues-mobile {
+        display: block;
+    }
+    
+    /* Category Filters Mobile */
+    .category-filters-desktop {
+        display: none;
+    }
+    
+    .category-filters-mobile {
+        display: block;
+    }
+    
+    /* Issue Cards */
     .issue-card.manifold-style {
         padding: 1rem;
-        min-height: 450px;
+        min-height: 400px;
     }
     
     .probability-badge {
@@ -1006,6 +1096,7 @@ html {
     .bet-btn {
         padding: 0.75rem 0.875rem;
         font-size: 0.8125rem;
+        min-height: 44px; /* Touch-friendly */
     }
     
     .time-filter-tabs {
@@ -1016,6 +1107,7 @@ html {
         flex: 1;
         min-width: 0;
         text-align: center;
+        min-height: 44px; /* Touch-friendly */
     }
     
     .filters-container .flex {
@@ -1025,5 +1117,44 @@ html {
     
     .issue-image-container .issue-image {
         height: 140px;
+    }
+    
+    /* Header User Actions Mobile */
+    #header-user-actions {
+        gap: 0.5rem;
+    }
+    
+    #header-user-actions .text-sm {
+        font-size: 0.75rem;
+    }
+    
+    /* Search Section Mobile */
+    .search-section {
+        padding: 1.5rem 0;
+    }
+    
+    .search-section h1 {
+        font-size: 1.5rem;
+    }
+    
+    /* All Issues Grid Mobile */
+    #all-issues-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    /* Mobile-specific button improvements */
+    button, .btn, .bet-btn, .category-filter-btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    /* Improve text readability on mobile */
+    .text-xs {
+        font-size: 0.875rem;
+    }
+    
+    .text-sm {
+        font-size: 1rem;
     }
 }

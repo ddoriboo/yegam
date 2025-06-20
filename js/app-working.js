@@ -17,6 +17,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Check authentication
     await checkAuthentication();
     
+    // Initialize mobile menu for all pages
+    setupMobileMenu();
+    
     // Initialize comments system
     initCommentsSystem();
     
@@ -111,6 +114,81 @@ function logout() {
     window.location.href = 'index.html';
 }
 
+// Mobile menu functions
+function setupMobileMenu() {
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const mobileMenu = document.getElementById('mobile-menu');
+    const menuIcon = mobileMenuBtn?.querySelector('i');
+    
+    if (!mobileMenuBtn || !mobileMenu) return;
+    
+    let isMenuOpen = false;
+    
+    mobileMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleMobileMenu();
+    });
+    
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+        if (isMenuOpen && !mobileMenu.contains(e.target) && !mobileMenuBtn.contains(e.target)) {
+            closeMobileMenu();
+        }
+    });
+    
+    // Close menu when pressing escape
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && isMenuOpen) {
+            closeMobileMenu();
+        }
+    });
+    
+    function toggleMobileMenu() {
+        if (isMenuOpen) {
+            closeMobileMenu();
+        } else {
+            openMobileMenu();
+        }
+    }
+    
+    function openMobileMenu() {
+        isMenuOpen = true;
+        mobileMenu.classList.remove('hidden');
+        menuIcon.setAttribute('data-lucide', 'x');
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+        
+        // Add smooth slide down animation
+        mobileMenu.style.opacity = '0';
+        mobileMenu.style.transform = 'translateY(-10px)';
+        setTimeout(() => {
+            mobileMenu.style.transition = 'all 0.2s ease-out';
+            mobileMenu.style.opacity = '1';
+            mobileMenu.style.transform = 'translateY(0)';
+        }, 10);
+    }
+    
+    function closeMobileMenu() {
+        isMenuOpen = false;
+        mobileMenu.style.transition = 'all 0.2s ease-in';
+        mobileMenu.style.opacity = '0';
+        mobileMenu.style.transform = 'translateY(-10px)';
+        
+        setTimeout(() => {
+            mobileMenu.classList.add('hidden');
+            mobileMenu.style.transition = '';
+            mobileMenu.style.opacity = '';
+            mobileMenu.style.transform = '';
+        }, 200);
+        
+        menuIcon.setAttribute('data-lucide', 'menu');
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    }
+}
+
 // Home page functions
 // Global state for home page
 let allIssues = [];
@@ -158,7 +236,7 @@ async function initHomePage() {
 
 function setupCategoryFilters() {
     const filtersContainer = document.getElementById('category-filters');
-    if (!filtersContainer) return;
+    const mobileFiltersContainer = document.getElementById('category-filters-mobile');
     
     // Define all categories with their colors
     const categoryColors = {
@@ -175,38 +253,68 @@ function setupCategoryFilters() {
     
     const categories = ['전체', '정치', '스포츠', '경제', '코인', '테크', '엔터', '날씨', '해외'];
     
-    filtersContainer.innerHTML = categories.map((category, index) => `
-        <button class="category-filter-btn ${index === 0 ? 'active' : ''} px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
+    const createCategoryButton = (category, index, isMobile = false) => `
+        <button class="category-filter-btn ${index === 0 ? 'active' : ''} ${isMobile ? 'mobile-touch-btn' : ''} px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
                 style="${index === 0 ? categoryColors['전체'] : categoryColors[category]}"
                 data-category="${category}">
             ${category}
         </button>
-    `).join('');
+    `;
     
-    // Add click events to category filters
-    filtersContainer.addEventListener('click', (e) => {
-        if (e.target.classList.contains('category-filter-btn')) {
-            const category = e.target.dataset.category;
-            selectCategory(category, e.target);
-        }
-    });
+    // Setup desktop category filters
+    if (filtersContainer) {
+        filtersContainer.innerHTML = categories.map((category, index) => 
+            createCategoryButton(category, index, false)
+        ).join('');
+        
+        filtersContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('category-filter-btn')) {
+                const category = e.target.dataset.category;
+                selectCategory(category, e.target);
+            }
+        });
+    }
+    
+    // Setup mobile category filters
+    if (mobileFiltersContainer) {
+        mobileFiltersContainer.innerHTML = categories.map((category, index) => 
+            createCategoryButton(category, index, true)
+        ).join('');
+        
+        mobileFiltersContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('category-filter-btn')) {
+                const category = e.target.dataset.category;
+                selectCategory(category, e.target, true);
+            }
+        });
+    }
 }
 
-function selectCategory(category, buttonElement) {
-    // Update active state
+function selectCategory(category, buttonElement, isMobile = false) {
+    // Update active state for both desktop and mobile
     document.querySelectorAll('.category-filter-btn').forEach(btn => {
         btn.classList.remove('active');
         btn.style.opacity = '0.7';
         btn.style.transform = 'scale(1)';
     });
     
-    buttonElement.classList.add('active');
-    buttonElement.style.opacity = '1';
-    buttonElement.style.transform = 'scale(1.05)';
+    // Find corresponding buttons in both desktop and mobile versions
+    const desktopBtn = document.querySelector(`#category-filters [data-category="${category}"]`);
+    const mobileBtn = document.querySelector(`#category-filters-mobile [data-category="${category}"]`);
+    
+    // Activate corresponding buttons
+    [desktopBtn, mobileBtn].forEach(btn => {
+        if (btn) {
+            btn.classList.add('active');
+            btn.style.opacity = '1';
+            btn.style.transform = 'scale(1.05)';
+        }
+    });
     
     currentCategory = category;
     currentPage = 1;
     renderAllIssues();
+    renderPopularIssues(); // Re-render popular issues for the new category
 }
 
 function setupHomePageEvents() {
@@ -252,7 +360,7 @@ function setupHomePageEvents() {
 
 function renderPopularIssues() {
     const listContainer = document.getElementById('popular-issues-list');
-    if (!listContainer) return;
+    const mobileContainer = document.getElementById('popular-issues-mobile');
     
     // 인기 이슈는 필터링하지 않고 항상 고정된 인기 이슈를 표시
     const popularIssues = allIssues
@@ -260,54 +368,112 @@ function renderPopularIssues() {
         .slice(0, 8); // 최대 8개까지 표시
     
     if (popularIssues.length === 0) {
-        listContainer.innerHTML = `
-            <div class="text-center py-8">
-                <i data-lucide="star" class="w-8 h-8 mx-auto text-gray-300 mb-3"></i>
-                <p class="text-gray-500">인기 이슈가 없습니다.</p>
-            </div>
-        `;
+        if (listContainer) {
+            listContainer.innerHTML = `
+                <div class="text-center py-8">
+                    <i data-lucide="star" class="w-8 h-8 mx-auto text-gray-300 mb-3"></i>
+                    <p class="text-gray-500">인기 이슈가 없습니다.</p>
+                </div>
+            `;
+        }
+        if (mobileContainer) {
+            mobileContainer.innerHTML = `
+                <div class="popular-issue-card text-center py-8">
+                    <i data-lucide="star" class="w-8 h-8 mx-auto text-gray-300 mb-3"></i>
+                    <p class="text-gray-500">인기 이슈가 없습니다.</p>
+                </div>
+            `;
+        }
         return;
     }
     
-    listContainer.innerHTML = popularIssues.map((issue, index) => {
-        const yesPrice = issue.yesPercentage || issue.yes_price || 50;
-        const timeLeft = getTimeLeft(issue.end_date || issue.endDate);
-        
-        return `
-            <div class="popular-issue-item flex items-center justify-between p-4 hover:bg-gray-50 transition-colors cursor-pointer border-b border-gray-100 last:border-b-0" 
-                 data-issue-id="${issue.id}"
-                 onclick="scrollToIssueInAllSection(${issue.id})">
-                <div class="flex items-center space-x-4 flex-1">
-                    <div class="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-sm">
-                        ${index + 1}
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <div class="flex items-center space-x-2 mb-1">
-                            <span class="inline-block px-2 py-1 text-xs font-medium rounded" style="${getCategoryBadgeStyle(issue.category)}">
-                                ${issue.category}
-                            </span>
-                            <span class="text-xs text-gray-500 flex items-center">
-                                <i data-lucide="clock" class="w-3 h-3 mr-1"></i>
-                                ${timeLeft}
-                            </span>
+    // Render desktop version
+    if (listContainer) {
+        listContainer.innerHTML = popularIssues.map((issue, index) => {
+            const yesPrice = issue.yesPercentage || issue.yes_price || 50;
+            const timeLeft = getTimeLeft(issue.end_date || issue.endDate);
+            
+            return `
+                <div class="popular-issue-item flex items-center justify-between p-4 hover:bg-gray-50 transition-colors cursor-pointer border-b border-gray-100 last:border-b-0" 
+                     data-issue-id="${issue.id}"
+                     onclick="scrollToIssueInAllSection(${issue.id})">
+                    <div class="flex items-center space-x-4 flex-1">
+                        <div class="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-sm">
+                            ${index + 1}
                         </div>
-                        <h3 class="text-sm font-medium text-gray-900 truncate">${issue.title}</h3>
-                    </div>
-                </div>
-                <div class="flex items-center space-x-4 flex-shrink-0">
-                    <div class="text-right">
-                        <div class="text-sm font-bold text-green-600">Yes ${yesPrice}%</div>
-                        <div class="text-xs text-gray-500">${formatVolume(issue.total_volume || issue.totalVolume || 0)} GAM</div>
-                    </div>
-                    <div class="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
-                        <div class="h-full bg-gradient-to-r from-green-500 to-red-500 rounded-full relative">
-                            <div class="absolute top-0 w-1 h-full bg-white shadow-sm" style="left: ${yesPrice}%"></div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center space-x-2 mb-1">
+                                <span class="inline-block px-2 py-1 text-xs font-medium rounded" style="${getCategoryBadgeStyle(issue.category)}">
+                                    ${issue.category}
+                                </span>
+                                <span class="text-xs text-gray-500 flex items-center">
+                                    <i data-lucide="clock" class="w-3 h-3 mr-1"></i>
+                                    ${timeLeft}
+                                </span>
+                            </div>
+                            <h3 class="text-sm font-medium text-gray-900 truncate">${issue.title}</h3>
                         </div>
                     </div>
+                    <div class="flex items-center space-x-4 flex-shrink-0">
+                        <div class="text-right">
+                            <div class="text-sm font-bold text-green-600">Yes ${yesPrice}%</div>
+                            <div class="text-xs text-gray-500">${formatVolume(issue.total_volume || issue.totalVolume || 0)} GAM</div>
+                        </div>
+                        <div class="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-green-500 to-red-500 rounded-full relative">
+                                <div class="absolute top-0 w-1 h-full bg-white shadow-sm" style="left: ${yesPrice}%"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        `;
-    }).join('');
+            `;
+        }).join('');
+    }
+    
+    // Render mobile version
+    if (mobileContainer) {
+        mobileContainer.innerHTML = popularIssues.map((issue, index) => {
+            const yesPrice = issue.yesPercentage || issue.yes_price || 50;
+            const noPrice = 100 - yesPrice;
+            const timeLeft = getTimeLeft(issue.end_date || issue.endDate);
+            
+            return `
+                <div class="popular-issue-card bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                     data-issue-id="${issue.id}"
+                     onclick="scrollToIssueInAllSection(${issue.id})">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="inline-block px-2 py-1 text-xs font-medium rounded" style="${getCategoryBadgeStyle(issue.category)}">
+                            ${issue.category}
+                        </span>
+                        <span class="text-xs text-gray-500 flex items-center">
+                            <i data-lucide="clock" class="w-3 h-3 mr-1"></i>
+                            ${timeLeft}
+                        </span>
+                    </div>
+                    <h3 class="text-sm font-semibold text-gray-900 mb-3 leading-tight line-clamp-2">
+                        ${issue.title}
+                    </h3>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs text-gray-600">예측 확률</span>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-sm font-bold text-green-600">Yes ${yesPrice}%</span>
+                                <span class="text-sm font-bold text-red-600">No ${noPrice}%</span>
+                            </div>
+                        </div>
+                        <div class="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-green-500 to-red-500 rounded-full relative">
+                                <div class="absolute top-0 w-1 h-full bg-white shadow-sm" style="left: ${yesPrice}%"></div>
+                            </div>
+                        </div>
+                        <div class="text-xs text-gray-500 text-center">
+                            참여량: ${formatVolume(issue.total_volume || issue.totalVolume || 0)} GAM
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
     
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();

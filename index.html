@@ -22,15 +22,42 @@
                     <img src="https://github.com/ddoriboo/yegam/raw/refs/heads/main/logo.png" alt="예겜 로고" class="h-8 w-auto">
                     <span class="text-xl font-bold tracking-tight text-gray-900">예겜</span>
                 </a>
+                
+                <!-- Desktop Navigation -->
                 <div class="hidden md:flex items-center space-x-6 text-sm font-medium text-gray-600">
                     <a href="issues.html" class="hover:text-gray-900 transition-colors">전체 이슈</a>
                     <a href="tier_guide.html" class="hover:text-gray-900 transition-colors">등급 안내</a>
                     <a href="mypage.html" class="hover:text-gray-900 transition-colors">내 정보</a>
                 </div>
-                <div id="header-user-actions" class="flex items-center space-x-4">
-                    <!-- This will be dynamically populated by js/app.js -->
+                
+                <!-- Mobile & User Actions Container -->
+                <div class="flex items-center space-x-2">
+                    <!-- Mobile Menu Button -->
+                    <button id="mobile-menu-btn" class="md:hidden p-2 rounded-md hover:bg-gray-100 transition-colors">
+                        <i data-lucide="menu" class="w-5 h-5 text-gray-600"></i>
+                    </button>
+                    
+                    <!-- User Actions -->
+                    <div id="header-user-actions" class="flex items-center space-x-2">
+                        <!-- This will be dynamically populated by js/app.js -->
+                    </div>
                 </div>
             </nav>
+            
+            <!-- Mobile Navigation Menu -->
+            <div id="mobile-menu" class="hidden md:hidden bg-white/95 backdrop-blur-sm border-t border-gray-200">
+                <div class="container mx-auto px-4 py-4 space-y-3">
+                    <a href="issues.html" class="block px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
+                        <i data-lucide="list" class="w-4 h-4 inline mr-2"></i>전체 이슈
+                    </a>
+                    <a href="tier_guide.html" class="block px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
+                        <i data-lucide="award" class="w-4 h-4 inline mr-2"></i>등급 안내
+                    </a>
+                    <a href="mypage.html" class="block px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
+                        <i data-lucide="user" class="w-4 h-4 inline mr-2"></i>내 정보
+                    </a>
+                </div>
+            </div>
         </header>
 
         <!-- Main Content -->
@@ -71,8 +98,17 @@
                             <span>카테고리 선택</span>
                         </div>
                     </div>
-                    <div id="category-filters" class="flex flex-wrap gap-3">
+                    
+                    <!-- Desktop Category Filters -->
+                    <div id="category-filters" class="category-filters-desktop flex flex-wrap gap-3">
                         <!-- Category filter buttons will be injected here by JavaScript -->
+                    </div>
+                    
+                    <!-- Mobile Category Filters -->
+                    <div class="category-filters-mobile">
+                        <div id="category-filters-mobile" class="category-filters-grid">
+                            <!-- Mobile category filter buttons will be injected here by JavaScript -->
+                        </div>
                     </div>
                 </div>
             </section>
@@ -86,8 +122,25 @@
                         <i data-lucide="arrow-down" class="w-4 h-4 ml-2"></i>
                     </button>
                 </div>
-                <div id="popular-issues-list" class="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                    <!-- Popular issue list will be injected here by JavaScript -->
+                
+                <!-- Desktop Popular Issues -->
+                <div id="popular-issues-list" class="popular-issues-desktop bg-white rounded-lg border border-gray-200 overflow-hidden">
+                    <!-- Desktop popular issue list will be injected here by JavaScript -->
+                </div>
+                
+                <!-- Mobile Popular Issues -->
+                <div class="popular-issues-mobile">
+                    <div class="popular-issues-scroll">
+                        <div id="popular-issues-mobile" class="popular-issues-grid">
+                            <!-- Mobile popular issue cards will be injected here by JavaScript -->
+                        </div>
+                    </div>
+                    <!-- Mobile scroll indicator -->
+                    <div class="text-center mt-4 text-sm text-gray-500">
+                        <i data-lucide="chevron-left" class="w-4 h-4 inline mr-1"></i>
+                        좌우로 스크롤하여 더 많은 이슈를 확인하세요
+                        <i data-lucide="chevron-right" class="w-4 h-4 inline ml-1"></i>
+                    </div>
                 </div>
             </section>
 

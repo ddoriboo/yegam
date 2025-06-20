@@ -22,15 +22,42 @@
                     <img src="https://github.com/ddoriboo/yegam/raw/refs/heads/main/logo.png" alt="예겜 로고" class="h-8 w-auto">
                     <span class="text-xl font-bold tracking-tight text-gray-900">예겜</span>
                 </a>
+                
+                <!-- Desktop Navigation -->
                 <div class="hidden md:flex items-center space-x-6 text-sm font-medium text-gray-600">
-                    <a href="issues.html" class="text-gray-900 font-semibold">이슈 목록</a>
+                    <a href="issues.html" class="text-gray-900 font-semibold">전체 이슈</a>
                     <a href="tier_guide.html" class="hover:text-gray-900 transition-colors">등급 안내</a>
                     <a href="mypage.html" class="hover:text-gray-900 transition-colors">내 정보</a>
                 </div>
-                <div id="header-user-actions" class="flex items-center space-x-4">
-                     <!-- This will be dynamically populated by js/app.js -->
+                
+                <!-- Mobile & User Actions Container -->
+                <div class="flex items-center space-x-2">
+                    <!-- Mobile Menu Button -->
+                    <button id="mobile-menu-btn" class="md:hidden p-2 rounded-md hover:bg-gray-100 transition-colors">
+                        <i data-lucide="menu" class="w-5 h-5 text-gray-600"></i>
+                    </button>
+                    
+                    <!-- User Actions -->
+                    <div id="header-user-actions" class="flex items-center space-x-2">
+                        <!-- This will be dynamically populated by js/app.js -->
+                    </div>
                 </div>
             </nav>
+            
+            <!-- Mobile Navigation Menu -->
+            <div id="mobile-menu" class="hidden md:hidden bg-white/95 backdrop-blur-sm border-t border-gray-200">
+                <div class="container mx-auto px-4 py-4 space-y-3">
+                    <a href="issues.html" class="block px-3 py-2 text-sm font-medium text-gray-900 bg-gray-50 rounded-md transition-colors">
+                        <i data-lucide="list" class="w-4 h-4 inline mr-2"></i>전체 이슈
+                    </a>
+                    <a href="tier_guide.html" class="block px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
+                        <i data-lucide="award" class="w-4 h-4 inline mr-2"></i>등급 안내
+                    </a>
+                    <a href="mypage.html" class="block px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
+                        <i data-lucide="user" class="w-4 h-4 inline mr-2"></i>내 정보
+                    </a>
+                </div>
+            </div>
         </header>
 
         <!-- Main Content -->
