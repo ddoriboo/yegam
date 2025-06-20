@@ -6,6 +6,13 @@ let currentUser = null;
 let issues = [];
 let userToken = localStorage.getItem('yegame-token');
 
+// 전역으로 노출
+window.currentUser = currentUser;
+window.updateCurrentUser = (newUserData) => {
+    currentUser = newUserData;
+    window.currentUser = currentUser;
+};
+
 // Comments pagination state
 const commentsPagination = new Map(); // issueId -> { currentPage, totalComments, allComments }
 
@@ -66,18 +73,23 @@ async function checkAuthentication() {
         
         if (data.success && data.user) {
             currentUser = data.user;
+            window.currentUser = currentUser; // 전역 변수 동기화
             updateHeader(true);
             console.log('User authenticated:', currentUser.username);
         } else {
             // Invalid token, clear it
             localStorage.removeItem('yegame-token');
             userToken = null;
+            currentUser = null;
+            window.currentUser = null;
             updateHeader(false);
         }
     } catch (error) {
         console.error('Auth check failed:', error);
         localStorage.removeItem('yegame-token');
         userToken = null;
+        currentUser = null;
+        window.currentUser = null;
         updateHeader(false);
     }
 }
@@ -879,8 +891,12 @@ function loadMoreComments(issueId) {
     const pagination = commentsPagination.get(issueId);
     if (!pagination) return;
     
-    // 현재 표시된 댓글 수에 10개 더 추가
+    // 현재 위치 저장 (새로 추가될 첫 번째 댓글의 위치)
+    const commentsSection = document.querySelector(`.comments-section[data-issue-id="${issueId}"]`);
+    const containerEl = commentsSection.querySelector('.comments-container');
     const currentShowing = pagination.currentPage * pagination.commentsPerPage;
+    
+    // 현재 표시된 댓글 수에 10개 더 추가
     const newCommentsToShow = Math.min(10, pagination.totalComments - currentShowing);
     
     // 새로운 페이지 계산
@@ -888,14 +904,38 @@ function loadMoreComments(issueId) {
     pagination.currentPage = Math.ceil(newTotalShowing / pagination.commentsPerPage);
     
     // 댓글 섹션 다시 렌더링
-    const commentsSection = document.querySelector(`.comments-section[data-issue-id="${issueId}"]`);
-    const containerEl = commentsSection.querySelector('.comments-container');
-    
     containerEl.innerHTML = renderPaginatedComments(issueId);
     
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
     }
+    
+    // 새로 로드된 댓글로 스크롤 (부드럽게)
+    setTimeout(() => {
+        const commentsList = containerEl.querySelector('.comments-list');
+        if (commentsList) {
+            const allComments = commentsList.querySelectorAll('.comment');
+            if (allComments.length > currentShowing) {
+                // 새로 추가된 첫 번째 댓글로 스크롤
+                const firstNewComment = allComments[currentShowing];
+                if (firstNewComment) {
+                    firstNewComment.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'start',
+                        inline: 'nearest'
+                    });
+                    
+                    // 시각적 강조 효과
+                    firstNewComment.style.background = 'linear-gradient(135deg, #dbeafe, #e0e7ff)';
+                    firstNewComment.style.transition = 'background 0.3s ease';
+                    
+                    setTimeout(() => {
+                        firstNewComment.style.background = '';
+                    }, 2000);
+                }
+            }
+        }
+    }, 100);
 }
 
 // 전역으로 노출
@@ -1583,6 +1623,7 @@ async function handleLogin(e) {
             localStorage.setItem('yegame-token', data.token);
             userToken = data.token;
             currentUser = data.user;
+            window.currentUser = currentUser; // 전역 변수 동기화
             
             showSuccess(data.message || '로그인 성공!', '환영합니다');
             window.location.href = 'index.html';
@@ -1625,6 +1666,7 @@ async function handleSignup(e) {
                 localStorage.setItem('yegame-token', data.token);
                 userToken = data.token;
                 currentUser = data.user;
+                window.currentUser = currentUser; // 전역 변수 동기화
             }
             
             showSuccess(data.message || '회원가입이 완료되었습니다!', '계정 생성 완료');

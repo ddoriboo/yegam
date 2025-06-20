@@ -285,10 +285,27 @@ class BettingModal {
                     this.currentUser.gam_balance = data.currentBalance;
                     this.currentUser.coins = data.currentBalance;
                     
-                    // 헤더 업데이트 (전역 함수 호출)
+                    // 전역 currentUser 객체도 업데이트
+                    if (typeof window.currentUser === 'object' && window.currentUser) {
+                        window.currentUser.gam_balance = data.currentBalance;
+                        window.currentUser.coins = data.currentBalance;
+                    }
+                    
+                    // 헤더의 잔액 직접 업데이트 (더 구체적인 선택자 사용)
+                    const balanceContainer = document.querySelector('#header-user-actions .bg-white.px-3.py-1\\.5');
+                    if (balanceContainer) {
+                        const balanceSpan = balanceContainer.querySelector('span.font-semibold');
+                        if (balanceSpan) {
+                            balanceSpan.textContent = data.currentBalance.toLocaleString();
+                        }
+                    }
+                    
+                    // 헤더 업데이트 함수 호출 (백업)
                     if (typeof updateHeader === 'function') {
                         updateHeader(true);
                     }
+                    
+                    console.log('GAM 잔액 업데이트:', data.currentBalance);
                 }
                 
                 // 페이지 새로고침 (이슈 목록 업데이트)
