@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const { getDB, getCurrentTimeSQL } = require('../database/database');
+const { getDB, getCurrentTimeSQL, query, get, run } = require('../database/database');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 // 임시 관리자 미들웨어 (Railway 콘솔 접근 어려울 때)
 const tempAdminMiddleware = (req, res, next) => {
@@ -72,57 +72,56 @@ router.post('/upload', tempAdminMiddleware, upload.single('image'), (req, res) =
 });
 
 // 모든 이슈 조회 (관리자용)
-router.get('/issues', tempAdminMiddleware, (req, res) => {
-    const db = getDB();
-    
-    db.all('SELECT * FROM issues ORDER BY created_at DESC', (err, issues) => {
-        if (err) {
-            console.error('이슈 조회 실패:', err);
-            return res.status(500).json({ success: false, message: '이슈 조회에 실패했습니다.' });
-        }
+router.get('/issues', tempAdminMiddleware, async (req, res) => {
+    try {
+        const result = await query('SELECT * FROM issues ORDER BY created_at DESC');
+        const issues = result.rows;
         
-        res.json({ success: true, issues });
-    });
+        res.json({
+            success: true,
+            issues: issues.map(issue => ({
+                ...issue,
+                isPopular: Boolean(issue.is_popular)
+            }))
+        });
+    } catch (error) {
+        console.error('이슈 조회 실패:', error);
+        res.status(500).json({ success: false, message: '이슈 조회에 실패했습니다.' });
+    }
 });
 
 // 이슈 생성
-router.post('/issues', tempAdminMiddleware, (req, res) => {
-    const { title, category, description, image_url, yes_price = 50, end_date } = req.body;
-    
-    if (!title || !category || !end_date) {
-        return res.status(400).json({ 
-            success: false, 
-            message: '제목, 카테고리, 마감일은 필수입니다.' 
-        });
-    }
-    
-    const db = getDB();
-    
-    db.run(`
-        INSERT INTO issues (title, category, description, image_url, yes_price, end_date, is_popular)
-        VALUES (?, ?, ?, ?, ?, ?, false)
-    `, [title, category, description, image_url, yes_price, end_date], function(err) {
-        if (err) {
-            console.error('이슈 생성 실패:', err);
-            return res.status(500).json({ success: false, message: '이슈 생성에 실패했습니다.' });
+router.post('/issues', tempAdminMiddleware, async (req, res) => {
+    try {
+        const { title, category, description, image_url, yes_price = 50, end_date } = req.body;
+        
+        if (!title || !category || !end_date) {
+            return res.status(400).json({ 
+                success: false, 
+                message: '제목, 카테고리, 마감일은 필수입니다.' 
+            });
         }
         
-        const issueId = this.lastID;
+        const result = await query(`
+            INSERT INTO issues (title, category, description, image_url, yes_price, end_date, is_popular, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, false, NOW(), NOW())
+            RETURNING *
+        `, [title, category, description, image_url, yes_price, end_date]);
         
-        // 생성된 이슈 정보 반환
-        db.get('SELECT * FROM issues WHERE id = ?', [issueId], (err, issue) => {
-            if (err) {
-                console.error('생성된 이슈 조회 실패:', err);
-                return res.json({ success: true, message: '이슈가 생성되었습니다.', issueId });
+        const issue = result.rows[0];
+        
+        res.json({
+            success: true,
+            message: '이슈가 성공적으로 생성되었습니다.',
+            issue: {
+                ...issue,
+                isPopular: Boolean(issue.is_popular)
             }
-            
-            res.json({
-                success: true,
-                message: '이슈가 성공적으로 생성되었습니다.',
-                issue: issue
-            });
         });
-    });
+    } catch (error) {
+        console.error('이슈 생성 실패:', error);
+        res.status(500).json({ success: false, message: '이슈 생성에 실패했습니다.' });
+    }
 });
 
 // 이슈 수정

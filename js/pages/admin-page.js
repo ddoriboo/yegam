@@ -150,32 +150,42 @@ async function handleCreateIssue(e) {
     e.preventDefault();
     const formData = new FormData(e.target);
     
-    const newIssue = {
-        id: Date.now(),
+    const issueData = {
         title: formData.get('title'),
         category: formData.get('category'),
-        endDate: formData.get('endDate'),
-        yesPrice: parseInt(formData.get('yesPrice')) || APP_CONFIG.DEFAULT_YES_PRICE,
-        totalVolume: 0,
-        isPopular: formData.get('isPopular') === 'on',
-        correct_answer: null,
-        yesVolume: 0,
-        noVolume: 0
+        description: formData.get('description') || '',
+        end_date: formData.get('endDate'),
+        yes_price: parseInt(formData.get('yesPrice')) || 50,
+        image_url: formData.get('image_url') || null
     };
 
-    const result = addNewIssue(newIssue);
-    if (result.success) {
-        alert(MESSAGES.SUCCESS.ISSUE_CREATED);
-        closeModal(document.getElementById('create-issue-modal'), e.target);
-        await renderAdminIssueTable();
-    } else {
-        alert(`이슈 생성에 실패했습니다: ${result.message}`);
+    try {
+        const response = await fetch('/api/admin/issues', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(issueData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('이슈가 성공적으로 생성되었습니다!');
+            closeModal(document.getElementById('create-issue-modal'), e.target);
+            await renderAdminIssueTable();
+        } else {
+            alert(`이슈 생성에 실패했습니다: ${result.message}`);
+        }
+    } catch (error) {
+        console.error('이슈 생성 오류:', error);
+        alert('이슈 생성 중 오류가 발생했습니다.');
     }
 }
 
 async function renderAdminIssueTable() {
     try {
-        const response = await fetch('/api/issues');
+        const response = await fetch('/api/admin/issues');
         const data = await response.json();
         
         if (!data.success) {
