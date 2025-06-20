@@ -77,19 +77,111 @@ app.get('/admin-login', (req, res) => {
     res.sendFile(path.join(__dirname, 'admin-login.html'));
 });
 
+// 테이블 구조 진단 엔드포인트
+app.get('/diagnose-admin', async (req, res) => {
+    try {
+        const { query } = require('./database/database');
+        
+        const diagnosis = {};
+        
+        // 현재 테이블들 확인
+        try {
+            const tables = await query(`
+                SELECT table_name 
+                FROM information_schema.tables 
+                WHERE table_schema = 'public' 
+                AND table_name LIKE '%admin%'
+            `);
+            diagnosis.existingTables = tables.rows;
+        } catch (e) {
+            diagnosis.tableCheckError = e.message;
+        }
+        
+        // admins 테이블 컬럼 구조 확인
+        try {
+            const columns = await query(`
+                SELECT column_name, data_type, is_nullable 
+                FROM information_schema.columns 
+                WHERE table_name = 'admins'
+            `);
+            diagnosis.adminsColumns = columns.rows;
+        } catch (e) {
+            diagnosis.adminsColumnError = e.message;
+        }
+        
+        // 실제 데이터 확인
+        try {
+            const data = await query('SELECT * FROM admins LIMIT 1');
+            diagnosis.sampleData = data.rows;
+        } catch (e) {
+            diagnosis.dataError = e.message;
+        }
+        
+        res.json({
+            success: true,
+            diagnosis: diagnosis
+        });
+        
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: '진단 중 오류 발생',
+            error: error.message
+        });
+    }
+});
+
 app.get('/setup-admin', async (req, res) => {
     try {
         const { query } = require('./database/database');
         
-        // 기존 테이블 구조 확인 및 정리
+        // 현재 admins 테이블 구조 확인
+        let needsRecreation = false;
         try {
-            // 기존 admins 테이블이 있다면 삭제하고 새로 생성
-            await query('DROP TABLE IF EXISTS admin_activity_logs CASCADE');
-            await query('DROP TABLE IF EXISTS admin_sessions CASCADE');
-            await query('DROP TABLE IF EXISTS admins CASCADE');
-            console.log('기존 관리자 테이블들을 정리했습니다.');
+            const columns = await query(`
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'admins' AND column_name = 'username'
+            `);
+            
+            if (columns.rows.length === 0) {
+                console.log('admins 테이블에 username 컬럼이 없습니다. 테이블을 재생성합니다.');
+                needsRecreation = true;
+            }
         } catch (e) {
-            console.log('기존 테이블이 없거나 정리 중 오류:', e.message);
+            console.log('테이블 구조 확인 오류:', e.message);
+            needsRecreation = true;
+        }
+        
+        if (needsRecreation) {
+            // 강제로 테이블들 삭제
+            try {
+                await query('DROP TABLE IF EXISTS admin_activity_logs CASCADE');
+                await query('DROP TABLE IF EXISTS admin_sessions CASCADE'); 
+                await query('DROP TABLE IF EXISTS admins CASCADE');
+                console.log('기존 관리자 테이블들을 강제 삭제했습니다.');
+            } catch (e) {
+                console.log('테이블 삭제 중 오류:', e.message);
+            }
+        } else {
+            // username 컬럼이 있다면 기존 계정 확인
+            try {
+                const existingAdmin = await query('SELECT id, username FROM admins LIMIT 1');
+                if (existingAdmin.rows.length > 0) {
+                    return res.json({
+                        success: false,
+                        message: '관리자 계정이 이미 존재합니다.',
+                        existingAdmin: existingAdmin.rows[0],
+                        loginInfo: {
+                            url: req.protocol + '://' + req.get('host') + '/admin-login',
+                            username: 'superadmin',
+                            password: 'TempAdmin2025!'
+                        }
+                    });
+                }
+            } catch (e) {
+                console.log('기존 계정 확인 오류:', e.message);
+            }
         }
 
         const bcrypt = require('bcryptjs');
