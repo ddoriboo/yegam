@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 로그인 | 예겜</title>
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="icon" href="https://github.com/ddoriboo/yegam/raw/refs/heads/main/favicon.ico" type="image/x-icon">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .admin-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .security-notice {
+            animation: pulse 2s infinite;
+        }
+    </style>
+</head>
+<body class="admin-gradient min-h-screen flex items-center justify-center p-4">
+
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <div class="flex items-center justify-center mb-4">
+                <img src="https://github.com/ddoriboo/yegam/raw/refs/heads/main/logo.png" alt="예겜 Logo" class="h-12 w-auto">
+                <span class="ml-3 text-2xl font-bold text-gray-800">예겜</span>
+            </div>
+            <h1 class="text-2xl font-bold text-gray-800 mb-2">관리자 로그인</h1>
+            <p class="text-gray-600 text-sm">시스템 관리자 전용 접속</p>
+        </div>
+
+        <!-- Security Notice -->
+        <div class="security-notice bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div class="flex items-start">
+                <i data-lucide="shield-alert" class="w-5 h-5 text-red-500 mt-0.5 mr-3 flex-shrink-0"></i>
+                <div class="text-sm">
+                    <p class="font-semibold text-red-800 mb-1">보안 경고</p>
+                    <p class="text-red-700">이 페이지는 시스템 관리자 전용입니다. 무단 접근 시 법적 조치를 받을 수 있습니다.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Login Form -->
+        <form id="admin-login-form" class="space-y-6">
+            <div>
+                <label for="username" class="block text-sm font-medium text-gray-700 mb-2">
+                    관리자 아이디 또는 이메일
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-lucide="user" class="h-5 w-5 text-gray-400"></i>
+                    </div>
+                    <input type="text" id="username" name="username" required
+                           class="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="관리자 계정을 입력하세요">
+                </div>
+            </div>
+
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+                    비밀번호
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-lucide="lock" class="h-5 w-5 text-gray-400"></i>
+                    </div>
+                    <input type="password" id="password" name="password" required
+                           class="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                           placeholder="비밀번호를 입력하세요">
+                    <button type="button" id="toggle-password" class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                        <i data-lucide="eye-off" class="h-5 w-5 text-gray-400 hover:text-gray-600"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Remember Session -->
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <input id="remember-session" name="remember-session" type="checkbox" 
+                           class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                    <label for="remember-session" class="ml-2 block text-sm text-gray-700">
+                        세션 유지 (8시간)
+                    </label>
+                </div>
+            </div>
+
+            <!-- Login Button -->
+            <button type="submit" id="login-btn"
+                    class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+                <span id="login-text">관리자 로그인</span>
+                <i id="login-spinner" class="hidden ml-2 w-4 h-4 animate-spin" data-lucide="loader"></i>
+            </button>
+
+            <!-- Error Message -->
+            <div id="error-message" class="hidden bg-red-50 border border-red-200 rounded-lg p-3">
+                <div class="flex items-center">
+                    <i data-lucide="alert-circle" class="w-5 h-5 text-red-500 mr-2"></i>
+                    <span class="text-sm text-red-700" id="error-text"></span>
+                </div>
+            </div>
+        </form>
+
+        <!-- Help Links -->
+        <div class="mt-8 text-center">
+            <div class="text-xs text-gray-500 space-y-2">
+                <p>관리자 계정 문제시 시스템 관리자에게 문의하세요.</p>
+                <p class="flex items-center justify-center">
+                    <i data-lucide="shield-check" class="w-3 h-3 mr-1"></i>
+                    SSL 암호화 연결
+                </p>
+            </div>
+        </div>
+
+        <!-- Back to Site -->
+        <div class="mt-6 text-center">
+            <a href="index.html" class="text-sm text-blue-600 hover:text-blue-500 transition-colors">
+                ← 사이트로 돌아가기
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Password visibility toggle
+        document.getElementById('toggle-password').addEventListener('click', function() {
+            const passwordInput = document.getElementById('password');
+            const eyeIcon = this.querySelector('i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                eyeIcon.setAttribute('data-lucide', 'eye');
+            } else {
+                passwordInput.type = 'password';
+                eyeIcon.setAttribute('data-lucide', 'eye-off');
+            }
+            lucide.createIcons();
+        });
+
+        // Form submission
+        document.getElementById('admin-login-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const loginBtn = document.getElementById('login-btn');
+            const loginText = document.getElementById('login-text');
+            const loginSpinner = document.getElementById('login-spinner');
+            const errorMessage = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+            
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            
+            if (!username || !password) {
+                showError('관리자 아이디와 비밀번호를 모두 입력해주세요.');
+                return;
+            }
+            
+            // Show loading state
+            loginBtn.disabled = true;
+            loginText.textContent = '로그인 중...';
+            loginSpinner.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+            
+            try {
+                const response = await fetch('/api/admin-auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Store admin token (separate from user token)
+                    localStorage.setItem('admin-token', data.token);
+                    sessionStorage.setItem('admin-user', JSON.stringify(data.admin));
+                    
+                    // Show success and redirect
+                    showSuccess('로그인 성공! 관리자 페이지로 이동합니다.');
+                    setTimeout(() => {
+                        window.location.href = 'admin.html';
+                    }, 1500);
+                } else {
+                    showError(data.message || '로그인에 실패했습니다.');
+                }
+                
+            } catch (error) {
+                console.error('Login error:', error);
+                showError('서버 연결에 실패했습니다. 잠시 후 다시 시도해주세요.');
+            } finally {
+                // Reset loading state
+                loginBtn.disabled = false;
+                loginText.textContent = '관리자 로그인';
+                loginSpinner.classList.add('hidden');
+            }
+        });
+        
+        function showError(message) {
+            const errorMessage = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+            errorText.textContent = message;
+            errorMessage.classList.remove('hidden');
+        }
+        
+        function showSuccess(message) {
+            const errorMessage = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+            errorText.textContent = message;
+            errorMessage.classList.remove('hidden');
+            errorMessage.className = errorMessage.className.replace('bg-red-50 border-red-200', 'bg-green-50 border-green-200');
+            errorMessage.querySelector('i').setAttribute('data-lucide', 'check-circle');
+            errorMessage.querySelector('span').className = errorMessage.querySelector('span').className.replace('text-red-700', 'text-green-700');
+            lucide.createIcons();
+        }
+
+        // Check if already logged in
+        window.addEventListener('load', async function() {
+            const adminToken = localStorage.getItem('admin-token');
+            if (adminToken) {
+                try {
+                    const response = await fetch('/api/admin-auth/verify', {
+                        headers: {
+                            'Authorization': `Bearer ${adminToken}`
+                        }
+                    });
+                    
+                    const data = await response.json();
+                    if (data.success) {
+                        window.location.href = 'admin.html';
+                        return;
+                    }
+                } catch (error) {
+                    // Token is invalid, clear it
+                    localStorage.removeItem('admin-token');
+                    sessionStorage.removeItem('admin-user');
+                }
+            }
+        });
+    </script>
+
+</body>
+</html>

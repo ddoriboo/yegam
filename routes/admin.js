@@ -4,19 +4,9 @@ const path = require('path');
 const fs = require('fs');
 const { getDB, getCurrentTimeSQL, query, get, run } = require('../database/database');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
-// 임시 관리자 미들웨어 (Railway 콘솔 접근 어려울 때)
-const tempAdminMiddleware = (req, res, next) => {
-    // 임시로 모든 요청 허용
-    console.log('⚠️ 임시 관리자 모드 활성화');
-    req.user = {
-        id: 999,
-        email: 'temp@admin.com',
-        username: 'TempAdmin',
-        isAdmin: true,
-        adminId: 999
-    };
-    next();
-};
+const { secureAdminMiddleware, requireAdminRole, requirePermission } = require('../middleware/admin-auth-secure');
+
+// ⚠️ 위험한 tempAdminMiddleware 제거됨 - secureAdminMiddleware로 대체됨
 const issueScheduler = require('../services/scheduler');
 
 const router = express.Router();
@@ -53,7 +43,7 @@ const upload = multer({
 });
 
 // 이미지 업로드 API
-router.post('/upload', tempAdminMiddleware, upload.single('image'), (req, res) => {
+router.post('/upload', secureAdminMiddleware, requirePermission('upload_files'), upload.single('image'), (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ success: false, message: '파일이 업로드되지 않았습니다.' });
@@ -72,7 +62,7 @@ router.post('/upload', tempAdminMiddleware, upload.single('image'), (req, res) =
 });
 
 // 모든 이슈 조회 (관리자용)
-router.get('/issues', tempAdminMiddleware, async (req, res) => {
+router.get('/issues', secureAdminMiddleware, requirePermission('view_issues'), async (req, res) => {
     try {
         const result = await query('SELECT * FROM issues ORDER BY created_at DESC');
         const issues = result.rows;
@@ -91,7 +81,7 @@ router.get('/issues', tempAdminMiddleware, async (req, res) => {
 });
 
 // 이슈 생성
-router.post('/issues', tempAdminMiddleware, async (req, res) => {
+router.post('/issues', secureAdminMiddleware, requirePermission('create_issue'), async (req, res) => {
     try {
         const { title, category, description, image_url, yes_price = 50, end_date } = req.body;
         
@@ -125,7 +115,7 @@ router.post('/issues', tempAdminMiddleware, async (req, res) => {
 });
 
 // 이슈 수정
-router.put('/issues/:id', tempAdminMiddleware, (req, res) => {
+router.put('/issues/:id', secureAdminMiddleware, (req, res) => {
     const { id } = req.params;
     const { title, category, description, image_url, yes_price, end_date, is_popular } = req.body;
     
@@ -170,7 +160,7 @@ router.put('/issues/:id', tempAdminMiddleware, (req, res) => {
 });
 
 // 이슈 삭제
-router.delete('/issues/:id', tempAdminMiddleware, (req, res) => {
+router.delete('/issues/:id', secureAdminMiddleware, (req, res) => {
     const { id } = req.params;
     const db = getDB();
     
@@ -214,7 +204,7 @@ router.delete('/issues/:id', tempAdminMiddleware, (req, res) => {
 });
 
 // 이슈 상태 토글 (인기 이슈 설정)
-router.patch('/issues/:id/toggle-popular', tempAdminMiddleware, (req, res) => {
+router.patch('/issues/:id/toggle-popular', secureAdminMiddleware, (req, res) => {
     const { id } = req.params;
     const db = getDB();
     
@@ -246,7 +236,7 @@ router.patch('/issues/:id/toggle-popular', tempAdminMiddleware, (req, res) => {
 });
 
 // 결과 관리용 이슈 조회 (마감된 이슈만)
-router.get('/issues/closed', tempAdminMiddleware, async (req, res) => {
+router.get('/issues/closed', secureAdminMiddleware, async (req, res) => {
     const { filter = 'closed' } = req.query;
     console.log(`🔍 관리자 이슈 조회 요청 - 필터: ${filter}`);
     
@@ -303,7 +293,7 @@ router.get('/issues/closed', tempAdminMiddleware, async (req, res) => {
 });
 
 // 이슈 결과 설정 및 보상 지급
-router.post('/issues/:id/result', tempAdminMiddleware, async (req, res) => {
+router.post('/issues/:id/result', secureAdminMiddleware, async (req, res) => {
     const { id } = req.params;
     const { result, reason } = req.body;
     const adminId = req.user?.id || 1; // 임시로 관리자 ID 1 사용
@@ -470,7 +460,7 @@ router.post('/issues/:id/result', tempAdminMiddleware, async (req, res) => {
 });
 
 // 이슈 수동 마감
-router.post('/issues/:id/close', tempAdminMiddleware, (req, res) => {
+router.post('/issues/:id/close', secureAdminMiddleware, (req, res) => {
     const { id } = req.params;
     const db = getDB();
     
@@ -492,7 +482,7 @@ router.post('/issues/:id/close', tempAdminMiddleware, (req, res) => {
 });
 
 // 관리자용 단일 이슈 조회 (상태 무관)
-router.get('/issues/:id', tempAdminMiddleware, async (req, res) => {
+router.get('/issues/:id', secureAdminMiddleware, async (req, res) => {
     try {
         const issueId = req.params.id;
         console.log(`🔍 관리자 이슈 조회 요청 - ID: ${issueId}`);
@@ -530,7 +520,7 @@ router.get('/issues/:id', tempAdminMiddleware, async (req, res) => {
 });
 
 // 스케줄러 상태 조회
-router.get('/scheduler/status', tempAdminMiddleware, (req, res) => {
+router.get('/scheduler/status', secureAdminMiddleware, (req, res) => {
     console.log('🔍 스케줄러 상태 조회 요청');
     
     try {
@@ -581,7 +571,7 @@ router.get('/scheduler/status', tempAdminMiddleware, (req, res) => {
 });
 
 // 스케줄러 수동 실행
-router.post('/scheduler/run', tempAdminMiddleware, async (req, res) => {
+router.post('/scheduler/run', secureAdminMiddleware, async (req, res) => {
     console.log('🔍 스케줄러 수동 실행 요청');
     
     try {

@@ -603,6 +603,151 @@
 
     </div>
 
+    <!-- 관리자 인증 스크립트 (반드시 다른 스크립트보다 먼저 실행) -->
+    <script>
+        // 관리자 인증 확인 함수
+        async function checkAdminAuth() {
+            const adminToken = localStorage.getItem('admin-token');
+            
+            if (!adminToken) {
+                console.warn('⚠️ 관리자 토큰이 없습니다. 로그인 페이지로 이동합니다.');
+                window.location.href = '/admin-login';
+                return false;
+            }
+            
+            try {
+                const response = await fetch('/api/admin-auth/verify', {
+                    headers: {
+                        'Authorization': `Bearer ${adminToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (!data.success) {
+                    console.warn('⚠️ 관리자 인증 실패:', data.message);
+                    localStorage.removeItem('admin-token');
+                    sessionStorage.removeItem('admin-user');
+                    window.location.href = '/admin-login';
+                    return false;
+                }
+                
+                // 관리자 정보를 세션에 저장
+                sessionStorage.setItem('admin-user', JSON.stringify(data.admin));
+                console.log('✅ 관리자 인증 성공:', data.admin.username);
+                
+                // 페이지에 관리자 정보 표시
+                updateAdminHeader(data.admin);
+                
+                return true;
+                
+            } catch (error) {
+                console.error('❌ 관리자 인증 확인 중 오류:', error);
+                localStorage.removeItem('admin-token');
+                sessionStorage.removeItem('admin-user');
+                window.location.href = '/admin-login';
+                return false;
+            }
+        }
+        
+        // 관리자 헤더 업데이트
+        function updateAdminHeader(admin) {
+            const userActionsContainer = document.getElementById('header-user-actions');
+            if (userActionsContainer) {
+                userActionsContainer.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center">
+                                <i data-lucide="shield-check" class="w-4 h-4 text-white"></i>
+                            </div>
+                            <div class="hidden sm:block">
+                                <div class="text-sm font-medium text-gray-900">${admin.username}</div>
+                                <div class="text-xs text-red-600">${admin.role === 'super_admin' ? '슈퍼 관리자' : '관리자'}</div>
+                            </div>
+                        </div>
+                        <button onclick="adminLogout()" class="text-gray-600 hover:text-red-600 transition-colors text-sm font-medium">
+                            <i data-lucide="log-out" class="w-4 h-4 mr-1"></i>
+                            로그아웃
+                        </button>
+                    </div>
+                `;
+                
+                // Lucide 아이콘 재생성
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            }
+        }
+        
+        // 관리자 로그아웃
+        async function adminLogout() {
+            const adminToken = localStorage.getItem('admin-token');
+            
+            if (adminToken) {
+                try {
+                    await fetch('/api/admin-auth/logout', {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${adminToken}`
+                        }
+                    });
+                } catch (error) {
+                    console.error('로그아웃 API 호출 실패:', error);
+                }
+            }
+            
+            // 로컬 토큰 및 세션 정리
+            localStorage.removeItem('admin-token');
+            sessionStorage.removeItem('admin-user');
+            
+            // 로그인 페이지로 이동
+            window.location.href = '/admin-login';
+        }
+        
+        // 전역 함수로 노출
+        window.adminLogout = adminLogout;
+        
+        // 페이지 로드 시 관리자 인증 확인
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('🔐 관리자 페이지 접근 - 인증 확인 중...');
+            
+            const isAuthenticated = await checkAdminAuth();
+            if (!isAuthenticated) {
+                return; // 인증 실패 시 리다이렉트됨
+            }
+            
+            console.log('✅ 관리자 인증 완료 - 페이지 로드 중...');
+        });
+        
+        // API 요청 시 관리자 토큰 자동 추가 함수
+        window.adminFetch = async function(url, options = {}) {
+            const adminToken = localStorage.getItem('admin-token');
+            
+            if (!adminToken) {
+                throw new Error('관리자 토큰이 없습니다.');
+            }
+            
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${adminToken}`,
+                ...options.headers
+            };
+            
+            const response = await fetch(url, {
+                ...options,
+                headers
+            });
+            
+            if (response.status === 401) {
+                console.warn('⚠️ 관리자 토큰이 만료되었습니다.');
+                adminLogout();
+                throw new Error('인증이 만료되었습니다.');
+            }
+            
+            return response;
+        };
+    </script>
+    
     <script src="utils/tierSystem.js"></script>
     <script src="js/app-working.js"></script>
 </body>
