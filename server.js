@@ -280,6 +280,20 @@ app.get('/tier_guide', (req, res) => {
     res.sendFile(path.join(__dirname, 'tier_guide.html'));
 });
 
+// API 엔드포인트 테스트
+app.get('/test-admin-auth', (req, res) => {
+    res.json({
+        success: true,
+        message: '관리자 인증 API 엔드포인트가 작동합니다.',
+        availableRoutes: [
+            'POST /api/admin-auth/login',
+            'GET /api/admin-auth/verify',
+            'POST /api/admin-auth/logout'
+        ],
+        timestamp: new Date().toISOString()
+    });
+});
+
 // 관리자 테이블 강제 수정 엔드포인트
 app.get('/fix-admin-table', async (req, res) => {
     try {

@@ -167,6 +167,8 @@
             errorMessage.classList.add('hidden');
             
             try {
+                console.log('관리자 로그인 시도:', { username });
+                
                 const response = await fetch('/api/admin-auth/login', {
                     method: 'POST',
                     headers: {
@@ -175,7 +177,14 @@
                     body: JSON.stringify({ username, password })
                 });
                 
+                console.log('응답 상태:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
                 const data = await response.json();
+                console.log('응답 데이터:', data);
                 
                 if (data.success) {
                     // Store admin token (separate from user token)
@@ -215,9 +224,20 @@
             errorText.textContent = message;
             errorMessage.classList.remove('hidden');
             errorMessage.className = errorMessage.className.replace('bg-red-50 border-red-200', 'bg-green-50 border-green-200');
-            errorMessage.querySelector('i').setAttribute('data-lucide', 'check-circle');
-            errorMessage.querySelector('span').className = errorMessage.querySelector('span').className.replace('text-red-700', 'text-green-700');
-            lucide.createIcons();
+            
+            const icon = errorMessage.querySelector('i');
+            if (icon) {
+                icon.setAttribute('data-lucide', 'check-circle');
+            }
+            
+            const span = errorMessage.querySelector('span');
+            if (span) {
+                span.className = span.className.replace('text-red-700', 'text-green-700');
+            }
+            
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
         }
 
         // Check if already logged in
