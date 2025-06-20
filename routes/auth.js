@@ -4,9 +4,9 @@ const jwt = require('jsonwebtoken');
 const { query, run, get } = require('../database/database');
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET || 'yegame-dev-secret-key-change-in-production';
 
-if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
+if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
     throw new Error('JWT_SECRET is required in production');
 }
 

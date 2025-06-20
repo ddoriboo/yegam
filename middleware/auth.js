@@ -1,8 +1,8 @@
 const jwt = require('jsonwebtoken');
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET || 'yegame-dev-secret-key-change-in-production';
 
-if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
+if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
     throw new Error('JWT_SECRET is required in production');
 }
 
@@ -40,7 +40,7 @@ const adminMiddleware = async (req, res, next) => {
             });
         }
         
-        const decoded = jwt.verify(token, JWT_SECRET || 'dev-key');
+        const decoded = jwt.verify(token, JWT_SECRET);
         req.user = decoded;
         
         // 관리자 권한 확인
