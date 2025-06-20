@@ -97,7 +97,14 @@ export function getToken() {
 export function updateCurrentUser(updatedUser) {
     if (isLoggedIn()) {
         sessionStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
+        // localStorage의 token도 함께 관리
+        localStorage.setItem('yegame-token', getToken());
     }
+}
+
+// betting-handler.js에서 사용하는 함수
+export function updateUserInSession(updatedUser) {
+    updateCurrentUser(updatedUser);
 }
 
 export async function sendVerificationEmail(email) {

@@ -26,43 +26,43 @@ export function getUserBets(userId) {
     return bets ? JSON.parse(bets) : [];
 }
 
-export function placeBet(userId, issueId, choice, amount) {
-    const user = auth.getCurrentUser();
-    if (!user || user.id !== userId) {
-        return { success: false, message: "인증 오류" };
+export async function placeBet(userId, issueId, choice, amount) {
+    try {
+        const token = localStorage.getItem('yegame-token');
+        if (!token) {
+            return { success: false, message: "로그인이 필요합니다." };
+        }
+
+        const response = await fetch('/api/bets', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                issueId,
+                choice,
+                amount
+            })
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+            // 사용자 정보 업데이트
+            return { 
+                success: true, 
+                updatedUser: {
+                    coins: data.updatedUser.coins
+                },
+                updatedIssue: data.updatedIssue
+            };
+        } else {
+            return { success: false, message: data.message };
+        }
+        
+    } catch (error) {
+        console.error('베팅 API 호출 오류:', error);
+        return { success: false, message: "베팅 처리 중 오류가 발생했습니다." };
     }
-
-    if (user.coins < amount) {
-        return { success: false, message: "코인 부족" };
-    }
-
-    const issues = getIssues();
-    const issue = issues.find(i => i.id === issueId);
-    if (!issue) {
-        return { success: false, message: "존재하지 않는 이슈" };
-    }
-
-    const userBets = getUserBets(userId);
-    if (userBets.some(bet => bet.issueId === issueId)) {
-        return { success: false, message: "이미 베팅한 이슈" };
-    }
-
-    const updatedUser = { ...user, coins: user.coins - amount };
-    
-    issue.totalVolume += amount;
-    if(choice === 'Yes') {
-        issue.yesVolume = (issue.yesVolume || 0) + amount;
-    } else {
-        issue.noVolume = (issue.noVolume || 0) + amount;
-    }
-    const totalPool = (issue.yesVolume || 0) + (issue.noVolume || 0);
-    issue.yesPrice = totalPool > 0 ? Math.round(((issue.yesVolume || 0) / totalPool) * 100) : 50;
-    
-    sessionStorage.setItem(ISSUES_KEY, JSON.stringify(issues));
-
-    const newBet = { issueId, choice, amount, date: new Date().toISOString() };
-    userBets.push(newBet);
-    sessionStorage.setItem(BETS_KEY_PREFIX + userId, JSON.stringify(userBets));
-
-    return { success: true, updatedUser };
 }

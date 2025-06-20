@@ -26,7 +26,7 @@ function handleBettingClick(event) {
     placeBet(issueId, choice, card);
 }
 
-function placeBet(issueId, choice, cardElement) {
+async function placeBet(issueId, choice, cardElement) {
     const user = auth.getCurrentUser();
     const amountStr = prompt(`'${choice}'에 얼마나 예측하시겠습니까?\\n보유 감: ${user.coins.toLocaleString()}`, "100");
 
@@ -43,15 +43,28 @@ function placeBet(issueId, choice, cardElement) {
         return;
     }
 
-    const result = backend.placeBet(user.id, issueId, choice, amount);
+    try {
+        const result = await backend.placeBet(user.id, issueId, choice, amount);
 
-    if (result.success) {
-        alert(MESSAGES.SUCCESS.BET_PLACED);
-        auth.updateUserInSession(result.updatedUser);
-        updateUserWallet();
-        updateCardAfterBet(cardElement, choice, amount);
-    } else {
-        alert(`${MESSAGES.ERROR.BETTING_FAILED}: ${result.message}`);
+        if (result.success) {
+            alert(MESSAGES.SUCCESS.BET_PLACED);
+            
+            // 사용자 정보 업데이트
+            const updatedUser = { ...user, coins: result.updatedUser.coins };
+            auth.updateUserInSession(updatedUser);
+            updateUserWallet();
+            updateCardAfterBet(cardElement, choice, amount);
+            
+            // 전역 사용자 정보도 업데이트
+            if (window.updateCurrentUser) {
+                window.updateCurrentUser(updatedUser);
+            }
+        } else {
+            alert(`${MESSAGES.ERROR.BETTING_FAILED}: ${result.message}`);
+        }
+    } catch (error) {
+        console.error('베팅 처리 오류:', error);
+        alert('베팅 처리 중 오류가 발생했습니다.');
     }
 }
 
