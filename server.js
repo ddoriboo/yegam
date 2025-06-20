@@ -81,32 +81,24 @@ app.get('/setup-admin', async (req, res) => {
     try {
         const { query } = require('./database/database');
         
-        // 관리자 테이블이 이미 있는지 확인
+        // 기존 테이블 구조 확인 및 정리
         try {
-            const existingAdmin = await query('SELECT id FROM admins LIMIT 1');
-            if (existingAdmin.rows.length > 0) {
-                return res.json({
-                    success: false,
-                    message: '관리자 계정이 이미 존재합니다.',
-                    instruction: req.protocol + '://' + req.get('host') + '/admin-login 에서 로그인하세요.',
-                    loginInfo: {
-                        url: req.protocol + '://' + req.get('host') + '/admin-login',
-                        username: 'superadmin',
-                        password: 'TempAdmin2025!'
-                    }
-                });
-            }
+            // 기존 admins 테이블이 있다면 삭제하고 새로 생성
+            await query('DROP TABLE IF EXISTS admin_activity_logs CASCADE');
+            await query('DROP TABLE IF EXISTS admin_sessions CASCADE');
+            await query('DROP TABLE IF EXISTS admins CASCADE');
+            console.log('기존 관리자 테이블들을 정리했습니다.');
         } catch (e) {
-            // 테이블이 없으면 생성
+            console.log('기존 테이블이 없거나 정리 중 오류:', e.message);
         }
 
         const bcrypt = require('bcryptjs');
         const defaultPassword = 'TempAdmin2025!';
         const hashedPassword = await bcrypt.hash(defaultPassword, 12);
         
-        // 관리자 테이블 생성
+        // 관리자 테이블 생성 (새로운 구조)
         await query(`
-            CREATE TABLE IF NOT EXISTS admins (
+            CREATE TABLE admins (
                 id SERIAL PRIMARY KEY,
                 username VARCHAR(50) UNIQUE NOT NULL,
                 email VARCHAR(100) UNIQUE NOT NULL,
@@ -122,7 +114,7 @@ app.get('/setup-admin', async (req, res) => {
 
         // 관리자 세션 테이블
         await query(`
-            CREATE TABLE IF NOT EXISTS admin_sessions (
+            CREATE TABLE admin_sessions (
                 id SERIAL PRIMARY KEY,
                 admin_id INTEGER REFERENCES admins(id) ON DELETE CASCADE,
                 token_hash VARCHAR(255) UNIQUE NOT NULL,
@@ -136,7 +128,7 @@ app.get('/setup-admin', async (req, res) => {
 
         // 관리자 활동 로그 테이블
         await query(`
-            CREATE TABLE IF NOT EXISTS admin_activity_logs (
+            CREATE TABLE admin_activity_logs (
                 id SERIAL PRIMARY KEY,
                 admin_id INTEGER REFERENCES admins(id) ON DELETE CASCADE,
                 action VARCHAR(100) NOT NULL,
@@ -153,11 +145,10 @@ app.get('/setup-admin', async (req, res) => {
         const result = await query(`
             INSERT INTO admins (username, email, password_hash, full_name, role) 
             VALUES ($1, $2, $3, $4, $5) 
-            ON CONFLICT (username) DO UPDATE SET 
-                password_hash = EXCLUDED.password_hash,
-                updated_at = CURRENT_TIMESTAMP
             RETURNING id
         `, ['superadmin', 'admin@yegam.com', hashedPassword, '시스템 관리자', 'super_admin']);
+        
+        console.log('관리자 계정 생성 완료:', result.rows[0]);
         
         res.json({
             success: true,
