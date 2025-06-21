@@ -86,6 +86,19 @@ function updateTierInfo(user) {
     const currentTier = getUserTier(userGam);
     const nextTierInfo = getNextTierInfo(userGam);
     
+    // 왼쪽 프로필 아이콘을 티어에 맞게 업데이트
+    const tierIconEl = document.getElementById('user-tier-icon');
+    if (tierIconEl) {
+        const tierIcon = currentTier.icon || '👤';
+        const tierColor = currentTier.color || '#6b7280';
+        
+        tierIconEl.innerHTML = `
+            <div class="text-4xl">${tierIcon}</div>
+        `;
+        tierIconEl.style.background = `linear-gradient(135deg, ${tierColor}, ${tierColor}dd)`;
+        tierIconEl.classList.add('tier-profile-icon');
+    }
+    
     // 이름 옆 티어 배지 표시
     const tierBadgeEl = document.getElementById('user-tier-badge');
     if (tierBadgeEl) {
@@ -190,29 +203,70 @@ function updateTierInfo(user) {
 }
 
 async function loadUserBets() {
+    // 로딩 상태 표시
+    const betHistoryEl = document.getElementById('bet-history');
+    if (betHistoryEl) {
+        betHistoryEl.innerHTML = `
+            <div class="text-center py-8 text-gray-500">
+                <i data-lucide="loader" class="w-8 h-8 animate-spin mx-auto mb-4 text-gray-400"></i>
+                <p>예측 기록을 불러오는 중...</p>
+            </div>
+        `;
+        // Lucide 아이콘 초기화
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    }
+    
     try {
+        console.log('Loading user bets with token:', auth.getToken() ? 'present' : 'missing');
+        
         const response = await fetch('/api/bets/my-bets', {
             headers: {
                 'Authorization': `Bearer ${auth.getToken()}`
             }
         });
         
+        console.log('Bets API response status:', response.status);
+        
         const data = await response.json();
+        console.log('Bets API response data:', data);
         
         if (data.success && data.bets) {
             updateBetStats(data.bets);
             renderBetHistory(data.bets);
+            console.log('Successfully loaded', data.bets.length, 'bets');
+        } else {
+            throw new Error(data.message || '베팅 기록을 불러올 수 없습니다.');
         }
     } catch (error) {
         console.error('베팅 기록 로드 실패:', error);
+        
+        // 에러 상태 표시
+        if (betHistoryEl) {
+            betHistoryEl.innerHTML = `
+                <div class="text-center py-8 text-red-500">
+                    <i data-lucide="alert-circle" class="w-8 h-8 mx-auto mb-4 text-red-400"></i>
+                    <p>베팅 기록을 불러오는데 실패했습니다.</p>
+                    <button onclick="window.location.reload()" class="mt-2 text-blue-600 hover:text-blue-700 underline">새로고침</button>
+                </div>
+            `;
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+        
+        // 통계도 기본값으로 설정
+        updateBetStats([]);
     }
 }
 
 function updateBetStats(bets) {
     const totalBetsEl = document.getElementById('total-bets');
     const winRateEl = document.getElementById('win-rate');
-    const totalRewardEl = document.getElementById('total-reward');
+    const totalVolumeEl = document.getElementById('total-volume');
     
+    // 총 베팅 수
     if (totalBetsEl) totalBetsEl.textContent = bets.length;
     
     // 승률 계산 (결과가 나온 베팅만)
@@ -222,9 +276,9 @@ function updateBetStats(bets) {
     
     if (winRateEl) winRateEl.textContent = `${winRate.toFixed(1)}%`;
     
-    // 총 보상 계산
-    const totalReward = wonBets.reduce((sum, bet) => sum + (bet.reward || 0), 0);
-    if (totalRewardEl) totalRewardEl.textContent = `${totalReward.toLocaleString()} GAM`;
+    // 총 참여 금액 계산 (모든 베팅의 amount 합계)
+    const totalVolume = bets.reduce((sum, bet) => sum + (bet.amount || 0), 0);
+    if (totalVolumeEl) totalVolumeEl.textContent = `${totalVolume.toLocaleString()} GAM`;
 }
 
 function renderBetHistory(bets) {
@@ -300,6 +354,17 @@ function addMypageStyles() {
         .current-tier-display .tier-name {
             font-size: 1.1rem;
             font-weight: 700;
+        }
+        
+        .tier-profile-icon {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            border: 3px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .tier-profile-icon:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
         }
     `;
     document.head.appendChild(style);

@@ -1,6 +1,7 @@
 const express = require('express');
 const { query, run, get, getDB } = require('../database/database');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
+const NotificationService = require('../services/notificationService');
 
 // 임시 관리자 미들웨어
 const tempAdminMiddleware = (req, res, next) => {
@@ -264,6 +265,19 @@ router.put('/:id/approve', tempAdminMiddleware, async (req, res) => {
             
             console.log('✅ GAM 지급 완료:', request.user_id);
             
+            // 4. 승인 알림 생성
+            try {
+                await NotificationService.notifyIssueRequestApproved(
+                    request.user_id, 
+                    issueId, 
+                    request.title
+                );
+                console.log('✅ 승인 알림 생성 완료:', request.user_id);
+            } catch (notificationError) {
+                console.error('승인 알림 생성 실패:', notificationError);
+                // 알림 실패는 전체 프로세스를 중단하지 않음
+            }
+            
             res.json({
                 success: true,
                 message: '이슈 신청이 승인되었습니다.',
@@ -318,6 +332,19 @@ router.put('/:id/reject', tempAdminMiddleware, async (req, res) => {
                 updated_at = NOW()
             WHERE id = $2
         `, [adminComments || '임시 관리자에 의해 거부됨', requestId]);
+        
+        // 거부 알림 생성
+        try {
+            await NotificationService.notifyIssueRequestRejected(
+                request.user_id, 
+                request.title, 
+                adminComments || '관리자 검토 결과 부적절한 내용으로 판단되었습니다.'
+            );
+            console.log('✅ 거부 알림 생성 완료:', request.user_id);
+        } catch (notificationError) {
+            console.error('거부 알림 생성 실패:', notificationError);
+            // 알림 실패는 전체 프로세스를 중단하지 않음
+        }
         
         res.json({
             success: true,

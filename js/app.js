@@ -4355,4 +4355,9 @@ function addSchedulerLog(message, type = 'info') {
     }
 }
 
+// 전역 함수 노출 (betting-modal.js와 다른 모듈에서 사용)
+window.initIssuesPage = initIssuesPage;
+window.renderAllIssuesOnPage = renderAllIssuesOnPage;
+window.initHomePage = initHomePage;
+
 console.log('✅ Working app script loaded successfully');
