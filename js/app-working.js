@@ -1087,6 +1087,7 @@ async function loadComments(issueId, loadMore = false) {
                 };
                 commentsPagination.set(issueId, paginationData);
                 console.log('📊 pagination 초기화:', paginationData);
+                console.log('🔑 저장된 key 타입:', typeof issueId, '값:', issueId);
             }
             
             console.log('🎨 renderPaginatedComments 호출 중...');
@@ -1179,6 +1180,7 @@ function renderPaginatedComments(issueId) {
     if (hasMore) {
         const remainingComments = totalComments - endIndex;
         console.log('➕ 더보기 버튼 생성:', { remainingComments, totalComments, endIndex });
+        console.log('🔧 더보기 버튼에 사용될 issueId:', issueId, 'type:', typeof issueId);
         html += `
             <div class="comments-load-more mt-6 text-center">
                 <button class="load-more-comments-btn inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border border-blue-200 rounded-lg text-blue-700 font-medium transition-all duration-200 hover:shadow-md" 
@@ -1212,11 +1214,32 @@ function renderComments(comments) {
 // 더보기 댓글 로드 함수
 window.loadMoreComments = function(issueId) {
     console.log('🔄 loadMoreComments 호출됨:', issueId);
+    console.log('🗂️ 현재 commentsPagination 전체:', commentsPagination);
+    console.log('🔑 commentsPagination keys:', Array.from(commentsPagination.keys()));
     
-    const pagination = commentsPagination.get(issueId);
+    let pagination = commentsPagination.get(issueId);
     if (!pagination) {
-        console.log('❌ pagination 데이터 없음');
-        return;
+        console.log('❌ pagination 데이터 없음, issueId:', issueId, 'type:', typeof issueId);
+        
+        // 다른 타입으로 시도해보기
+        const stringId = String(issueId);
+        const numberId = Number(issueId);
+        console.log('🔍 String ID로 시도:', stringId, commentsPagination.get(stringId));
+        console.log('🔍 Number ID로 시도:', numberId, commentsPagination.get(numberId));
+        
+        // 타입 변환해서 찾기
+        pagination = commentsPagination.get(stringId) || commentsPagination.get(numberId);
+        
+        if (!pagination) {
+            console.log('❌ 모든 시도 실패 - pagination 데이터를 찾을 수 없음');
+            
+            // 댓글 데이터를 다시 로드해보기
+            console.log('🔄 댓글 데이터 재로드 시도...');
+            loadComments(issueId, false);
+            return;
+        } else {
+            console.log('✅ 타입 변환으로 pagination 발견:', pagination);
+        }
     }
     
     console.log('📊 현재 pagination 상태:', pagination);
