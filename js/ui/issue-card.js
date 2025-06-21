@@ -1,7 +1,7 @@
 import * as auth from '../auth.js';
 import * as backend from '../backend.js';
 import { CATEGORY_COLORS, MESSAGES } from '../../config/constants.js';
-import { formatVolume, timeUntil, getCategoryImage } from '../../utils/formatters.js';
+import { formatVolume, timeUntil, formatDate, getCategoryImage } from '../../utils/formatters.js';
 
 export function createIssueCard(issue) {
     const yesPrice = issue.yesPrice;
@@ -22,10 +22,13 @@ export function createIssueCard(issue) {
         <div class="flex-grow">
             <div class="flex justify-between items-start mb-4">
                 <span style="${getCategoryBadgeStyle(issue.category)} padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.75rem; font-weight: 500;">${issue.category}</span>
-                <span class="text-xs text-gray-500 flex items-center">
-                    <i data-lucide="clock" class="w-3 h-3 mr-1.5"></i>
-                    ${timeUntil(issue.endDate)}
-                </span>
+                <div class="text-xs text-gray-500 flex items-center">
+                    <i data-lucide="clock" class="w-3 h-3 mr-1.5 flex-shrink-0"></i>
+                    <div class="flex flex-col leading-tight">
+                        <span class="font-medium">${timeUntil(issue.endDate)}</span>
+                        <span class="text-gray-400 text-[10px]">${formatDate(issue.endDate)}</span>
+                    </div>
+                </div>
             </div>
             <h3 class="text-lg font-semibold text-gray-900 mb-4 leading-tight">${issue.title}</h3>
             

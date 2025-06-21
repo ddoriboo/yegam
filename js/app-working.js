@@ -508,10 +508,13 @@ function renderPopularIssues() {
                                 <span class="inline-block px-2 py-1 text-xs font-medium rounded" style="${getCategoryBadgeStyle(issue.category)}">
                                     ${issue.category}
                                 </span>
-                                <span class="text-xs text-gray-500 flex items-center">
-                                    <i data-lucide="clock" class="w-3 h-3 mr-1"></i>
-                                    ${timeLeft}
-                                </span>
+                                <div class="text-xs text-gray-500 flex items-center">
+                                    <i data-lucide="clock" class="w-3 h-3 mr-1 flex-shrink-0"></i>
+                                    <div class="flex flex-col leading-tight">
+                                        <span class="font-medium">${timeLeft}</span>
+                                        <span class="text-gray-400 text-[9px]">${formatEndDate(issue.end_date || issue.endDate)}</span>
+                                    </div>
+                                </div>
                             </div>
                             <h3 class="text-sm font-medium text-gray-900 truncate">${issue.title}</h3>
                         </div>
@@ -822,10 +825,13 @@ function performHeaderSearch(query) {
                             <span class="inline-block px-2 py-0.5 text-xs font-medium rounded" style="${getCategoryBadgeStyle(issue.category)}">
                                 ${issue.category}
                             </span>
-                            <span class="text-xs text-gray-500 flex items-center">
-                                <i data-lucide="clock" class="w-3 h-3 mr-1"></i>
-                                ${timeLeft}
-                            </span>
+                            <div class="text-xs text-gray-500 flex items-center">
+                                <i data-lucide="clock" class="w-3 h-3 mr-1 flex-shrink-0"></i>
+                                <div class="flex flex-col leading-tight">
+                                    <span class="font-medium">${timeLeft}</span>
+                                    <span class="text-gray-400 text-[9px]">${formatEndDate(issue.end_date || issue.endDate)}</span>
+                                </div>
+                            </div>
                         </div>
                         <h4 class="text-sm font-medium text-gray-900 truncate">${issue.title}</h4>
                     </div>
@@ -1575,10 +1581,13 @@ function createIssueCard(issue) {
                 <span class="px-3 py-1 rounded-full text-xs font-medium" style="${getCategoryBadgeStyle(issue.category)}">
                     ${issue.category}
                 </span>
-                <span class="text-xs text-gray-500 flex items-center">
-                    <i data-lucide="clock" class="w-3 h-3 mr-1"></i>
-                    ${timeLeft}
-                </span>
+                <div class="text-xs text-gray-500 flex items-center">
+                    <i data-lucide="clock" class="w-3 h-3 mr-1.5 flex-shrink-0"></i>
+                    <div class="flex flex-col leading-tight">
+                        <span class="font-medium">${timeLeft}</span>
+                        <span class="text-gray-400 text-[10px]">${formatEndDate(issue.end_date || issue.endDate)}</span>
+                    </div>
+                </div>
             </div>
             
             <h3 class="text-lg font-semibold text-gray-900 mb-4 leading-tight">
@@ -2959,6 +2968,19 @@ function getTimeLeft(endDate) {
     if (days > 0) return `${days}일 남음`;
     if (hours > 0) return `${hours}시간 남음`;
     return "곧 마감";
+}
+
+function formatEndDate(endDate) {
+    const date = new Date(endDate);
+    if (isNaN(date.getTime())) return '';
+    
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    return `${year}.${month}.${day} ${hours}:${minutes}`;
 }
 
 function formatVolume(volume) {

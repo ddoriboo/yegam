@@ -92,27 +92,29 @@
         </header>
 
         <!-- Main Content -->
-        <main class="flex-grow container mx-auto px-4 lg:px-8 py-12">
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-2">전체 이슈 목록</h1>
-            <p class="text-gray-600 mb-8">관심있는 이슈를 찾아 예측에 참여해보세요.</p>
+        <main class="flex-grow container mx-auto px-4 lg:px-8 py-4">
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mb-1">전체 이슈 목록</h1>
+            <p class="text-gray-600 mb-4 text-sm">관심있는 이슈를 찾아 예측에 참여해보세요.</p>
             
-            <!-- Enhanced Filters with Time-based Navigation -->
-            <div class="filters-container mb-8">
-                <!-- Time-based Filter Tabs -->
-                <div class="time-filters mb-6">
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-                        <h2 class="text-lg font-semibold text-gray-900">정렬 기준</h2>
-                        <div class="flex flex-col sm:flex-row gap-3">
-                            <select id="sort-filter" class="modern-select text-sm">
-                                <option value="popular">인기순</option>
-                                <option value="newest">최신순</option>
-                                <option value="ending">마감 임박순</option>
-                                <option value="volume">참여량순</option>
-                            </select>
-                        </div>
+            <!-- Compact Filters -->
+            <div class="filters-container mb-4">
+                <!-- Compact Filter Row -->
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-3">
+                    <div class="flex flex-col sm:flex-row gap-3 flex-1">
+                        <select id="sort-filter" class="modern-select text-sm">
+                            <option value="popular">인기순</option>
+                            <option value="newest">최신순</option>
+                            <option value="ending">마감 임박순</option>
+                            <option value="volume">참여량순</option>
+                        </select>
+                        <select id="open-filter" class="modern-select text-sm">
+                            <option value="open">진행중</option>
+                            <option value="closed">종료됨</option>
+                            <option value="all">전체</option>
+                        </select>
                     </div>
                     <div class="time-filter-tabs overflow-x-auto scrollbar-hide">
-                        <div class="flex gap-2 min-w-max pb-2">
+                        <div class="flex gap-2 min-w-max">
                             <button class="time-tab active" data-time="ALL">전체</button>
                             <button class="time-tab" data-time="1M">1개월</button>
                             <button class="time-tab" data-time="1W">1주</button>
@@ -123,35 +125,26 @@
                     </div>
                 </div>
 
-                <!-- Search and Category Filters -->
-                <div class="space-y-4">
+                <!-- Compact Search and Category Row -->
+                <div class="flex flex-col lg:flex-row gap-3">
                     <!-- Search Bar -->
-                    <div class="relative">
-                        <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500"></i>
-                        <input type="text" id="search-input" placeholder="이슈 제목으로 검색하세요..." class="modern-input w-full pl-10 pr-4">
+                    <div class="relative flex-1">
+                        <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500"></i>
+                        <input type="text" id="search-input" placeholder="이슈 검색..." class="modern-input w-full pl-9 pr-4 py-2 text-sm">
                     </div>
                     
-                    <!-- Mobile Optimized Filters -->
-                    <div class="flex flex-col sm:flex-row gap-3">
-                        <select id="category-filter" class="modern-select flex-1">
-                            <option value="all">모든 카테고리</option>
-                            <option value="정치">정치</option>
-                            <option value="스포츠">스포츠</option>
-                            <option value="경제">경제</option>
-                            <option value="코인">코인</option>
-                            <option value="테크">테크</option>
-                            <option value="엔터">엔터</option>
-                            <option value="날씨">날씨</option>
-                            <option value="해외">해외</option>
-                        </select>
-                        <div class="flex gap-2">
-                            <select id="open-filter" class="modern-select">
-                                <option value="open">진행중</option>
-                                <option value="closed">종료됨</option>
-                                <option value="all">전체</option>
-                            </select>
-                        </div>
-                    </div>
+                    <!-- Category Filter -->
+                    <select id="category-filter" class="modern-select text-sm lg:w-40">
+                        <option value="all">모든 카테고리</option>
+                        <option value="정치">정치</option>
+                        <option value="스포츠">스포츠</option>
+                        <option value="경제">경제</option>
+                        <option value="코인">코인</option>
+                        <option value="테크">테크</option>
+                        <option value="엔터">엔터</option>
+                        <option value="날씨">날씨</option>
+                        <option value="해외">해외</option>
+                    </select>
                 </div>
             </div>
 
