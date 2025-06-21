@@ -163,9 +163,7 @@ function renderComment(comment) {
     const isHighlighted = comment.is_highlighted;
     
     // 사용자 티어 계산 (마이페이지와 동일한 로직 사용)
-    console.log(`[댓글 티어 디버그] 사용자: ${comment.username}, 코인: ${comment.coins}`);
     const userTier = getUserTier(comment.coins || 0);
-    console.log(`[댓글 티어 디버그] 계산된 티어:`, userTier);
     const tierBadge = createTierDisplay(userTier, true);
     
     let highlightClass = '';
@@ -251,9 +249,7 @@ function renderReply(reply) {
     const isOwner = currentUserId === reply.user_id;
     
     // 사용자 티어 계산 (마이페이지와 동일한 로직 사용)
-    console.log(`[답글 티어 디버그] 사용자: ${reply.username}, 코인: ${reply.coins}`);
     const userTier = getUserTier(reply.coins || 0);
-    console.log(`[답글 티어 디버그] 계산된 티어:`, userTier);
     const tierBadge = createTierDisplay(userTier, true);
     
     return `

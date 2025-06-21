@@ -277,6 +277,9 @@ function logout() {
     window.location.href = 'index.html';
 }
 
+// 전역으로 로그아웃 함수 노출
+window.logout = logout;
+
 // Mobile menu functions
 function setupMobileMenu() {
     const mobileMenuBtn = document.getElementById('mobile-menu-btn');
@@ -1453,12 +1456,25 @@ async function handleCommentSubmit(form, issueId, parentId = null) {
     
     if (!content) return;
     
+    // 사용자 인증 확인
+    if (!currentUser || !currentUser.id) {
+        showError('로그인이 필요합니다.');
+        return;
+    }
+    
     const submitBtn = form.querySelector('[type="submit"]');
     const originalText = submitBtn.textContent;
     
     try {
         submitBtn.disabled = true;
         submitBtn.textContent = '작성 중...';
+        
+        console.log('댓글 작성 요청:', {
+            userId: currentUser.id,
+            issueId: parseInt(issueId),
+            content: content,
+            parentId: parentId ? parseInt(parentId) : null
+        });
         
         const response = await fetch('/api/comments', {
             method: 'POST',
@@ -3262,6 +3278,28 @@ function loginWithGoogle() {
 function loginWithGithub() {
     alert('GitHub 로그인은 현재 설정 중입니다. 이메일로 로그인해주세요.');
 }
+
+function showInfo(message, title = '알림') {
+    const allGrid = document.getElementById('all-issues-grid');
+    if (allGrid) {
+        allGrid.innerHTML = `
+            <div class="col-span-full text-center py-12">
+                <h3 class="text-lg font-medium text-gray-900 mb-2">${title}</h3>
+                <p class="text-blue-600">${message}</p>
+                <button onclick="location.reload()" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded-md">확인</button>
+            </div>
+        `;
+    } else {
+        alert(`${title}: ${message}`);
+    }
+}
+
+// 전역으로 함수들 노출
+window.showError = showError;
+window.showSuccess = showSuccess;
+window.showInfo = showInfo;
+window.loginWithGoogle = loginWithGoogle;
+window.loginWithGithub = loginWithGithub;
 
 // Placeholder functions for other pages
 async function initIssuesPage() {
