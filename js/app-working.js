@@ -2486,16 +2486,16 @@ function setupCreateIssueForm() {
         try {
             console.log('🔄 이슈 생성 시작:', { title, category, endDate });
             
-            const response = await window.adminFetch('/api/issues', {
+            const response = await window.adminFetch('/api/admin/issues', {
                 method: 'POST',
                 body: JSON.stringify({
                     title,
                     category,
-                    endDate,
+                    end_date: endDate,
                     description,
-                    imageUrl,
-                    yesPrice: parseInt(yesPrice) || 50,
-                    isPopular
+                    image_url: imageUrl,
+                    yes_price: parseInt(yesPrice) || 50,
+                    is_popular: isPopular
                 })
             });
             
@@ -2560,16 +2560,16 @@ function setupCreateIssueForm() {
             const isPopular = e.target.isPopular.checked;
             
             try {
-                const response = await window.adminFetch(`/api/issues/${issueId}`, {
+                const response = await window.adminFetch(`/api/admin/issues/${issueId}`, {
                     method: 'PUT',
                     body: JSON.stringify({
                         title,
                         category,
-                        endDate,
+                        end_date: endDate,
                         description,
-                        imageUrl,
-                        yesPrice: parseInt(yesPrice),
-                        isPopular
+                        image_url: imageUrl,
+                        yes_price: parseInt(yesPrice),
+                        is_popular: isPopular
                     })
                 });
                 
@@ -2778,7 +2778,7 @@ async function deleteIssue(issueId) {
     if (!confirm('정말로 이 이슈를 삭제하시겠습니까?')) return;
     
     try {
-        const response = await window.adminFetch(`/api/issues/${issueId}`, {
+        const response = await window.adminFetch(`/api/admin/issues/${issueId}`, {
             method: 'DELETE'
         });
         
