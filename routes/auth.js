@@ -193,34 +193,68 @@ router.post('/login', async (req, res) => {
         // 로그인 성공 시 실패 카운트 초기화
         clearFailedAttempts(identifier);
         
-        // 일일 출석 보상 체크
+        // 일일 출석 보상 체크 (중복 방지)
         let dailyRewardInfo = null;
-        try {
-            const gamService = require('../services/gamService');
-            gamService.init();
-            
-            const rewardResult = await gamService.giveLoginReward(user.id);
-            if (rewardResult.success) {
-                dailyRewardInfo = {
-                    amount: rewardResult.amount,
-                    consecutiveDays: rewardResult.consecutiveDays,
-                    message: `출석 보상 ${rewardResult.amount} GAM을 받았습니다! (${rewardResult.consecutiveDays}일 연속)`,
-                    thankMessage: rewardResult.thankMessage
-                };
+        const rewardCacheKey = `daily_reward_${user.id}_${new Date().toISOString().split('T')[0]}`;
+        
+        // 메모리 캐시로 중복 호출 방지 (같은 프로세스 내에서)
+        if (!global.dailyRewardCache) {
+            global.dailyRewardCache = new Map();
+        }
+        
+        if (!global.dailyRewardCache.has(rewardCacheKey)) {
+            try {
+                console.log(`[출석보상] 사용자 ${user.id} 로그인 - 보상 체크 시작`);
+                const gamService = require('../services/gamService');
+                gamService.init();
                 
-                // 출석 보상 알림 생성
-                const NotificationService = require('../services/notificationService');
-                await NotificationService.createNotification({
-                    userId: user.id,
-                    type: 'gam_reward',
-                    title: '🎁 출석 보상 지급!',
-                    message: `연속 ${rewardResult.consecutiveDays}일 출석으로 ${rewardResult.amount} GAM을 받았습니다!\n\n${rewardResult.thankMessage}`,
-                    relatedId: null,
-                    relatedType: 'daily_login'
-                });
+                const rewardResult = await gamService.giveLoginReward(user.id);
+                
+                // 캐시에 결과 저장 (성공/실패 관계없이)
+                global.dailyRewardCache.set(rewardCacheKey, rewardResult);
+                
+                if (rewardResult.success) {
+                    console.log(`[출석보상] 사용자 ${user.id} - 보상 지급 성공: ${rewardResult.amount} GAM`);
+                    dailyRewardInfo = {
+                        amount: rewardResult.amount,
+                        consecutiveDays: rewardResult.consecutiveDays,
+                        message: `출석 보상 ${rewardResult.amount} GAM을 받았습니다! (${rewardResult.consecutiveDays}일 연속)`,
+                        thankMessage: rewardResult.thankMessage
+                    };
+                    
+                    // 출석 보상 알림 생성
+                    const NotificationService = require('../services/notificationService');
+                    await NotificationService.createNotification({
+                        userId: user.id,
+                        type: 'gam_reward',
+                        title: '🎁 출석 보상 지급!',
+                        message: `연속 ${rewardResult.consecutiveDays}일 출석으로 ${rewardResult.amount} GAM을 받았습니다!\n\n${rewardResult.thankMessage}`,
+                        relatedId: null,
+                        relatedType: 'daily_login'
+                    });
+                } else {
+                    console.log(`[출석보상] 사용자 ${user.id} - ${rewardResult.message}`);
+                }
+            } catch (rewardError) {
+                console.error('[출석보상] 처리 실패:', rewardError);
+                // 에러 시에도 캐시에 기록하여 재시도 방지
+                global.dailyRewardCache.set(rewardCacheKey, { success: false, error: rewardError.message });
             }
-        } catch (rewardError) {
-            console.error('일일 출석 보상 처리 실패:', rewardError);
+        } else {
+            console.log(`[출석보상] 사용자 ${user.id} - 캐시에서 중복 호출 방지`);
+        }
+        
+        // 캐시 정리 (24시간마다)
+        if (global.dailyRewardCache.size > 1000) {
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+            
+            for (const [key] of global.dailyRewardCache.entries()) {
+                if (key.includes(yesterdayStr)) {
+                    global.dailyRewardCache.delete(key);
+                }
+            }
         }
         
         // JWT 토큰 생성

@@ -41,40 +41,55 @@ class GamService {
 
     // 로그인 보상 (새로운 규칙 적용)
     async giveLoginReward(userId) {
+        const { getClient } = require('../database/postgres');
+        const client = await getClient();
+        
         try {
-            // 현재 사용자 로그인 정보 확인
-            const result = await query(
-                'SELECT last_login_date, consecutive_login_days FROM users WHERE id = $1',
-                [userId]
-            );
+            await client.query('BEGIN');
+            
+            // PostgreSQL에서 날짜 비교를 위한 쿼리 (오늘 날짜와 비교)
+            const result = await client.query(`
+                SELECT 
+                    last_login_date, 
+                    consecutive_login_days,
+                    CASE 
+                        WHEN last_login_date = CURRENT_DATE THEN true 
+                        ELSE false 
+                    END as already_rewarded_today
+                FROM users 
+                WHERE id = $1
+            `, [userId]);
             
             if (result.rows.length === 0) {
+                await client.query('ROLLBACK');
                 throw new Error('사용자를 찾을 수 없습니다.');
             }
             
             const user = result.rows[0];
-            const today = new Date().toISOString().split('T')[0];
-            const lastLogin = user.last_login_date;
-            let consecutiveDays = user.consecutive_login_days || 0;
-            let rewardAmount = 1000; // 기본 보상 1000감
+            console.log(`[출석보상] 사용자 ${userId} - 마지막 로그인: ${user.last_login_date}, 오늘 이미 보상받음: ${user.already_rewarded_today}`);
             
-            // 연속 접속 계산
-            if (lastLogin === today) {
-                // 이미 오늘 로그인했음
+            // 이미 오늘 보상을 받았다면 중단
+            if (user.already_rewarded_today) {
+                await client.query('ROLLBACK');
+                console.log(`[출석보상] 사용자 ${userId} - 오늘 이미 보상받음, 건너뜀`);
                 return { success: false, message: '오늘 이미 출석체크를 하셨습니다!' };
             }
             
-            const yesterday = new Date();
-            yesterday.setDate(yesterday.getDate() - 1);
-            const yesterdayStr = yesterday.toISOString().split('T')[0];
+            let consecutiveDays = user.consecutive_login_days || 0;
+            let rewardAmount = 1000; // 기본 보상 1000감
             
-            if (lastLogin === yesterdayStr) {
-                // 연속 접속
-                consecutiveDays += 1;
-            } else {
-                // 연속 접속 중단
-                consecutiveDays = 1;
-            }
+            // 연속 접속 계산 (PostgreSQL 날짜 함수 사용)
+            const consecutiveCheck = await client.query(`
+                SELECT 
+                    CASE 
+                        WHEN last_login_date = CURRENT_DATE - INTERVAL '1 day' THEN consecutive_login_days + 1
+                        ELSE 1
+                    END as new_consecutive_days
+                FROM users 
+                WHERE id = $1
+            `, [userId]);
+            
+            consecutiveDays = consecutiveCheck.rows[0].new_consecutive_days;
             
             // 연속 접속 보너스 (새로운 규칙)
             if (consecutiveDays === 2) rewardAmount = 2000;
@@ -98,21 +113,25 @@ class GamService {
             const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
             const thankMessage = thankMessages[dayOfYear % thankMessages.length];
             
-            await query('BEGIN');
-            
-            // 사용자 로그인 정보 업데이트
-            await query(
-                'UPDATE users SET last_login_date = $1, consecutive_login_days = $2, gam_balance = gam_balance + $3 WHERE id = $4',
-                [today, consecutiveDays, rewardAmount, userId]
-            );
+            // 사용자 로그인 정보 및 잔액 업데이트
+            await client.query(`
+                UPDATE users 
+                SET 
+                    last_login_date = CURRENT_DATE, 
+                    consecutive_login_days = $1, 
+                    gam_balance = gam_balance + $2 
+                WHERE id = $3
+            `, [consecutiveDays, rewardAmount, userId]);
             
             // 거래 내역 기록
-            await query(
-                'INSERT INTO gam_transactions (user_id, type, category, amount, description) VALUES ($1, $2, $3, $4, $5)',
-                [userId, 'earn', 'login', rewardAmount, `출석 보상 (${consecutiveDays}일 연속) - ${thankMessage}`]
-            );
+            await client.query(`
+                INSERT INTO gam_transactions (user_id, type, category, amount, description) 
+                VALUES ($1, $2, $3, $4, $5)
+            `, [userId, 'earn', 'login', rewardAmount, `출석 보상 (${consecutiveDays}일 연속) - ${thankMessage}`]);
             
-            await query('COMMIT');
+            await client.query('COMMIT');
+            
+            console.log(`[출석보상] 사용자 ${userId} - 보상 지급 완료: ${rewardAmount} GAM (${consecutiveDays}일 연속)`);
             
             return { 
                 success: true, 
@@ -121,8 +140,11 @@ class GamService {
                 thankMessage: thankMessage
             };
         } catch (error) {
-            await query('ROLLBACK');
+            await client.query('ROLLBACK');
+            console.error('[출석보상] 오류 발생:', error);
             throw error;
+        } finally {
+            client.release();
         }
     }
 
