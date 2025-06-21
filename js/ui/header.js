@@ -7,37 +7,47 @@ export function updateHeader() {
     if (auth.isLoggedIn()) {
         const user = auth.getCurrentUser();
         userActionsContainer.innerHTML = `
-            <span class="text-sm font-medium text-gray-600 hidden sm:block">${user.username}</span>
-            
-            <!-- 알림 아이콘 -->
-            <div class="relative">
-                <button id="notification-button" class="relative p-2 text-gray-600 hover:text-gray-900 transition-colors">
-                    <i data-lucide="bell" class="w-5 h-5"></i>
-                    <span id="notification-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
-                </button>
+            <!-- 알림 아이콘 - 닉네임 바로 옆에 배치 -->
+            <div class="flex items-center space-x-3">
+                <!-- 사용자명 (PC에서만 표시) -->
+                <span class="text-sm font-medium text-gray-600 hidden lg:block">${user.username}</span>
                 
-                <!-- 알림 드롭다운 -->
-                <div id="notification-dropdown" class="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50 hidden">
-                    <div class="p-4 border-b border-gray-200">
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-lg font-semibold text-gray-900">알림</h3>
-                            <button id="mark-all-read" class="text-sm text-blue-600 hover:text-blue-700">모두 읽기</button>
+                <!-- 알림 아이콘 -->
+                <div class="relative">
+                    <button id="notification-button" class="relative p-2 text-gray-600 hover:text-gray-900 transition-colors rounded-lg hover:bg-gray-100">
+                        <i data-lucide="bell" class="w-5 h-5"></i>
+                        <span id="notification-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[20px] h-5 px-1 flex items-center justify-center hidden">0</span>
+                    </button>
+                    
+                    <!-- 알림 드롭다운 -->
+                    <div id="notification-dropdown" class="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 hidden">
+                        <div class="p-4 border-b border-gray-200">
+                            <div class="flex items-center justify-between">
+                                <h3 class="text-lg font-semibold text-gray-900">알림</h3>
+                                <button id="mark-all-read" class="text-sm text-blue-600 hover:text-blue-700 font-medium">모두 읽기</button>
+                            </div>
+                        </div>
+                        <div id="notification-list" class="max-h-96 overflow-y-auto">
+                            <div class="p-4 text-center text-gray-500">
+                                <i data-lucide="loader" class="w-6 h-6 animate-spin mx-auto mb-2"></i>
+                                <p>알림을 불러오는 중...</p>
+                            </div>
+                        </div>
+                        <div class="p-3 border-t border-gray-200 text-center">
+                            <a href="mypage.html#notifications" class="text-sm text-blue-600 hover:text-blue-700 font-medium">모든 알림 보기</a>
                         </div>
                     </div>
-                    <div id="notification-list" class="max-h-96 overflow-y-auto">
-                        <div class="p-4 text-center text-gray-500">알림을 불러오는 중...</div>
-                    </div>
-                    <div class="p-3 border-t border-gray-200 text-center">
-                        <a href="mypage.html#notifications" class="text-sm text-blue-600 hover:text-blue-700">모든 알림 보기</a>
-                    </div>
                 </div>
+                
+                <!-- GAM 잔액 -->
+                <div id="user-wallet" class="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-md border border-gray-200 shadow-sm">
+                    <i data-lucide="coins" class="w-4 h-4 text-yellow-500"></i>
+                    <span id="user-coins" class="text-sm font-semibold text-gray-900">${(user.gam_balance || user.coins || 0).toLocaleString()}</span>
+                </div>
+                
+                <!-- 로그아웃 버튼 -->
+                <button id="logout-button" class="text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium px-2 py-1 rounded hover:bg-gray-100">로그아웃</button>
             </div>
-            
-            <div id="user-wallet" class="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-md border border-gray-200 shadow-sm">
-                <i data-lucide="coins" class="w-4 h-4 text-yellow-500"></i>
-                <span id="user-coins" class="text-sm font-semibold text-gray-900">${(user.gam_balance || user.coins || 0).toLocaleString()}</span>
-            </div>
-            <button id="logout-button" class="text-gray-600 hover:text-gray-900 transition-colors text-sm">로그아웃</button>
         `;
         
         // 로그아웃 버튼 이벤트
@@ -54,7 +64,8 @@ export function updateHeader() {
         `;
     }
     
-    lucide.createIcons();
+    // Lucide 아이콘 초기화 - 더 안정적인 방법
+    initializeLucideIcons();
 }
 
 export function updateUserWallet() {
@@ -273,4 +284,30 @@ function formatNotificationTime(timestamp) {
     if (diffInDays < 7) return `${diffInDays}일 전`;
     
     return time.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+}
+
+// Lucide 아이콘 초기화 함수
+function initializeLucideIcons() {
+    // 여러 번 시도해서 아이콘 초기화 보장
+    const attemptIconInit = (attempt = 0) => {
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+            try {
+                lucide.createIcons();
+                console.log('Lucide icons initialized successfully');
+                return true;
+            } catch (error) {
+                console.warn('Lucide icon initialization failed:', error);
+            }
+        }
+        
+        // 최대 10번 시도 (총 5초간)
+        if (attempt < 10) {
+            setTimeout(() => attemptIconInit(attempt + 1), 500);
+        } else {
+            console.error('Failed to initialize Lucide icons after multiple attempts');
+        }
+        return false;
+    };
+    
+    attemptIconInit();
 }

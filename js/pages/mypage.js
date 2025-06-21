@@ -2,16 +2,24 @@ import * as auth from '../auth.js';
 import { getUserTier, getNextTierInfo, formatNumber, createTierDisplay, addTierStyles } from '../utils/tier-utils.js';
 
 export async function renderMyPage() {
+    console.log('renderMyPage called');
+    
     // 티어 스타일 추가
     addTierStyles();
     
     if (!auth.isLoggedIn()) {
+        console.log('User not logged in, redirecting to login');
         window.location.href = 'login.html';
         return;
     }
 
     const user = auth.getCurrentUser();
-    if (!user) return;
+    if (!user) {
+        console.log('No user data found');
+        return;
+    }
+
+    console.log('Rendering mypage for user:', user.username);
 
     // 사용자 기본 정보 표시
     updateUserProfile(user);
@@ -23,10 +31,38 @@ export async function renderMyPage() {
     await loadUserBets();
     
     // 알림 로드
+    console.log('Loading notifications...');
     await loadNotifications();
     
     // 알림 관련 이벤트 리스너 설정
     setupNotificationEventListeners();
+    
+    // Lucide 아이콘 초기화
+    initializeLucideIcons();
+}
+
+// Lucide 아이콘 초기화 함수 (header.js와 동일한 로직)
+function initializeLucideIcons() {
+    const attemptIconInit = (attempt = 0) => {
+        if (typeof lucide !== 'undefined' && lucide.createIcons) {
+            try {
+                lucide.createIcons();
+                console.log('Lucide icons initialized in mypage');
+                return true;
+            } catch (error) {
+                console.warn('Lucide icon initialization failed in mypage:', error);
+            }
+        }
+        
+        if (attempt < 10) {
+            setTimeout(() => attemptIconInit(attempt + 1), 500);
+        } else {
+            console.error('Failed to initialize Lucide icons in mypage after multiple attempts');
+        }
+        return false;
+    };
+    
+    attemptIconInit();
 }
 
 function updateUserProfile(user) {

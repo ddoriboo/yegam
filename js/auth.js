@@ -1,6 +1,9 @@
 const USER_KEY = 'yegame-user';
 const TOKEN_KEY = 'yegame-token';
 
+// localStorage를 사용하도록 변경 (app.js와 통일)
+const storage = localStorage;
+
 export async function login(email, password) {
     try {
         const response = await fetch('/api/auth/login', {
@@ -14,8 +17,8 @@ export async function login(email, password) {
         const data = await response.json();
         
         if (data.success) {
-            sessionStorage.setItem(USER_KEY, JSON.stringify(data.user));
-            sessionStorage.setItem(TOKEN_KEY, data.token);
+            storage.setItem(USER_KEY, JSON.stringify(data.user));
+            storage.setItem(TOKEN_KEY, data.token);
             return { success: true, user: data.user, message: data.message };
         } else {
             return { success: false, message: data.message };
@@ -63,7 +66,7 @@ export async function verifyToken() {
         const data = await response.json();
         
         if (data.success) {
-            sessionStorage.setItem(USER_KEY, JSON.stringify(data.user));
+            storage.setItem(USER_KEY, JSON.stringify(data.user));
             return true;
         } else {
             logout();
@@ -77,26 +80,26 @@ export async function verifyToken() {
 }
 
 export function logout() {
-    sessionStorage.removeItem(USER_KEY);
-    sessionStorage.removeItem(TOKEN_KEY);
+    storage.removeItem(USER_KEY);
+    storage.removeItem(TOKEN_KEY);
 }
 
 export function isLoggedIn() {
-    return sessionStorage.getItem(USER_KEY) !== null && sessionStorage.getItem(TOKEN_KEY) !== null;
+    return storage.getItem(USER_KEY) !== null && storage.getItem(TOKEN_KEY) !== null;
 }
 
 export function getCurrentUser() {
-    const user = sessionStorage.getItem(USER_KEY);
+    const user = storage.getItem(USER_KEY);
     return user ? JSON.parse(user) : null;
 }
 
 export function getToken() {
-    return sessionStorage.getItem(TOKEN_KEY);
+    return storage.getItem(TOKEN_KEY);
 }
 
 export function updateCurrentUser(updatedUser) {
     if (isLoggedIn()) {
-        sessionStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
+        storage.setItem(USER_KEY, JSON.stringify(updatedUser));
         // localStorage의 token도 함께 관리
         localStorage.setItem('yegame-token', getToken());
     }

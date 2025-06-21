@@ -1,5 +1,8 @@
 // Complete working app with API integration
 import { getUserTier, createTierDisplay } from './utils/tier-utils.js';
+import { updateHeader } from './ui/header.js';
+import { renderMyPage } from './pages/mypage.js';
+import { checkAuth } from './auth.js';
 
 console.log('🚀 Working app starting...');
 
@@ -14,13 +17,15 @@ window.updateCurrentUser = (newUserData) => {
     currentUser = newUserData;
     window.currentUser = currentUser;
     // 헤더 업데이트도 함께 실행
-    updateHeader(true);
+    updateHeader();
+    updateIssueRequestButtons(true);
 };
 
 // 헤더 강제 업데이트 함수 (베팅 후 호출용)
 window.forceUpdateHeader = () => {
     if (currentUser) {
-        updateHeader(true);
+        updateHeader();
+        updateIssueRequestButtons(true);
     }
 };
 
@@ -47,7 +52,8 @@ async function refreshUserInfo() {
                 sessionStorage.setItem('yegame-user', JSON.stringify(currentUser));
                 
                 // 헤더 업데이트
-                updateHeader(true);
+                updateHeader();
+        updateIssueRequestButtons(true);
                 
                 console.log('User info refreshed:', currentUser.username, 'GAM:', currentUser.gam_balance || currentUser.coins);
             }
@@ -131,12 +137,14 @@ async function checkAuthentication() {
     // 관리자 페이지에서는 별도 인증 처리
     if (window.isAdminPage && window.adminAuthCompleted) {
         console.log('🔐 관리자 페이지 - 관리자 인증 사용');
-        updateHeader(true);
+        updateHeader();
+        updateIssueRequestButtons(true);
         return;
     }
     
     if (!userToken) {
-        updateHeader(false);
+        updateHeader();
+        updateIssueRequestButtons(false);
         return;
     }
     
@@ -152,7 +160,8 @@ async function checkAuthentication() {
         if (data.success && data.user) {
             currentUser = data.user;
             window.currentUser = currentUser; // 전역 변수 동기화
-            updateHeader(true);
+            updateHeader();
+        updateIssueRequestButtons(true);
             console.log('User authenticated:', currentUser.username);
         } else {
             // Invalid token, clear it
@@ -160,7 +169,8 @@ async function checkAuthentication() {
             userToken = null;
             currentUser = null;
             window.currentUser = null;
-            updateHeader(false);
+            updateHeader();
+        updateIssueRequestButtons(false);
         }
     } catch (error) {
         console.error('Auth check failed:', error);
@@ -168,64 +178,17 @@ async function checkAuthentication() {
         userToken = null;
         currentUser = null;
         window.currentUser = null;
-        updateHeader(false);
+        updateHeader();
+        updateIssueRequestButtons(false);
     }
 }
 
-function updateHeader(isLoggedIn) {
-    const userActionsContainer = document.getElementById('header-user-actions');
-    if (!userActionsContainer) return;
-    
+function updateHeaderWithAuth(isLoggedIn) {
     // 이슈 신청 버튼 표시/숨김 처리
     updateIssueRequestButtons(isLoggedIn);
     
-    if (isLoggedIn && currentUser) {
-        // 사용자 정보 우선순위: currentUser > sessionStorage (만료된 데이터 방지)
-        let latestUser = currentUser;
-        const sessionUser = sessionStorage.getItem('yegame-user');
-        
-        // sessionStorage에 데이터가 있고, currentUser와 같은 사용자인 경우만 사용
-        if (sessionUser) {
-            try {
-                const sessionUserData = JSON.parse(sessionUser);
-                if (sessionUserData.id === currentUser.id && sessionUserData.username === currentUser.username) {
-                    latestUser = sessionUserData;
-                } else {
-                    // 다른 사용자의 데이터라면 삭제
-                    sessionStorage.removeItem('yegame-user');
-                }
-            } catch (error) {
-                console.error('SessionStorage user data parsing error:', error);
-                sessionStorage.removeItem('yegame-user');
-            }
-        }
-        
-        const userCoins = latestUser.gam_balance || latestUser.coins || 0;
-        const tierBadge = generateCommentTierBadge(userCoins);
-        
-        userActionsContainer.innerHTML = `
-            <div class="flex items-center space-x-2">
-                <span class="text-sm font-medium text-gray-600 hidden sm:block">${latestUser.username}</span>
-                <div class="hidden sm:block">${tierBadge}</div>
-            </div>
-            <div class="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-md border border-gray-200 shadow-sm">
-                <i data-lucide="coins" class="w-4 h-4 text-yellow-500"></i>
-                <span class="text-sm font-semibold text-gray-900">${userCoins.toLocaleString()}</span>
-            </div>
-            <button onclick="logout()" class="text-gray-600 hover:text-gray-900 transition-colors text-sm">로그아웃</button>
-        `;
-    } else {
-        userActionsContainer.innerHTML = `
-            <a href="login.html" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors">
-                로그인/회원가입
-            </a>
-        `;
-    }
-    
-    // Reinitialize icons
-    if (typeof lucide !== 'undefined') {
-        lucide.createIcons();
-    }
+    // header.js의 updateHeader 호출
+    updateHeader();
 }
 
 // 이슈 신청 버튼 표시/숨김 및 이벤트 설정
@@ -271,7 +234,8 @@ function logout() {
     window.isAdminPage = false;
     
     // 헤더 업데이트
-    updateHeader(false);
+    updateHeader();
+        updateIssueRequestButtons(false);
     
     showSuccess('안전하게 로그아웃되었습니다.', '로그아웃 완료');
     window.location.href = 'index.html';
@@ -1938,7 +1902,8 @@ async function placeBetLegacy(issueId, choice) {
                 // 전역 변수 동기화
                 window.currentUser = currentUser;
                 
-                updateHeader(true);
+                updateHeader();
+        updateIssueRequestButtons(true);
             }
             
             // Refresh issues based on current page
@@ -3552,12 +3517,36 @@ function renderAllIssuesOnPage() {
 async function initMyPage() {
     console.log('Initializing My Page...');
     
-    if (!currentUser) {
-        showMyPageLogin();
+    // 인증 상태 확인 및 사용자 정보 로드
+    await checkAuth();
+    
+    // localStorage에서 사용자 정보 다시 확인
+    const userFromStorage = localStorage.getItem('yegame-user');
+    const tokenFromStorage = localStorage.getItem('yegame-token');
+    
+    if (!userFromStorage || !tokenFromStorage) {
+        console.log('No user or token found, redirecting to login');
+        window.location.href = 'login.html';
         return;
     }
     
-    await loadMyPageData();
+    try {
+        currentUser = JSON.parse(userFromStorage);
+        window.currentUser = currentUser;
+        userToken = tokenFromStorage;
+        
+        console.log('Current user for mypage:', currentUser);
+        
+        // pages/mypage.js의 renderMyPage 사용
+        await renderMyPage();
+        
+        // 헤더 업데이트
+        updateHeader();
+        
+    } catch (error) {
+        console.error('Error initializing mypage:', error);
+        window.location.href = 'login.html';
+    }
 }
 
 function showMyPageLogin() {
