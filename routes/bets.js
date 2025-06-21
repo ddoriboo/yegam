@@ -129,7 +129,7 @@ router.post('/', authMiddleware, validateBetRequest, async (req, res) => {
     }
 });
 
-// 사용자 베팅 내역 조회
+// 사용자 베팅 내역 조회 (마이페이지용)
 router.get('/my-bets', authMiddleware, async (req, res) => {
     try {
         const userId = req.user.id;
@@ -143,9 +143,13 @@ router.get('/my-bets', authMiddleware, async (req, res) => {
                 i.id as issue_id,
                 i.title as issue_title,
                 i.category,
-                i.correct_answer
+                i.result,
+                i.status,
+                i.end_date,
+                r.reward_amount
             FROM bets b
             JOIN issues i ON b.issue_id = i.id
+            LEFT JOIN rewards r ON r.bet_id = b.id AND r.user_id = b.user_id
             WHERE b.user_id = $1
             ORDER BY b.created_at DESC
         `;
@@ -159,15 +163,16 @@ router.get('/my-bets', authMiddleware, async (req, res) => {
                 id: bet.id,
                 choice: bet.choice,
                 amount: bet.amount,
-                createdAt: bet.created_at,
-                issue: {
-                    id: bet.issue_id,
-                    title: bet.issue_title,
-                    category: bet.category
-                },
-                result: bet.correct_answer ? 
-                    (bet.choice === bet.correct_answer ? 'win' : 'lose') : 
-                    'pending'
+                created_at: bet.created_at,
+                issue_id: bet.issue_id,
+                issue_title: bet.issue_title,
+                category: bet.category,
+                end_date: bet.end_date,
+                result: bet.result,
+                reward: bet.reward_amount || null,
+                // 마이페이지에서 사용하는 형태로 추가 정보 제공
+                status: !bet.result ? '진행중' : 
+                       (bet.choice === bet.result ? '성공' : '실패')
             }))
         });
     } catch (error) {

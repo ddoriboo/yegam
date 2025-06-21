@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const gamService = require('../services/gamService');
+const { authMiddleware } = require('../middleware/auth');
 
 // 사용자 감 잔액 조회
 router.get('/balance/:userId', async (req, res) => {
@@ -15,7 +16,7 @@ router.get('/balance/:userId', async (req, res) => {
     }
 });
 
-// 사용자 거래 내역 조회
+// 사용자 거래 내역 조회 (기존 - 보안상 문제 있음)
 router.get('/transactions/:userId', async (req, res) => {
     const { userId } = req.params;
     const { limit = 50 } = req.query;
@@ -26,6 +27,57 @@ router.get('/transactions/:userId', async (req, res) => {
     } catch (error) {
         console.error('거래 내역 조회 실패:', error);
         res.status(500).json({ error: '거래 내역 조회에 실패했습니다.' });
+    }
+});
+
+// 내 거래 내역 조회 (인증된 사용자 전용)
+router.get('/my-transactions', authMiddleware, async (req, res) => {
+    const userId = req.user.id;
+    const { limit = 50, page = 1 } = req.query;
+    
+    try {
+        // PostgreSQL 직접 사용 (gamService에서 PostgreSQL 지원하지 않을 수 있음)
+        const { query } = require('../database/postgres');
+        
+        const offset = (page - 1) * limit;
+        const sql = `
+            SELECT 
+                id,
+                type,
+                category,
+                amount,
+                description,
+                reference_id,
+                created_at
+            FROM gam_transactions 
+            WHERE user_id = $1
+            ORDER BY created_at DESC
+            LIMIT $2 OFFSET $3
+        `;
+        
+        const result = await query(sql, [userId, parseInt(limit), offset]);
+        const transactions = result.rows;
+        
+        // 총 개수도 조회
+        const countResult = await query('SELECT COUNT(*) as total FROM gam_transactions WHERE user_id = $1', [userId]);
+        const total = parseInt(countResult.rows[0].total);
+        
+        res.json({
+            success: true,
+            transactions,
+            pagination: {
+                page: parseInt(page),
+                limit: parseInt(limit),
+                total,
+                totalPages: Math.ceil(total / limit)
+            }
+        });
+    } catch (error) {
+        console.error('거래 내역 조회 실패:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: '거래 내역 조회에 실패했습니다.' 
+        });
     }
 });
 

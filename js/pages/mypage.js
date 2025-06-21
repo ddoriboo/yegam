@@ -13,13 +13,21 @@ export async function renderMyPage() {
         return;
     }
 
-    const user = auth.getCurrentUser();
-    if (!user) {
-        console.log('No user data found');
+    // 최신 사용자 정보 가져오기 (서버에서 검증)
+    const isTokenValid = await auth.verifyToken();
+    if (!isTokenValid) {
+        console.log('Token verification failed, redirecting to login');
+        window.location.href = 'login.html';
         return;
     }
 
-    console.log('Rendering mypage for user:', user.username);
+    const user = auth.getCurrentUser();
+    if (!user) {
+        console.log('No user data found after verification');
+        return;
+    }
+
+    console.log('Rendering mypage for user:', user.username, 'GAM Balance:', user.gam_balance);
 
     // 사용자 기본 정보 표시
     updateUserProfile(user);
@@ -29,6 +37,9 @@ export async function renderMyPage() {
     
     // 베팅 기록 로드
     await loadUserBets();
+    
+    // GAM 트랜잭션 기록 로드
+    await loadGamTransactions();
     
     // 알림 로드
     console.log('Loading notifications...');
@@ -73,7 +84,11 @@ function updateUserProfile(user) {
 
     if (userNameEl) userNameEl.textContent = user.username;
     if (userEmailEl) userEmailEl.textContent = user.email;
-    if (userCoinsEl) userCoinsEl.textContent = `${(user.gam_balance || 0).toLocaleString()} GAM`;
+    if (userCoinsEl) {
+        const gamBalance = user.gam_balance ?? 0;
+        userCoinsEl.textContent = `${gamBalance.toLocaleString()} GAM`;
+        console.log('GAM Balance updated:', gamBalance);
+    }
     
     if (userJoinedEl && user.created_at) {
         const joinDate = new Date(user.created_at).toLocaleDateString('ko-KR');
@@ -327,6 +342,140 @@ function renderBetHistory(bets) {
     }).join('');
     
     betHistoryEl.innerHTML = betHistoryHtml;
+}
+
+// GAM 트랜잭션 기록 로드
+async function loadGamTransactions() {
+    const transactionHistoryEl = document.getElementById('gam-transaction-history');
+    if (!transactionHistoryEl) return;
+    
+    // 로딩 상태 표시
+    transactionHistoryEl.innerHTML = `
+        <div class="text-center py-8 text-gray-500">
+            <i data-lucide="loader" class="w-8 h-8 animate-spin mx-auto mb-4 text-gray-400"></i>
+            <p>GAM 거래 내역을 불러오는 중...</p>
+        </div>
+    `;
+    
+    // Lucide 아이콘 초기화
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+    
+    try {
+        console.log('Loading GAM transactions with token:', auth.getToken() ? 'present' : 'missing');
+        
+        const response = await fetch('/api/gam/my-transactions?limit=20', {
+            headers: {
+                'Authorization': `Bearer ${auth.getToken()}`
+            }
+        });
+        
+        console.log('GAM transactions API response status:', response.status);
+        
+        const data = await response.json();
+        console.log('GAM transactions API response data:', data);
+        
+        if (data.success && data.transactions) {
+            renderGamTransactionHistory(data.transactions);
+            console.log('Successfully loaded', data.transactions.length, 'transactions');
+        } else {
+            throw new Error(data.message || 'GAM 거래 내역을 불러올 수 없습니다.');
+        }
+    } catch (error) {
+        console.error('GAM 거래 내역 로드 실패:', error);
+        
+        // 에러 상태 표시
+        transactionHistoryEl.innerHTML = `
+            <div class="text-center py-8 text-red-500">
+                <i data-lucide="alert-circle" class="w-8 h-8 mx-auto mb-4 text-red-400"></i>
+                <p>GAM 거래 내역을 불러오는데 실패했습니다.</p>
+                <button onclick="window.location.reload()" class="mt-2 text-blue-600 hover:text-blue-700 underline">새로고침</button>
+            </div>
+        `;
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    }
+}
+
+function renderGamTransactionHistory(transactions) {
+    const transactionHistoryEl = document.getElementById('gam-transaction-history');
+    if (!transactionHistoryEl) return;
+    
+    if (transactions.length === 0) {
+        transactionHistoryEl.innerHTML = `
+            <div class="text-center py-8 text-gray-500">
+                <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-4 text-gray-400"></i>
+                <p>GAM 거래 내역이 없습니다.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    const transactionHistoryHtml = transactions.map(transaction => {
+        const isEarn = transaction.type === 'earn';
+        const amountClass = isEarn ? 'text-green-600' : 'text-red-600';
+        const amountSign = isEarn ? '+' : '-';
+        const iconClass = isEarn ? 'text-green-500' : 'text-red-500';
+        const icon = isEarn ? 'plus-circle' : 'minus-circle';
+        
+        // 카테고리별 한국어 표시
+        const categoryNames = {
+            'login': '출석 보상',
+            'signup': '회원가입 보상',
+            'betting_fail': '베팅 실패',
+            'betting_win': '베팅 성공',
+            'commission': '수수료',
+            'comment_highlight': '댓글 강조',
+            'issue_request_approved': '이슈 신청 승인',
+            'achievement': '업적 달성'
+        };
+        
+        const categoryDisplay = categoryNames[transaction.category] || transaction.category;
+        const timeAgo = formatTimeAgo(new Date(transaction.created_at));
+        
+        return `
+            <div class="bg-white rounded-lg border border-gray-200 p-4">
+                <div class="flex justify-between items-start mb-2">
+                    <div class="flex items-center space-x-3">
+                        <i data-lucide="${icon}" class="w-5 h-5 ${iconClass}"></i>
+                        <div>
+                            <h4 class="font-medium text-gray-900">${categoryDisplay}</h4>
+                            <p class="text-sm text-gray-600">${transaction.description || '상세 정보 없음'}</p>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-lg font-bold ${amountClass}">
+                            ${amountSign}${transaction.amount.toLocaleString()} GAM
+                        </span>
+                        <p class="text-xs text-gray-500">${timeAgo}</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    transactionHistoryEl.innerHTML = transactionHistoryHtml;
+    
+    // Lucide 아이콘 초기화
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+function formatTimeAgo(date) {
+    const now = new Date();
+    const diff = now - date;
+    const minutes = Math.floor(diff / (1000 * 60));
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    
+    if (minutes < 60) return `${minutes}분 전`;
+    if (hours < 24) return `${hours}시간 전`;
+    if (days < 7) return `${days}일 전`;
+    
+    return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
 }
 
 // 큰 티어 표시용 스타일 추가

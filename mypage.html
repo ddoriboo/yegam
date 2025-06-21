@@ -93,7 +93,7 @@
                                 </div>
                             </div>
                             <!-- 티어 진행률 -->
-                            <div id="user-tier-progress" class="mt-4">
+                            <div id="tier-progress-section" class="mt-4">
                                 <!-- 티어 진행률 바가 여기에 표시됩니다 -->
                             </div>
                         </div>
@@ -160,21 +160,27 @@
                             </div>
                         </div>
                     </div>
-                    <div id="user-bets-container">
-                        <div id="user-bets-loading" class="text-center py-8">
-                            <i data-lucide="loader" class="w-6 h-6 animate-spin mx-auto mb-2 text-gray-400"></i>
-                            <p class="text-gray-500">예측 기록을 불러오는 중...</p>
+                    <div class="p-6">
+                        <div id="bet-history">
+                            <!-- 베팅 기록이 여기에 로드됩니다 -->
                         </div>
-                        <div id="user-bets-list" class="hidden">
-                            <!-- Bets will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- GAM Transaction History -->
+                <div class="bg-white rounded-lg border border-gray-200 mt-8">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <h2 class="text-xl font-bold text-gray-900">GAM 거래 내역</h2>
+                            <div class="flex items-center space-x-2">
+                                <i data-lucide="coins" class="w-5 h-5 text-yellow-500"></i>
+                                <span class="text-sm text-gray-600">최근 20건</span>
+                            </div>
                         </div>
-                        <div id="user-bets-empty" class="hidden text-center py-12">
-                            <i data-lucide="target" class="w-12 h-12 mx-auto text-gray-300 mb-4"></i>
-                            <p class="text-gray-500">아직 예측한 이슈가 없습니다.</p>
-                            <a href="index.html" class="inline-flex items-center mt-4 text-blue-600 hover:text-blue-700 font-medium">
-                                <span>예측하러 가기</span>
-                                <i data-lucide="arrow-right" class="w-4 h-4 ml-2"></i>
-                            </a>
+                    </div>
+                    <div class="p-6">
+                        <div id="gam-transaction-history">
+                            <!-- GAM 거래 기록이 여기에 로드됩니다 -->
                         </div>
                     </div>
                 </div>
