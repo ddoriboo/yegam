@@ -48,6 +48,7 @@ const createTables = async () => {
                 email VARCHAR(255) UNIQUE NOT NULL,
                 password_hash VARCHAR(255) NOT NULL,
                 coins INTEGER DEFAULT 10000,
+                gam_balance INTEGER DEFAULT 10000,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
@@ -80,6 +81,15 @@ const createTables = async () => {
         `);
         
         // 기존 테이블에 새 컬럼 추가 (이미 존재하는 경우 무시)
+        try {
+            await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS gam_balance INTEGER DEFAULT 10000`);
+            // 기존 사용자들의 gam_balance를 coins 값으로 초기화
+            await client.query(`UPDATE users SET gam_balance = coins WHERE gam_balance IS NULL`);
+            console.log('✅ 사용자 테이블 gam_balance 컬럼 추가 완료');
+        } catch (error) {
+            console.log('사용자 테이블 gam_balance 컬럼 추가 스킵 (이미 존재함)');
+        }
+        
         try {
             await client.query(`ALTER TABLE issues ADD COLUMN IF NOT EXISTS description TEXT`);
             await client.query(`ALTER TABLE issues ADD COLUMN IF NOT EXISTS image_url TEXT`);
