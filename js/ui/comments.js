@@ -158,7 +158,7 @@ function renderComment(comment) {
     const isHighlighted = comment.is_highlighted;
     
     // 사용자 티어 계산
-    const userTier = window.TierSystem ? window.TierSystem.calculateTier(comment.gam_balance || 0) : null;
+    const userTier = window.TierSystem ? window.TierSystem.calculateTier(comment.coins || 0) : null;
     const tierBadge = userTier ? window.TierSystem.generateTierBadge(userTier, 'sm') : '';
     
     let highlightClass = '';
@@ -244,7 +244,7 @@ function renderReply(reply) {
     const isOwner = currentUserId === reply.user_id;
     
     // 사용자 티어 계산
-    const userTier = window.TierSystem ? window.TierSystem.calculateTier(reply.gam_balance || 0) : null;
+    const userTier = window.TierSystem ? window.TierSystem.calculateTier(reply.coins || 0) : null;
     const tierBadge = userTier ? window.TierSystem.generateTierBadge(userTier, 'sm') : '';
     
     return `
