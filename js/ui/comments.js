@@ -157,6 +157,10 @@ function renderComment(comment) {
     const isOwner = currentUserId === comment.user_id;
     const isHighlighted = comment.is_highlighted;
     
+    // 사용자 티어 계산
+    const userTier = window.TierSystem ? window.TierSystem.calculateTier(comment.gam_balance || 0) : null;
+    const tierBadge = userTier ? window.TierSystem.generateTierBadge(userTier, 'sm') : '';
+    
     let highlightClass = '';
     let highlightBadge = '';
     
@@ -183,6 +187,7 @@ function renderComment(comment) {
                 <div class="flex-grow min-w-0">
                     <div class="flex items-center space-x-2 mb-1">
                         <span class="font-medium text-gray-900">${comment.username}</span>
+                        ${tierBadge}
                         ${highlightBadge}
                         <span class="text-xs text-gray-500">${comment.timeAgo}</span>
                     </div>
@@ -238,6 +243,10 @@ function renderReply(reply) {
     const isLiked = userLikedComments.has(reply.id);
     const isOwner = currentUserId === reply.user_id;
     
+    // 사용자 티어 계산
+    const userTier = window.TierSystem ? window.TierSystem.calculateTier(reply.gam_balance || 0) : null;
+    const tierBadge = userTier ? window.TierSystem.generateTierBadge(userTier, 'sm') : '';
+    
     return `
         <div class="reply border-b border-gray-100 pb-3 mb-3 last:border-b-0 last:pb-0 last:mb-0" data-comment-id="${reply.id}">
             <div class="flex items-start space-x-3">
@@ -249,6 +258,7 @@ function renderReply(reply) {
                 <div class="flex-grow min-w-0">
                     <div class="flex items-center space-x-2 mb-1">
                         <span class="font-medium text-gray-900 text-sm">${reply.username}</span>
+                        ${tierBadge}
                         <span class="text-xs text-gray-500">${reply.timeAgo}</span>
                     </div>
                     <p class="text-gray-800 text-sm leading-relaxed">${reply.content}</p>
