@@ -2439,7 +2439,6 @@ async function openResultModal(issueId) {
             document.getElementById('result-issue-title').textContent = issue.title;
             document.getElementById('result-issue-category').textContent = issue.category;
             
-            const endDate = new Date(issue.end_date);
             // 사용자 페이지와 동일한 시간 포맷 사용
             const endDate = issue.end_date || issue.endDate;
             document.getElementById('result-issue-end-date').textContent = formatEndDate(endDate);
