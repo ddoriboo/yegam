@@ -2262,7 +2262,7 @@ async function loadAdminComments() {
         emptyEl.classList.add('hidden');
         
         const filter = filterSelect ? filterSelect.value : 'all';
-        const response = await fetch(`/api/admin/comments/all?filter=${filter}&limit=100`);
+        const response = await window.adminFetch(`/api/admin/comments/all?filter=${filter}&limit=100`);
         const data = await response.json();
         
         if (data.success) {
@@ -2349,11 +2349,8 @@ async function handleAdminDeleteComment(commentId) {
     }
     
     try {
-        const response = await fetch(`/api/admin/comments/${commentId}`, {
-            method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-            }
+        const response = await window.adminFetch(`/api/admin/comments/${commentId}`, {
+            method: 'DELETE'
         });
         
         const data = await response.json();
@@ -2372,11 +2369,8 @@ async function handleAdminDeleteComment(commentId) {
 
 async function handleAdminHighlightComment(commentId, action) {
     try {
-        const response = await fetch(`/api/admin/comments/${commentId}/highlight`, {
+        const response = await window.adminFetch(`/api/admin/comments/${commentId}/highlight`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
             body: JSON.stringify({ action })
         });
         
@@ -3317,11 +3311,7 @@ async function loadIssueRequests() {
         if (noRequestsMessage) noRequestsMessage.classList.add('hidden');
         if (tableBody) tableBody.innerHTML = '';
         
-        const response = await fetch(`/api/issue-requests/admin/all?status=${status}`, {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('yegame-token')}`
-            }
-        });
+        const response = await window.adminFetch(`/api/issue-requests/admin/all?status=${status}`);
         
         const data = await response.json();
         
@@ -3403,11 +3393,7 @@ function getStatusBadge(status) {
 // 이슈 신청 상세 모달 표시
 async function showIssueRequestDetails(requestId) {
     try {
-        const response = await fetch(`/api/issue-requests/admin/all`, {
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('yegame-token')}`
-            }
-        });
+        const response = await window.adminFetch(`/api/issue-requests/admin/all`);
         
         const data = await response.json();
         if (!data.success) throw new Error(data.message);
@@ -3525,12 +3511,8 @@ async function handleApproveRequest() {
     if (comments === null) return; // 취소
     
     try {
-        const response = await fetch(`/api/issue-requests/${window.currentRequestId}/approve`, {
+        const response = await window.adminFetch(`/api/issue-requests/${window.currentRequestId}/approve`, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('yegame-token')}`
-            },
             body: JSON.stringify({ adminComments: comments })
         });
         
@@ -3558,12 +3540,8 @@ async function handleRejectRequest() {
     if (!comments) return;
     
     try {
-        const response = await fetch(`/api/issue-requests/${window.currentRequestId}/reject`, {
+        const response = await window.adminFetch(`/api/issue-requests/${window.currentRequestId}/reject`, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${localStorage.getItem('yegame-token')}`
-            },
             body: JSON.stringify({ adminComments: comments })
         });
         
@@ -3587,7 +3565,7 @@ async function loadSchedulerStatus() {
     try {
         console.log('Loading scheduler status...');
         
-        const response = await fetch('/api/admin/scheduler/status');
+        const response = await window.adminFetch('/api/admin/scheduler/status');
         const data = await response.json();
         
         if (data.success) {
@@ -3686,7 +3664,7 @@ async function runManualSchedulerCheck() {
         
         console.log('Running manual scheduler check...');
         
-        const response = await fetch('/api/admin/scheduler/run', {
+        const response = await window.adminFetch('/api/admin/scheduler/run', {
             method: 'POST'
         });
         
