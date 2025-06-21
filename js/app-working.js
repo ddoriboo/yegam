@@ -1847,7 +1847,7 @@ async function placeBetLegacy(issueId, choice) {
             }
             
             // Refresh issues based on current page
-            const currentPath = window.location.pathname.split(\"/\").pop();
+            const currentPath = window.location.pathname.split("/").pop();
             if (currentPath === 'issues.html') {
                 // Reload issues for issues page
                 try {
