@@ -28,18 +28,29 @@ async function createIssueRequestsTable() {
                 title TEXT NOT NULL,
                 description TEXT NOT NULL,
                 category VARCHAR(50) NOT NULL,
-                deadline TIMESTAMP NOT NULL,
+                deadline TIMESTAMPTZ NOT NULL,
                 status VARCHAR(20) DEFAULT 'pending',
                 admin_comments TEXT,
                 approved_by INTEGER,
-                approved_at TIMESTAMP,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                approved_at TIMESTAMPTZ,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users (id),
                 FOREIGN KEY (approved_by) REFERENCES users (id)
             )
         `);
         console.log('✅ issue_requests 테이블 확인/생성 완료');
+        
+        // 기존 테이블의 타임존 마이그레이션
+        try {
+            await query(`ALTER TABLE issue_requests ALTER COLUMN deadline TYPE TIMESTAMPTZ USING deadline AT TIME ZONE 'Asia/Seoul'`);
+            await query(`ALTER TABLE issue_requests ALTER COLUMN approved_at TYPE TIMESTAMPTZ USING approved_at AT TIME ZONE 'Asia/Seoul'`);
+            await query(`ALTER TABLE issue_requests ALTER COLUMN created_at TYPE TIMESTAMPTZ USING created_at AT TIME ZONE 'Asia/Seoul'`);
+            await query(`ALTER TABLE issue_requests ALTER COLUMN updated_at TYPE TIMESTAMPTZ USING updated_at AT TIME ZONE 'Asia/Seoul'`);
+            console.log('✅ issue_requests 테이블 타임존 마이그레이션 완료');
+        } catch (error) {
+            console.log('issue_requests 테이블 타임존 마이그레이션 스킵:', error.message);
+        }
     } catch (error) {
         console.error('❌ issue_requests 테이블 생성 오류:', error);
         // 테이블 생성 실패해도 서버는 계속 실행되도록 함
@@ -81,15 +92,17 @@ router.post('/', authMiddleware, async (req, res) => {
             });
         }
         
-        // 마감일 유효성 검사
+        // 마감일 유효성 검사 (KST 타임존 고려)
         const deadlineDate = new Date(deadline);
         const now = new Date();
         
-        console.log('🔍 이슈 신청 시간 정보:', {
+        console.log('🔍 이슈 신청 시간 정보 (KST 처리):', {
             received_deadline: deadline,
             deadline_type: typeof deadline,
             parsed_deadline: deadlineDate.toISOString(),
+            parsed_deadline_kst: deadlineDate.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }),
             current_time: now.toISOString(),
+            current_time_kst: now.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }),
             is_future: deadlineDate > now
         });
         
@@ -124,19 +137,20 @@ router.post('/', authMiddleware, async (req, res) => {
             });
         }
         
-        // 이슈 신청 생성
-        console.log('💾 이슈 신청 저장 중:', {
+        // 이슈 신청 생성 (PostgreSQL TIMESTAMPTZ 사용으로 타임존 정보 보존)
+        console.log('💾 이슈 신청 저장 중 (KST 타임존 보존):', {
             userId,
             title,
             category,
             deadline,
-            deadline_iso: deadlineDate.toISOString()
+            deadline_iso: deadlineDate.toISOString(),
+            deadline_kst: deadlineDate.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })
         });
         
         const result = await query(`
             INSERT INTO issue_requests (
                 user_id, title, description, category, deadline
-            ) VALUES ($1, $2, $3, $4, $5::timestamp)
+            ) VALUES ($1, $2, $3, $4, $5::timestamptz)
             RETURNING id
         `, [userId, title, description, category, deadline]);
         
@@ -255,19 +269,20 @@ router.put('/:id/approve', tempAdminMiddleware, async (req, res) => {
         }
         
         try {
-            // 디버깅: 신청 정보 확인
-            console.log('🔍 이슈 승인 중 - 신청 정보:', {
+            // 디버깅: 신청 정보 확인 (타임존 정보 포함)
+            console.log('🔍 이슈 승인 중 - 신청 정보 (KST 타임존 보존):', {
                 title: request.title,
                 category: request.category,
                 deadline: request.deadline,
                 deadline_type: typeof request.deadline,
-                deadline_string: new Date(request.deadline).toISOString()
+                deadline_string: new Date(request.deadline).toISOString(),
+                deadline_kst: new Date(request.deadline).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })
             });
             
-            // 1. 정식 이슈로 등록 (원래 신청 마감시간 사용)
+            // 1. 정식 이슈로 등록 (원래 신청 마감시간 사용, TIMESTAMPTZ로 타임존 보존)
             const issueResult = await query(`
                 INSERT INTO issues (title, category, description, image_url, yes_price, end_date, is_popular, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6::timestamp, false, NOW(), NOW())
+                VALUES ($1, $2, $3, $4, $5, $6::timestamptz, false, NOW(), NOW())
                 RETURNING id, end_date
             `, [request.title, request.category, request.description || '', '', 50, request.deadline]);
             

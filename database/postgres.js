@@ -54,7 +54,7 @@ const createTables = async () => {
             )
         `);
         
-        // 이슈 테이블
+        // 이슈 테이블 (TIMESTAMPTZ 사용으로 타임존 정보 보존)
         await client.query(`
             CREATE TABLE IF NOT EXISTS issues (
                 id SERIAL PRIMARY KEY,
@@ -62,7 +62,7 @@ const createTables = async () => {
                 category VARCHAR(100) NOT NULL,
                 description TEXT,
                 image_url TEXT,
-                end_date TIMESTAMP NOT NULL,
+                end_date TIMESTAMPTZ NOT NULL,
                 yes_price INTEGER DEFAULT 50,
                 total_volume INTEGER DEFAULT 0,
                 yes_volume INTEGER DEFAULT 0,
@@ -72,10 +72,10 @@ const createTables = async () => {
                 status VARCHAR(50) DEFAULT 'active',
                 result TEXT DEFAULT NULL,
                 decided_by INTEGER DEFAULT NULL,
-                decided_at TIMESTAMP DEFAULT NULL,
+                decided_at TIMESTAMPTZ DEFAULT NULL,
                 decision_reason TEXT DEFAULT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (decided_by) REFERENCES users (id)
             )
         `);
@@ -88,6 +88,18 @@ const createTables = async () => {
             console.log('✅ 사용자 테이블 gam_balance 컬럼 추가 완료');
         } catch (error) {
             console.log('사용자 테이블 gam_balance 컬럼 추가 스킵 (이미 존재함)');
+        }
+        
+        // 타임존 지원을 위한 TIMESTAMP -> TIMESTAMPTZ 마이그레이션
+        try {
+            // issues 테이블의 timestamp 컬럼들을 timestamptz로 변경
+            await client.query(`ALTER TABLE issues ALTER COLUMN end_date TYPE TIMESTAMPTZ USING end_date AT TIME ZONE 'Asia/Seoul'`);
+            await client.query(`ALTER TABLE issues ALTER COLUMN decided_at TYPE TIMESTAMPTZ USING decided_at AT TIME ZONE 'Asia/Seoul'`);
+            await client.query(`ALTER TABLE issues ALTER COLUMN created_at TYPE TIMESTAMPTZ USING created_at AT TIME ZONE 'Asia/Seoul'`);
+            await client.query(`ALTER TABLE issues ALTER COLUMN updated_at TYPE TIMESTAMPTZ USING updated_at AT TIME ZONE 'Asia/Seoul'`);
+            console.log('✅ 이슈 테이블 타임존 마이그레이션 완료');
+        } catch (error) {
+            console.log('이슈 테이블 타임존 마이그레이션 스킵:', error.message);
         }
         
         // 일일 출석 보상용 컬럼들 추가

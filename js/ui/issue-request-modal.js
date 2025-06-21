@@ -231,11 +231,15 @@ class IssueRequestModal {
         `;
         
         try {
+            // 한국 시간대로 마감일 처리 (관리자 페이지와 동일한 방식)
+            const deadlineLocal = formData.get('deadline');
+            const deadlineKST = deadlineLocal ? new Date(deadlineLocal + '+09:00').toISOString() : null;
+            
             const requestData = {
                 title: formData.get('title'),
                 category: formData.get('category'),
                 description: formData.get('description'),
-                deadline: formData.get('deadline'),
+                deadline: deadlineKST,
                 userId: this.currentUser.id
             };
             
