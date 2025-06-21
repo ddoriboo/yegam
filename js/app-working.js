@@ -3300,6 +3300,7 @@ window.showSuccess = showSuccess;
 window.showInfo = showInfo;
 window.loginWithGoogle = loginWithGoogle;
 window.loginWithGithub = loginWithGithub;
+window.loadMoreComments = loadMoreComments;
 
 // Placeholder functions for other pages
 async function initIssuesPage() {

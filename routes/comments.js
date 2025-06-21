@@ -18,13 +18,13 @@ router.get('/issue/:issueId', async (req, res) => {
                 c.highlight_expires_at,
                 c.created_at,
                 u.username,
-                u.coins,
+                COALESCE(u.gam_balance, u.coins, 0) as coins,
                 COUNT(r.id) as reply_count
             FROM comments c
             JOIN users u ON c.user_id = u.id
             LEFT JOIN comments r ON r.parent_id = c.id
             WHERE c.issue_id = $1 AND c.parent_id IS NULL AND c.deleted_at IS NULL
-            GROUP BY c.id, c.user_id, c.content, c.likes, c.is_highlighted, c.highlight_expires_at, c.created_at, u.username, u.coins
+            GROUP BY c.id, c.user_id, c.content, c.likes, c.is_highlighted, c.highlight_expires_at, c.created_at, u.username, u.gam_balance, u.coins
             ORDER BY c.is_highlighted DESC, c.likes DESC, c.created_at DESC
         `;
         
@@ -43,7 +43,7 @@ router.get('/issue/:issueId', async (req, res) => {
                     c.likes,
                     c.created_at,
                     u.username,
-                    u.coins
+                    COALESCE(u.gam_balance, u.coins, 0) as coins
                 FROM comments c
                 JOIN users u ON c.user_id = u.id
                 WHERE c.parent_id = $1 AND c.deleted_at IS NULL
