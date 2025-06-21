@@ -1846,8 +1846,25 @@ async function placeBetLegacy(issueId, choice) {
                 updateHeader(true);
             }
             
-            // Refresh issues
-            await initHomePage();
+            // Refresh issues based on current page
+            const currentPath = window.location.pathname.split(\"/\").pop();
+            if (currentPath === 'issues.html') {
+                // Reload issues for issues page
+                try {
+                    const response = await fetch('/api/issues');
+                    const data = await response.json();
+                    if (data.success) {
+                        allIssues = data.issues;
+                        issues = data.issues;
+                        renderAllIssuesOnPage();
+                    }
+                } catch (error) {
+                    console.error('Failed to reload issues:', error);
+                }
+            } else {
+                // Refresh home page
+                await initHomePage();
+            }
         } else {
             showError(data.error || data.message || '예측에 실패했습니다.', '베팅 실패');
         }
@@ -2253,7 +2270,9 @@ async function loadResultsData() {
 
 function renderResultRow(issue) {
     const endDate = new Date(issue.end_date);
-    const formattedEndDate = `${endDate.getFullYear()}.${String(endDate.getMonth() + 1).padStart(2, '0')}.${String(endDate.getDate()).padStart(2, '0')}`;
+    // 사용자 페이지와 동일한 시간 포맷 사용
+    const formattedEndDate = formatEndDate(issue.end_date);
+    const timeLeft = getTimeLeft(issue.end_date);
     
     // 임시로 단순화된 데이터 사용
     const totalVolume = issue.total_volume || 0;
@@ -2312,7 +2331,10 @@ function renderResultRow(issue) {
             <td class="px-6 py-4">
                 <span class="px-2 py-1 text-xs font-medium rounded-full ${getCategoryBadgeClass(issue.category)}">${issue.category}</span>
             </td>
-            <td class="px-6 py-4 text-sm text-gray-900">${formattedEndDate}</td>
+            <td class="px-6 py-4">
+                <div class="text-sm font-medium text-gray-900">${formattedEndDate}</div>
+                <div class="text-xs text-gray-500">${timeLeft}</div>
+            </td>
             <td class="px-6 py-4">
                 <div class="text-sm text-gray-900">
                     <div>참여 정보</div>
@@ -2401,8 +2423,8 @@ async function openResultModal(issueId) {
             document.getElementById('result-issue-category').textContent = issue.category;
             
             const endDate = new Date(issue.end_date);
-            document.getElementById('result-issue-end-date').textContent = 
-                `${endDate.getFullYear()}.${String(endDate.getMonth() + 1).padStart(2, '0')}.${String(endDate.getDate()).padStart(2, '0')}`;
+            // 사용자 페이지와 동일한 시간 포맷 사용
+            document.getElementById('result-issue-end-date').textContent = formatEndDate(issue.end_date);
             
             modal.classList.remove('hidden');
         } else {
@@ -2464,16 +2486,38 @@ async function handleCloseIssue(issueId) {
             return;
         }
         
-        const response = await window.adminFetch(`/api/admin/issues/${issueId}/close`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            }
-        });
+        // 먼저 /close 엔드포인트 시도, 실패시 수정 방식으로 폴백
+        let response;
+        let data;
+        
+        try {
+            response = await window.adminFetch(`/api/admin/issues/${issueId}/close`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            data = await response.json();
+        } catch (closeError) {
+            console.log('close 엔드포인트 실패, 수정 방식으로 폴백:', closeError);
+            
+            // 폴백: 이슈의 마감시간을 현재 시간으로 변경
+            const now = new Date();
+            const utcNow = now.toISOString();
+            
+            response = await window.adminFetch(`/api/admin/issues/${issueId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    end_date: utcNow
+                })
+            });
+            data = await response.json();
+        }
         
         console.log('수동 마감 응답 상태:', response.status);
-        
-        const data = await response.json();
         console.log('수동 마감 응답 데이터:', data);
         
         if (data.success || response.ok) {
@@ -2723,7 +2767,12 @@ function renderAdminIssueTable() {
     const tbody = document.getElementById('issues-table-body');
     if (!tbody) return;
     
-    tbody.innerHTML = issues.map(issue => `
+    tbody.innerHTML = issues.map(issue => {
+        const endDate = issue.end_date || issue.endDate;
+        const formattedEndDate = formatEndDate(endDate);
+        const timeLeft = getTimeLeft(endDate);
+        
+        return `
         <tr>
             <td class="px-6 py-4">
                 <div class="text-sm font-medium text-gray-900">${issue.title}</div>
@@ -2733,6 +2782,10 @@ function renderAdminIssueTable() {
                 <span class="px-2 py-1 text-xs font-semibold rounded-full" style="${getCategoryBadgeStyle(issue.category)}">
                     ${issue.category}
                 </span>
+            </td>
+            <td class="px-6 py-4">
+                <div class="text-sm font-medium text-gray-900">${formattedEndDate}</div>
+                <div class="text-xs text-gray-500">${timeLeft}</div>
             </td>
             <td class="px-6 py-4 text-sm text-gray-900">${issue.yesPercentage || issue.yes_price || 50}%</td>
             <td class="px-6 py-4 text-sm text-gray-900">${formatVolume(issue.total_volume || issue.totalVolume || 0)} GAM</td>
@@ -2746,7 +2799,8 @@ function renderAdminIssueTable() {
                 <button onclick="deleteIssue(${issue.id})" class="text-red-600 hover:text-red-900">삭제</button>
             </td>
         </tr>
-    `).join('');
+        `;
+    }).join('');
 }
 
 function setupCreateIssueForm() {
@@ -3273,8 +3327,7 @@ function setupIssuesPageEvents() {
         });
     });
     
-    // Setup comments system for issues page
-    initCommentsSystem();
+    // Comments system already initialized globally, no need to reinitialize
 }
 
 function renderAllIssuesOnPage() {
