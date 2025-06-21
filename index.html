@@ -96,24 +96,33 @@
         <main class="flex-grow">
             <!-- Filters and Sort Section -->
             <section class="container mx-auto px-4 lg:px-8 py-3 border-b border-gray-100">
-                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3">
                     <!-- Category Filters -->
-                    <div class="flex items-center gap-3 flex-wrap">
-                        <span class="text-sm font-medium text-gray-700">카테고리:</span>
-                        <div id="category-filters" class="category-filters-desktop flex flex-wrap gap-2">
-                            <!-- Category filter buttons will be injected here by JavaScript -->
+                    <div class="category-filters-section">
+                        <!-- Desktop Category Filters -->
+                        <div class="category-filters-desktop hidden md:flex items-center gap-3 flex-wrap">
+                            <span class="text-sm font-medium text-gray-700">카테고리:</span>
+                            <div id="category-filters" class="flex flex-wrap gap-2">
+                                <!-- Category filter buttons will be injected here by JavaScript -->
+                            </div>
                         </div>
+                        
                         <!-- Mobile Category Filters -->
-                        <div class="category-filters-mobile">
-                            <div id="category-filters-mobile" class="category-filters-grid">
-                                <!-- Mobile category filter buttons will be injected here by JavaScript -->
+                        <div class="category-filters-mobile md:hidden">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="text-sm font-medium text-gray-700 flex-shrink-0">카테고리:</span>
+                            </div>
+                            <div class="category-scroll-container overflow-x-auto scrollbar-hide">
+                                <div id="category-filters-mobile" class="flex gap-2 pb-1">
+                                    <!-- Mobile category filter buttons will be injected here by JavaScript -->
+                                </div>
                             </div>
                         </div>
                     </div>
                     
                     <!-- Sort Options -->
-                    <div class="flex items-center gap-3">
-                        <span class="text-sm font-medium text-gray-700">정렬:</span>
+                    <div class="flex items-center gap-3 sort-container">
+                        <span class="text-sm font-medium text-gray-700 flex-shrink-0">정렬:</span>
                         <select id="sort-select" class="px-3 py-1.5 border border-gray-300 rounded-lg bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
                             <option value="newest">최신순</option>
                             <option value="popular">인기순</option>

@@ -1020,21 +1020,27 @@ html {
     padding: 0.75rem;
 }
 
-/* Category filters mobile optimization */
-.category-filters-mobile {
-    display: none !important; /* Force hidden by default, shown only on mobile */
-    overflow-x: auto;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
+/* Scrollbar hiding utility */
+.scrollbar-hide {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
 }
 
-.category-filters-mobile::-webkit-scrollbar {
-    display: none;
+.scrollbar-hide::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
 }
 
-/* Desktop category filters - visible by default */
-.category-filters-desktop {
-    display: flex !important; /* Force visible by default on desktop */
+/* Category scroll container */
+.category-scroll-container {
+    /* Smooth scrolling on mobile */
+    scroll-behavior: smooth;
+    /* Prevent vertical scrollbar */
+    overflow-y: hidden;
+}
+
+/* Ensure category buttons don't wrap on mobile */
+.category-filters-mobile #category-filters-mobile {
+    white-space: nowrap;
 }
 
 .category-filters-grid {
@@ -1081,14 +1087,7 @@ html {
     }
     
     
-    /* Category Filters Mobile */
-    .category-filters-desktop {
-        display: none !important;
-    }
-    
-    .category-filters-mobile {
-        display: block !important;
-    }
+    /* Category Filters Mobile - handled by responsive classes in HTML */
     
     /* Issue Cards */
     .issue-card.manifold-style {
@@ -1140,6 +1139,35 @@ html {
     .category-filter-btn {
         padding: 0.5rem 1rem !important; /* Reduced from default */
         font-size: 0.75rem !important; /* Smaller text */
+        flex-shrink: 0 !important; /* Prevent shrinking */
+        white-space: nowrap !important; /* Prevent text wrapping */
+    }
+    
+    /* Mobile category filters specific styling */
+    .category-filters-mobile .category-filter-btn {
+        padding: 0.375rem 0.75rem !important; /* Even more compact for mobile scroll */
+        font-size: 0.7rem !important; /* Smaller text for mobile */
+        min-width: auto !important; /* Allow smaller buttons */
+    }
+    
+    /* Prevent horizontal overflow on mobile */
+    .category-filters-section {
+        overflow: hidden; /* Prevent section from expanding beyond container */
+    }
+    
+    /* Mobile section container fix */
+    .container {
+        overflow-x: hidden; /* Prevent horizontal scroll on main container */
+    }
+    
+    /* Mobile sort section styling */
+    .sort-container {
+        width: 100%;
+    }
+    
+    #sort-select {
+        width: 100%;
+        max-width: 150px;
     }
     
     /* Header User Actions Mobile */
