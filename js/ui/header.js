@@ -186,6 +186,9 @@ async function loadNotifications() {
                 </div>
             `).join('');
             
+            // Lucide 아이콘 초기화 (헤더 드롭다운용)
+            initializeLucideIcons();
+            
             // 알림 아이템 클릭 이벤트
             notificationList.querySelectorAll('.notification-item').forEach(item => {
                 item.addEventListener('click', () => {

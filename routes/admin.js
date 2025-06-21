@@ -366,9 +366,11 @@ router.post('/issues/:id/result', secureAdminMiddleware, async (req, res) => {
         // 보상 계산 및 지급
         if (result === 'Yes' || result === 'No') {
             const winningBets = bets.filter(bet => bet.choice === result);
+            const losingBets = bets.filter(bet => bet.choice !== result);
             const totalPool = bets.reduce((sum, bet) => sum + bet.amount, 0);
             const totalWinningAmount = winningBets.reduce((sum, bet) => sum + bet.amount, 0);
             
+            // 승리자가 있는 경우 보상 지급
             if (totalWinningAmount > 0) {
                 const houseEdge = 0.05; // 5% 수수료
                 const rewardPool = totalPool * (1 - houseEdge);
@@ -414,22 +416,21 @@ router.post('/issues/:id/result', secureAdminMiddleware, async (req, res) => {
                         console.error(`승리 알림 생성 실패: 사용자 ${bet.user_id}:`, notificationError);
                     }
                 }
-                
-                // 패배한 베터들에게 패배 알림 생성
-                const losingBets = bets.filter(bet => bet.choice !== result);
-                for (const bet of losingBets) {
-                    try {
-                        await NotificationService.notifyBettingLoss(
-                            bet.user_id, 
-                            id, 
-                            issue.title, 
-                            bet.amount, 
-                            reason || '예측이 빗나갔습니다.'
-                        );
-                        console.log(`✅ 패배 알림 생성 완료: 사용자 ${bet.user_id}`);
-                    } catch (notificationError) {
-                        console.error(`패배 알림 생성 실패: 사용자 ${bet.user_id}:`, notificationError);
-                    }
+            }
+            
+            // 패배한 베터들에게 패배 알림 생성 (승리자 유무와 관계없이)
+            for (const bet of losingBets) {
+                try {
+                    await NotificationService.notifyBettingLoss(
+                        bet.user_id, 
+                        id, 
+                        issue.title, 
+                        bet.amount, 
+                        reason || '예측이 빗나갔습니다.'
+                    );
+                    console.log(`✅ 패배 알림 생성 완료: 사용자 ${bet.user_id}`);
+                } catch (notificationError) {
+                    console.error(`패배 알림 생성 실패: 사용자 ${bet.user_id}:`, notificationError);
                 }
             }
         } else if (result === 'Draw' || result === 'Cancelled') {

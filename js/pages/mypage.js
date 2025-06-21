@@ -424,6 +424,9 @@ async function loadNotifications(page = 1) {
             }
 
             currentNotificationPage = page;
+            
+            // Lucide 아이콘 초기화 (마이페이지 알림용)
+            initializeLucideIcons();
 
         } else {
             loadingEl.classList.add('hidden');
