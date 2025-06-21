@@ -16,7 +16,7 @@ export function setupAdminFunctions() {
 }
 
 function checkAdminAccess() {
-    const adminToken = localStorage.getItem('yegame-admin-token');
+    const adminToken = localStorage.getItem('admin-token');
     return adminToken && adminToken !== 'null';
 }
 
@@ -81,7 +81,7 @@ async function handleAdminLogin(e) {
         
         if (data.success) {
             // 관리자 토큰 저장 (서버에서 data.token으로 반환함)
-            localStorage.setItem('yegame-admin-token', data.token);
+            localStorage.setItem('admin-token', data.token);
             
             // 성공 메시지
             errorEl.textContent = '관리자 로그인 성공!';
@@ -156,13 +156,8 @@ async function handleCreateIssue(e) {
     };
 
     try {
-        const adminToken = localStorage.getItem('yegame-admin-token');
-        const response = await fetch('/api/admin/issues', {
+        const response = await window.adminFetch('/api/admin/issues', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${adminToken}`
-            },
             body: JSON.stringify(issueData)
         });
         
@@ -173,38 +168,24 @@ async function handleCreateIssue(e) {
             closeModal(document.getElementById('create-issue-modal'), e.target);
             await renderAdminIssueTable();
         } else {
-            // 인증 오류인 경우 로그인 화면으로 리디렉션
-            if (response.status === 401) {
-                localStorage.removeItem('yegame-admin-token');
-                alert('인증이 만료되었습니다. 다시 로그인해주세요.');
-                showAdminLogin();
-                return;
-            }
             alert(`이슈 생성에 실패했습니다: ${result.message}`);
         }
     } catch (error) {
         console.error('이슈 생성 오류:', error);
-        alert('이슈 생성 중 오류가 발생했습니다.');
+        if (error.message && error.message.includes('인증')) {
+            showAdminLogin();
+        } else {
+            alert('이슈 생성 중 오류가 발생했습니다.');
+        }
     }
 }
 
 async function renderAdminIssueTable() {
     try {
-        const adminToken = localStorage.getItem('yegame-admin-token');
-        const response = await fetch('/api/admin/issues', {
-            headers: {
-                'Authorization': `Bearer ${adminToken}`
-            }
-        });
+        const response = await window.adminFetch('/api/admin/issues');
         const data = await response.json();
         
         if (!data.success) {
-            // 인증 오류인 경우 로그인 화면으로 리디렉션
-            if (response.status === 401) {
-                localStorage.removeItem('yegame-admin-token');
-                showAdminLogin();
-                return;
-            }
             throw new Error(data.message || '데이터 로딩 실패');
         }
         
@@ -239,9 +220,13 @@ async function renderAdminIssueTable() {
     `).join('');
     } catch (error) {
         console.error('데이터 로딩 중 오류가 발생했습니다:', error);
-        const tbody = document.getElementById('issues-table-body');
-        if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-red-600">데이터 로딩 중 오류가 발생했습니다: ' + error.message + '</td></tr>';
+        if (error.message && error.message.includes('인증')) {
+            showAdminLogin();
+        } else {
+            const tbody = document.getElementById('issues-table-body');
+            if (tbody) {
+                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-red-600">데이터 로딩 중 오류가 발생했습니다: ' + error.message + '</td></tr>';
+            }
         }
     }
 }
@@ -318,19 +303,14 @@ function setupAdminHeader() {
 
 function handleAdminLogout() {
     if (confirm('정말 로그아웃 하시겠습니까?')) {
-        localStorage.removeItem('yegame-admin-token');
+        localStorage.removeItem('admin-token');
         showAdminLogin();
     }
 }
 
 async function showAdminProfile() {
     try {
-        const adminToken = localStorage.getItem('yegame-admin-token');
-        const response = await fetch('/api/admin-auth/profile', {
-            headers: {
-                'Authorization': `Bearer ${adminToken}`
-            }
-        });
+        const response = await window.adminFetch('/api/admin-auth/profile');
         
         const data = await response.json();
         
