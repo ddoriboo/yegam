@@ -2455,21 +2455,43 @@ async function handleCloseIssue(issueId) {
     if (!confirm('이슈를 수동으로 마감하시겠습니까?')) return;
     
     try {
+        console.log('수동 마감 시작 - 이슈 ID:', issueId);
+        
+        // adminFetch 함수 확인
+        if (!window.adminFetch) {
+            console.error('adminFetch 함수를 찾을 수 없습니다.');
+            alert('관리자 인증이 필요합니다. 다시 로그인해주세요.');
+            return;
+        }
+        
         const response = await window.adminFetch(`/api/admin/issues/${issueId}/close`, {
-            method: 'POST'
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
         
-        const data = await response.json();
+        console.log('수동 마감 응답 상태:', response.status);
         
-        if (data.success) {
-            alert(data.message);
-            loadResultsData(); // 테이블 새로고침
+        const data = await response.json();
+        console.log('수동 마감 응답 데이터:', data);
+        
+        if (data.success || response.ok) {
+            alert(data.message || '이슈가 성공적으로 마감되었습니다.');
+            await loadResultsData(); // 테이블 새로고침
         } else {
-            alert(data.message || '이슈 마감에 실패했습니다.');
+            console.error('수동 마감 실패:', data);
+            alert(data.message || data.error || '이슈 마감에 실패했습니다.');
         }
     } catch (error) {
         console.error('이슈 마감 실패:', error);
-        alert('이슈 마감 중 오류가 발생했습니다.');
+        if (error.message.includes('Failed to fetch')) {
+            alert('네트워크 연결을 확인해주세요.');
+        } else if (error.message.includes('401') || error.message.includes('403')) {
+            alert('관리자 권한이 없습니다. 다시 로그인해주세요.');
+        } else {
+            alert('이슈 마감 중 오류가 발생했습니다: ' + error.message);
+        }
     }
 }
 
@@ -2812,11 +2834,32 @@ function setupCreateIssueForm() {
             const issueId = e.target.issueId.value;
             const title = e.target.title.value;
             const category = e.target.category.value;
-            const endDate = e.target.endDate.value;
+            const endDateValue = e.target.endDate.value;
             const description = e.target.description.value;
             const imageUrl = e.target.imageUrl.value;
             const yesPrice = e.target.yesPrice.value;
             const isPopular = e.target.isPopular.checked;
+            
+            // 시간 처리 개선: datetime-local 값을 올바른 ISO 시간으로 변환
+            let processedEndDate = endDateValue;
+            if (endDateValue) {
+                // datetime-local은 로컬 시간을 반환하므로, 한국 시간으로 간주
+                const localDate = new Date(endDateValue);
+                console.log('입력된 로컬 시간:', localDate);
+                
+                // 한국 시간대(UTC+9)를 고려하여 UTC로 변환
+                const utcDate = new Date(localDate.getTime() - (9 * 60 * 60 * 1000));
+                processedEndDate = utcDate.toISOString();
+                console.log('서버로 전송할 UTC 시간:', processedEndDate);
+                
+                // 과거 시간 체크 (현재 한국 시간과 비교)
+                const nowKorea = new Date();
+                if (localDate <= nowKorea) {
+                    if (!confirm('마감 시간이 현재 시간보다 이전입니다. 이슈가 즉시 마감처리됩니다. 계속하시겠습니까?')) {
+                        return;
+                    }
+                }
+            }
             
             try {
                 const response = await window.adminFetch(`/api/admin/issues/${issueId}`, {
@@ -2824,7 +2867,7 @@ function setupCreateIssueForm() {
                     body: JSON.stringify({
                         title,
                         category,
-                        end_date: endDate,
+                        end_date: processedEndDate,
                         description,
                         image_url: imageUrl,
                         yes_price: parseInt(yesPrice),
@@ -2837,9 +2880,13 @@ function setupCreateIssueForm() {
                 if (data.success || response.ok) {
                     alert('이슈가 성공적으로 수정되었습니다!');
                     document.getElementById('edit-issue-modal').classList.add('hidden');
+                    
+                    // 이슈 목록과 결과 관리 모두 새로고침
                     await loadAdminIssues();
+                    await loadResultsData();
                 } else {
-                    alert(data.message || '이슈 수정에 실패했습니다.');
+                    console.error('이슈 수정 실패:', data);
+                    alert(data.message || data.error || '이슈 수정에 실패했습니다.');
                 }
             } catch (error) {
                 console.error('Issue update failed:', error);
@@ -3000,15 +3047,18 @@ async function editIssue(issueId) {
         document.getElementById('edit-issue-yes-price').value = issue.yes_price || issue.yesPrice || 50;
         document.getElementById('edit-issue-popular').checked = issue.is_popular || issue.isPopular || false;
         
-        // Format end date for datetime-local input
+        // Format end date for datetime-local input (한국 시간대 고려)
         const endDate = new Date(issue.end_date || issue.endDate);
         if (!isNaN(endDate.getTime())) {
-            const year = endDate.getFullYear();
-            const month = String(endDate.getMonth() + 1).padStart(2, '0');
-            const day = String(endDate.getDate()).padStart(2, '0');
-            const hours = String(endDate.getHours()).padStart(2, '0');
-            const minutes = String(endDate.getMinutes()).padStart(2, '0');
+            // UTC 시간을 한국 시간으로 변환
+            const koreaTime = new Date(endDate.getTime() + (9 * 60 * 60 * 1000));
+            const year = koreaTime.getFullYear();
+            const month = String(koreaTime.getMonth() + 1).padStart(2, '0');
+            const day = String(koreaTime.getDate()).padStart(2, '0');
+            const hours = String(koreaTime.getHours()).padStart(2, '0');
+            const minutes = String(koreaTime.getMinutes()).padStart(2, '0');
             document.getElementById('edit-issue-end-date').value = `${year}-${month}-${day}T${hours}:${minutes}`;
+            console.log('이슈 수정 폼 - 원본 시간:', endDate, '표시 시간:', `${year}-${month}-${day}T${hours}:${minutes}`);
         }
         
         // Handle existing image
