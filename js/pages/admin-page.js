@@ -16,12 +16,8 @@ export function setupAdminFunctions() {
 }
 
 function checkAdminAccess() {
-    // 임시로 항상 true 반환 (토큰 없어도 접근 허용)
-    return true;
-    
-    // 원래 코드 (나중에 복원용)
-    // const adminToken = localStorage.getItem('yegame-admin-token');
-    // return adminToken && adminToken !== 'null';
+    const adminToken = localStorage.getItem('yegame-admin-token');
+    return adminToken && adminToken !== 'null';
 }
 
 function showAdminLogin() {
@@ -73,19 +69,19 @@ async function handleAdminLogin(e) {
     submitBtn.textContent = '로그인 중...';
     
     try {
-        const response = await fetch('/api/admin/auth/login', {
+        const response = await fetch('/api/admin-auth/login', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify({ username: email, password })
         });
         
         const data = await response.json();
         
         if (data.success) {
-            // 관리자 토큰 저장
-            localStorage.setItem('yegame-admin-token', data.adminToken);
+            // 관리자 토큰 저장 (서버에서 data.token으로 반환함)
+            localStorage.setItem('yegame-admin-token', data.token);
             
             // 성공 메시지
             errorEl.textContent = '관리자 로그인 성공!';
@@ -160,10 +156,12 @@ async function handleCreateIssue(e) {
     };
 
     try {
+        const adminToken = localStorage.getItem('yegame-admin-token');
         const response = await fetch('/api/admin/issues', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${adminToken}`
             },
             body: JSON.stringify(issueData)
         });
@@ -175,6 +173,13 @@ async function handleCreateIssue(e) {
             closeModal(document.getElementById('create-issue-modal'), e.target);
             await renderAdminIssueTable();
         } else {
+            // 인증 오류인 경우 로그인 화면으로 리디렉션
+            if (response.status === 401) {
+                localStorage.removeItem('yegame-admin-token');
+                alert('인증이 만료되었습니다. 다시 로그인해주세요.');
+                showAdminLogin();
+                return;
+            }
             alert(`이슈 생성에 실패했습니다: ${result.message}`);
         }
     } catch (error) {
@@ -185,10 +190,21 @@ async function handleCreateIssue(e) {
 
 async function renderAdminIssueTable() {
     try {
-        const response = await fetch('/api/admin/issues');
+        const adminToken = localStorage.getItem('yegame-admin-token');
+        const response = await fetch('/api/admin/issues', {
+            headers: {
+                'Authorization': `Bearer ${adminToken}`
+            }
+        });
         const data = await response.json();
         
         if (!data.success) {
+            // 인증 오류인 경우 로그인 화면으로 리디렉션
+            if (response.status === 401) {
+                localStorage.removeItem('yegame-admin-token');
+                showAdminLogin();
+                return;
+            }
             throw new Error(data.message || '데이터 로딩 실패');
         }
         
@@ -310,7 +326,7 @@ function handleAdminLogout() {
 async function showAdminProfile() {
     try {
         const adminToken = localStorage.getItem('yegame-admin-token');
-        const response = await fetch('/api/admin/auth/profile', {
+        const response = await fetch('/api/admin-auth/profile', {
             headers: {
                 'Authorization': `Bearer ${adminToken}`
             }
