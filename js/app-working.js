@@ -1187,7 +1187,7 @@ function renderComments(comments) {
 }
 
 // 더보기 댓글 로드 함수
-function loadMoreComments(issueId) {
+window.loadMoreComments = function(issueId) {
     const pagination = commentsPagination.get(issueId);
     if (!pagination) return;
     
@@ -3288,13 +3288,20 @@ function showInfo(message, title = '알림') {
     }
 }
 
-// 전역으로 함수들 노출
+// 전역으로 함수들 노출 (ES6 모듈에서 onclick 접근을 위해)
 window.showError = showError;
 window.showSuccess = showSuccess;
 window.showInfo = showInfo;
 window.loginWithGoogle = loginWithGoogle;
 window.loginWithGithub = loginWithGithub;
+window.logout = logout;
 window.loadMoreComments = loadMoreComments;
+window.scrollToIssueInAllSection = scrollToIssueInAllSection;
+window.selectSearchResult = selectSearchResult;
+window.placeBet = placeBet;
+window.editIssue = editIssue;
+window.deleteIssue = deleteIssue;
+window.showIssueRequestDetails = showIssueRequestDetails;
 
 // Placeholder functions for other pages
 async function initIssuesPage() {
