@@ -1,4 +1,6 @@
 // Complete working app with API integration
+import { getUserTier, createTierDisplay } from './utils/tier-utils.js';
+
 console.log('🚀 Working app starting...');
 
 // Global state
@@ -3481,23 +3483,13 @@ async function loadMyPageData() {
 
 // 사용자 티어 업데이트 함수
 function updateUserTier(gamAmount) {
-    if (typeof window.TierSystem === 'undefined') {
-        console.warn('TierSystem not loaded');
-        return;
-    }
-    
-    const tierInfo = window.TierSystem.calculateTier(gamAmount);
+    const tierInfo = getUserTier(gamAmount);
     
     // 사용자 프로필 티어 아이콘 표시 (큰 크기)
     const tierIconEl = document.getElementById('user-tier-icon');
     if (tierIconEl) {
-        // 기존 스타일을 유지하면서 티어 정보로 업데이트
-        tierIconEl.style.color = tierInfo.color;
-        tierIconEl.style.backgroundColor = tierInfo.bgColor;
-        tierIconEl.style.borderColor = tierInfo.borderColor;
-        tierIconEl.style.border = `3px solid ${tierInfo.borderColor}`;
         tierIconEl.innerHTML = `
-            <div class="text-4xl" title="${tierInfo.name} (${tierInfo.gamAmount.toLocaleString()} GAM)">
+            <div class="text-4xl" title="${tierInfo.name} (${tierInfo.minGam.toLocaleString()} GAM 이상)">
                 ${tierInfo.icon}
             </div>
         `;
@@ -3506,13 +3498,14 @@ function updateUserTier(gamAmount) {
     // 티어 뱃지 표시
     const tierBadgeEl = document.getElementById('user-tier-badge');
     if (tierBadgeEl) {
-        tierBadgeEl.innerHTML = window.TierSystem.generateTierBadge(tierInfo, 'md');
+        tierBadgeEl.innerHTML = createTierDisplay(tierInfo, true);
     }
     
     // 향상된 티어 진행률 표시
     const tierProgressEl = document.getElementById('user-tier-progress');
     if (tierProgressEl) {
-        tierProgressEl.innerHTML = generateEnhancedTierProgress(tierInfo);
+        // 향상된 티어 진행률은 간단하게 처리
+        tierProgressEl.innerHTML = `<div class="text-sm text-gray-600">현재 등급: ${tierInfo.name}</div>`;
     }
 }
 
@@ -3595,42 +3588,30 @@ function generateEnhancedTierProgress(tierInfo) {
 
 // 댓글 시스템용 티어 뱃지 생성
 function generateCommentTierBadge(userCoins) {
-    if (typeof window.TierSystem === 'undefined') {
-        return '';
-    }
-    
-    const tierInfo = window.TierSystem.calculateTier(userCoins || 0);
-    return window.TierSystem.generateTierBadge(tierInfo, 'sm');
+    const tierInfo = getUserTier(userCoins || 0);
+    return createTierDisplay(tierInfo, true);
 }
 
 // 댓글 시스템용 티어 아이콘 생성 (아바타 대체용)
 function generateCommentTierIcon(userCoins) {
-    if (typeof window.TierSystem === 'undefined') {
-        // 기본 아바타 폴백
-        return `
-            <div class="w-8 h-8 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                ?
-            </div>
-        `;
-    }
-    
-    const tierInfo = window.TierSystem.calculateTier(userCoins || 0);
-    return window.TierSystem.generateTierIcon(tierInfo, 'md');
+    const tierInfo = getUserTier(userCoins || 0);
+    return `
+        <div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-medium" 
+             title="${tierInfo.name}">
+            ${tierInfo.icon}
+        </div>
+    `;
 }
 
 // 답글 시스템용 티어 아이콘 생성 (작은 크기)
 function generateReplyTierIcon(userCoins) {
-    if (typeof window.TierSystem === 'undefined') {
-        // 기본 아바타 폴백
-        return `
-            <div class="w-6 h-6 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center text-white text-xs font-medium">
-                ?
-            </div>
-        `;
-    }
-    
-    const tierInfo = window.TierSystem.calculateTier(userCoins || 0);
-    return window.TierSystem.generateTierIcon(tierInfo, 'sm');
+    const tierInfo = getUserTier(userCoins || 0);
+    return `
+        <div class="w-6 h-6 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center text-white text-xs font-medium" 
+             title="${tierInfo.name}">
+            ${tierInfo.icon}
+        </div>
+    `;
 }
 
 async function loadUserBets() {
