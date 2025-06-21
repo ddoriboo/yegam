@@ -1,7 +1,7 @@
 import * as backend from '../backend.js';
 import { APP_CONFIG, MESSAGES } from '../../config/constants.js';
 import { getCategoryBadgeStyle } from '../ui/issue-card.js';
-import { formatVolume } from '../../utils/formatters.js';
+import { formatVolume, timeUntil, formatDate } from '../../utils/formatters.js';
 
 export async function renderAdminPage() {
     if (!checkAdminAccess()) {
@@ -146,11 +146,15 @@ async function handleCreateIssue(e) {
     e.preventDefault();
     const formData = new FormData(e.target);
     
+    // 한국 시간대로 마감일 처리
+    const endDateLocal = formData.get('endDate');
+    const endDateKST = endDateLocal ? new Date(endDateLocal + '+09:00').toISOString() : null;
+    
     const issueData = {
         title: formData.get('title'),
         category: formData.get('category'),
         description: formData.get('description') || '',
-        end_date: formData.get('endDate'),
+        end_date: endDateKST,
         yes_price: parseInt(formData.get('yesPrice')) || 50,
         image_url: formData.get('image_url') || null
     };
@@ -205,6 +209,10 @@ async function renderAdminIssueTable() {
                     ${issue.category}
                 </span>
             </td>
+            <td class="px-6 py-4">
+                <div class="text-sm font-medium text-gray-900">${timeUntil(issue.end_date || issue.endDate)}</div>
+                <div class="text-xs text-gray-500">${formatDate(issue.end_date || issue.endDate)}</div>
+            </td>
             <td class="px-6 py-4 text-sm text-gray-900">${issue.yesPrice}%</td>
             <td class="px-6 py-4 text-sm text-gray-900">${formatVolume(issue.totalVolume)} 감</td>
             <td class="px-6 py-4">
@@ -214,6 +222,7 @@ async function renderAdminIssueTable() {
             </td>
             <td class="px-6 py-4 text-sm space-x-2">
                 <button onclick="editIssue(${issue.id})" class="text-blue-600 hover:text-blue-900">수정</button>
+                <button onclick="closeIssueManually(${issue.id})" class="text-orange-600 hover:text-orange-900">수동마감</button>
                 <button onclick="deleteIssue(${issue.id})" class="text-red-600 hover:text-red-900">삭제</button>
             </td>
         </tr>
@@ -269,6 +278,29 @@ window.editIssue = async function(issueId) {
         }
     } catch (error) {
         alert('이슈 수정에 실패했습니다: ' + error.message);
+    }
+};
+
+// 수동 마감 함수 추가
+window.closeIssueManually = async function(issueId) {
+    if (!confirm('이 이슈를 수동으로 마감하시겠습니까?')) return;
+    
+    try {
+        const response = await window.adminFetch(`/api/admin/issues/${issueId}/close`, {
+            method: 'POST'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('이슈가 성공적으로 마감되었습니다.');
+            await renderAdminIssueTable();
+        } else {
+            alert(`이슈 마감에 실패했습니다: ${result.message}`);
+        }
+    } catch (error) {
+        console.error('수동 마감 오류:', error);
+        alert('이슈 마감 중 오류가 발생했습니다: ' + error.message);
     }
 };
 

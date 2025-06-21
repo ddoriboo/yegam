@@ -308,11 +308,29 @@ class BettingModal {
                     console.log('GAM 잔액 업데이트:', data.currentBalance);
                 }
                 
-                // 페이지 새로고침 (이슈 목록 업데이트)
-                if (typeof initHomePage === 'function') {
+                // 페이지별 새로고침 (이슈 목록 업데이트)
+                const currentPath = window.location.pathname.split("/").pop();
+                if (currentPath === 'issues.html') {
+                    // Issues 페이지: 필터 상태 유지하며 목록만 새로고침
+                    try {
+                        const response = await fetch('/api/issues');
+                        const issueData = await response.json();
+                        if (issueData.success) {
+                            window.allIssues = issueData.issues;
+                            window.issues = issueData.issues;
+                            
+                            if (typeof renderAllIssuesOnPage === 'function') {
+                                renderAllIssuesOnPage();
+                            } else {
+                                await initIssuesPage();
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Failed to reload issues:', error);
+                        await initIssuesPage();
+                    }
+                } else if (typeof initHomePage === 'function') {
                     await initHomePage();
-                } else if (typeof initIssuesPage === 'function') {
-                    await initIssuesPage();
                 } else if (typeof loadIssues === 'function') {
                     loadIssues();
                 }

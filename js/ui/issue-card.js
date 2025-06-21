@@ -25,8 +25,8 @@ export function createIssueCard(issue) {
                 <div class="text-xs text-gray-500 flex items-center">
                     <i data-lucide="clock" class="w-3 h-3 mr-1.5 flex-shrink-0"></i>
                     <div class="flex flex-col leading-tight">
-                        <span class="font-medium">${timeUntil(issue.endDate)}</span>
-                        <span class="text-gray-400 text-[10px]">${formatDate(issue.endDate)}</span>
+                        <span class="font-medium">${timeUntil(issue.end_date || issue.endDate)}</span>
+                        <span class="text-gray-400 text-[10px]">${formatDate(issue.end_date || issue.endDate)}</span>
                     </div>
                 </div>
             </div>

@@ -605,7 +605,7 @@ function renderPopularIssues() {
                                 <div class="text-xs text-gray-500 flex items-center">
                                     <i data-lucide="clock" class="w-3 h-3 mr-1 flex-shrink-0"></i>
                                     <div class="flex flex-col leading-tight">
-                                        <span class="font-medium">${timeLeft}</span>
+                                        <span class="font-medium">${getTimeLeft(issue.end_date || issue.endDate)}</span>
                                         <span class="text-gray-400 text-[9px]">${formatEndDate(issue.end_date || issue.endDate)}</span>
                                     </div>
                                 </div>
@@ -922,7 +922,7 @@ function performHeaderSearch(query) {
                             <div class="text-xs text-gray-500 flex items-center">
                                 <i data-lucide="clock" class="w-3 h-3 mr-1 flex-shrink-0"></i>
                                 <div class="flex flex-col leading-tight">
-                                    <span class="font-medium">${timeLeft}</span>
+                                    <span class="font-medium">${getTimeLeft(issue.end_date || issue.endDate)}</span>
                                     <span class="text-gray-400 text-[9px]">${formatEndDate(issue.end_date || issue.endDate)}</span>
                                 </div>
                             </div>
@@ -1856,10 +1856,24 @@ async function placeBetLegacy(issueId, choice) {
                     if (data.success) {
                         allIssues = data.issues;
                         issues = data.issues;
-                        renderAllIssuesOnPage();
+                        console.log('Issues reloaded for issues.html, count:', allIssues.length);
+                        
+                        // renderAllIssuesOnPage 함수가 존재하는지 확인
+                        if (typeof renderAllIssuesOnPage === 'function') {
+                            renderAllIssuesOnPage();
+                        } else {
+                            console.error('renderAllIssuesOnPage function not found');
+                            // 폴백: 페이지 새로고침
+                            window.location.reload();
+                        }
+                    } else {
+                        console.error('Failed to load issues:', data);
+                        throw new Error(data.message || 'API request failed');
                     }
                 } catch (error) {
                     console.error('Failed to reload issues:', error);
+                    // 폴백: 페이지 새로고침
+                    window.location.reload();
                 }
             } else {
                 // Refresh home page
@@ -2269,10 +2283,13 @@ async function loadResultsData() {
 }
 
 function renderResultRow(issue) {
-    const endDate = new Date(issue.end_date);
-    // 사용자 페이지와 동일한 시간 포맷 사용
-    const formattedEndDate = formatEndDate(issue.end_date);
-    const timeLeft = getTimeLeft(issue.end_date);
+    // 필드명 통일 및 시간 포맷 통일
+    const endDate = issue.end_date || issue.endDate;
+    const formattedEndDate = formatEndDate(endDate);
+    const timeLeft = getTimeLeft(endDate);
+    
+    // 디버깅을 위한 로그
+    console.log('Result row - Issue:', issue.id, 'EndDate:', endDate, 'Formatted:', formattedEndDate);
     
     // 임시로 단순화된 데이터 사용
     const totalVolume = issue.total_volume || 0;
@@ -2424,7 +2441,9 @@ async function openResultModal(issueId) {
             
             const endDate = new Date(issue.end_date);
             // 사용자 페이지와 동일한 시간 포맷 사용
-            document.getElementById('result-issue-end-date').textContent = formatEndDate(issue.end_date);
+            const endDate = issue.end_date || issue.endDate;
+            document.getElementById('result-issue-end-date').textContent = formatEndDate(endDate);
+            console.log('Result modal - Issue:', issue.id, 'EndDate:', endDate);
             
             modal.classList.remove('hidden');
         } else {
@@ -2768,9 +2787,13 @@ function renderAdminIssueTable() {
     if (!tbody) return;
     
     tbody.innerHTML = issues.map(issue => {
+        // 필드명 통일: 사용자 페이지와 동일하게 endDate 사용
         const endDate = issue.end_date || issue.endDate;
         const formattedEndDate = formatEndDate(endDate);
         const timeLeft = getTimeLeft(endDate);
+        
+        // 디버깅을 위한 로그
+        console.log('Admin table - Issue:', issue.id, 'EndDate:', endDate, 'Formatted:', formattedEndDate);
         
         return `
         <tr>
@@ -2894,21 +2917,18 @@ function setupCreateIssueForm() {
             const yesPrice = e.target.yesPrice.value;
             const isPopular = e.target.isPopular.checked;
             
-            // 시간 처리 개선: datetime-local 값을 올바른 ISO 시간으로 변환
+            // 한국 시간대로 마감일 처리
             let processedEndDate = endDateValue;
             if (endDateValue) {
-                // datetime-local은 로컬 시간을 반환하므로, 한국 시간으로 간주
-                const localDate = new Date(endDateValue);
-                console.log('입력된 로컬 시간:', localDate);
-                
-                // 한국 시간대(UTC+9)를 고려하여 UTC로 변환
-                const utcDate = new Date(localDate.getTime() - (9 * 60 * 60 * 1000));
-                processedEndDate = utcDate.toISOString();
+                // datetime-local 값을 한국 시간대로 명시적으로 처리
+                processedEndDate = new Date(endDateValue + '+09:00').toISOString();
+                console.log('관리자 입력 시간:', endDateValue);
                 console.log('서버로 전송할 UTC 시간:', processedEndDate);
                 
-                // 과거 시간 체크 (현재 한국 시간과 비교)
-                const nowKorea = new Date();
-                if (localDate <= nowKorea) {
+                // 과거 시간 체크
+                const inputDateKST = new Date(endDateValue + '+09:00');
+                const nowKST = new Date();
+                if (inputDateKST <= nowKST) {
                     if (!confirm('마감 시간이 현재 시간보다 이전입니다. 이슈가 즉시 마감처리됩니다. 계속하시겠습니까?')) {
                         return;
                     }
@@ -3101,18 +3121,15 @@ async function editIssue(issueId) {
         document.getElementById('edit-issue-yes-price').value = issue.yes_price || issue.yesPrice || 50;
         document.getElementById('edit-issue-popular').checked = issue.is_popular || issue.isPopular || false;
         
-        // Format end date for datetime-local input (한국 시간대 고려)
+        // Format end date for datetime-local input (한국 시간대 적용)
         const endDate = new Date(issue.end_date || issue.endDate);
         if (!isNaN(endDate.getTime())) {
-            // UTC 시간을 한국 시간으로 변환
-            const koreaTime = new Date(endDate.getTime() + (9 * 60 * 60 * 1000));
-            const year = koreaTime.getFullYear();
-            const month = String(koreaTime.getMonth() + 1).padStart(2, '0');
-            const day = String(koreaTime.getDate()).padStart(2, '0');
-            const hours = String(koreaTime.getHours()).padStart(2, '0');
-            const minutes = String(koreaTime.getMinutes()).padStart(2, '0');
-            document.getElementById('edit-issue-end-date').value = `${year}-${month}-${day}T${hours}:${minutes}`;
-            console.log('이슈 수정 폼 - 원본 시간:', endDate, '표시 시간:', `${year}-${month}-${day}T${hours}:${minutes}`);
+            // 한국 시간대로 datetime-local 형식 생성
+            const datetimeLocal = endDate.toLocaleString('sv-SE', {
+                timeZone: 'Asia/Seoul'
+            }).replace(' ', 'T').slice(0, 16);
+            document.getElementById('edit-issue-end-date').value = datetimeLocal;
+            console.log('이슈 수정 폼 - 원본 UTC:', endDate.toISOString(), '한국시간 표시:', datetimeLocal);
         }
         
         // Handle existing image
@@ -3179,13 +3196,15 @@ function formatEndDate(endDate) {
     const date = new Date(endDate);
     if (isNaN(date.getTime())) return '';
     
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    
-    return `${year}.${month}.${day} ${hours}:${minutes}`;
+    // 한국 시간대로 표시 (사용자 페이지와 동일)
+    return date.toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: '2-digit', 
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+    }).replace(/\. /g, '.').replace(/\.$/, '').replace(/ /g, ' ');
 }
 
 function formatVolume(volume) {

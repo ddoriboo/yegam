@@ -43,13 +43,18 @@ function timeUntil(date) {
  */
 function formatDate(date) {
     const d = new Date(date);
+    if (isNaN(d.getTime())) return '';
+    
+    // 한국 시간대로 강제 설정하여 관리자 페이지와 시간 일치
     return d.toLocaleDateString('ko-KR', {
         year: 'numeric',
-        month: 'long',
-        day: 'numeric',
+        month: '2-digit', 
+        day: '2-digit',
         hour: '2-digit',
-        minute: '2-digit'
-    });
+        minute: '2-digit',
+        hour12: false,
+        timeZone: 'Asia/Seoul'
+    }).replace(/\. /g, '.').replace(/\.$/, '').replace(/ /g, ' ');
 }
 
 /**
