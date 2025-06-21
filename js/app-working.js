@@ -284,14 +284,6 @@ async function initHomePage() {
             renderPopularIssues();
             renderAllIssues();
             
-            // Handle anchor links
-            if (window.location.hash === '#all-issues') {
-                setTimeout(() => {
-                    document.getElementById('all-issues-section').scrollIntoView({ 
-                        behavior: 'smooth' 
-                    });
-                }, 500);
-            }
         } else {
             throw new Error(data.message || 'Failed to load issues');
         }
@@ -686,12 +678,45 @@ function getCategoryBadgeStyle(category) {
 
 // Scroll to issue in all section
 function scrollToIssueInAllSection(issueId) {
+    // First, ensure the issue is visible by loading all issues if needed
+    const itemsPerPage = 6;
+    let filteredIssues = allIssues;
+    
+    // Apply current category filter to match the display
+    if (currentCategory !== '전체') {
+        filteredIssues = filteredIssues.filter(issue => issue.category === currentCategory);
+    }
+    
+    // Apply current search filter to match the display
+    if (currentSearch) {
+        filteredIssues = filteredIssues.filter(issue => 
+            issue.title.toLowerCase().includes(currentSearch.toLowerCase())
+        );
+    }
+    
+    // Find the index of the target issue
+    const issueIndex = filteredIssues.findIndex(issue => issue.id === issueId);
+    
+    if (issueIndex === -1) {
+        console.warn('Issue not found in current filter:', issueId);
+        return;
+    }
+    
+    // Calculate which page the issue is on
+    const targetPage = Math.ceil((issueIndex + 1) / itemsPerPage);
+    
+    // Load enough pages to include the target issue
+    if (targetPage > currentPage) {
+        currentPage = targetPage;
+        renderAllIssues(); // Re-render with more pages
+    }
+    
     // Scroll to all issues section first
     document.getElementById('all-issues-section').scrollIntoView({ 
         behavior: 'smooth' 
     });
     
-    // Wait for scroll to complete, then highlight the issue
+    // Wait for scroll and render to complete, then highlight the issue
     setTimeout(() => {
         const issueCard = document.querySelector(`[data-id="${issueId}"]`);
         if (issueCard) {
@@ -709,8 +734,10 @@ function scrollToIssueInAllSection(issueId) {
                 issueCard.style.boxShadow = '';
                 issueCard.style.transform = '';
             }, 2000);
+        } else {
+            console.warn('Issue card not found after loading:', issueId);
         }
-    }, 500);
+    }, 800); // Increased timeout to allow for render completion
 }
 
 // Setup scroll to top functionality
