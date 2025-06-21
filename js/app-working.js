@@ -22,6 +22,63 @@ window.forceUpdateHeader = () => {
     }
 };
 
+// 실시간 사용자 정보 동기화 함수
+async function refreshUserInfo() {
+    if (!userToken || !currentUser) return;
+    
+    try {
+        const response = await fetch('/api/auth/verify', {
+            headers: {
+                'Authorization': `Bearer ${userToken}`
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success && data.user) {
+            // 사용자 정보가 변경된 경우에만 업데이트
+            if (JSON.stringify(currentUser) !== JSON.stringify(data.user)) {
+                currentUser = data.user;
+                window.currentUser = currentUser;
+                
+                // sessionStorage도 업데이트
+                sessionStorage.setItem('yegame-user', JSON.stringify(currentUser));
+                
+                // 헤더 업데이트
+                updateHeader(true);
+                
+                console.log('User info refreshed:', currentUser.username, 'GAM:', currentUser.gam_balance || currentUser.coins);
+            }
+        }
+    } catch (error) {
+        console.error('Failed to refresh user info:', error);
+    }
+}
+
+// 실시간 사용자 정보 동기화 설정
+function setupUserInfoSync() {
+    // 페이지 포커스 시 사용자 정보 갱신
+    document.addEventListener('visibilitychange', async () => {
+        if (!document.hidden && currentUser) {
+            await refreshUserInfo();
+        }
+    });
+    
+    // 윈도우 포커스 시 사용자 정보 갱신
+    window.addEventListener('focus', async () => {
+        if (currentUser) {
+            await refreshUserInfo();
+        }
+    });
+    
+    // 5분마다 사용자 정보 갱신 (백그라운드에서)
+    setInterval(async () => {
+        if (currentUser && !document.hidden) {
+            await refreshUserInfo();
+        }
+    }, 5 * 60 * 1000); // 5분
+}
+
 // Comments pagination state
 const commentsPagination = new Map(); // issueId -> { currentPage, totalComments, allComments }
 
@@ -41,6 +98,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Initialize comments system
     initCommentsSystem();
+    
+    // Initialize real-time user info sync
+    setupUserInfoSync();
     
     // Initialize the application based on current page
     const path = window.location.pathname.split("/").pop();
@@ -118,9 +178,26 @@ function updateHeader(isLoggedIn) {
     updateIssueRequestButtons(isLoggedIn);
     
     if (isLoggedIn && currentUser) {
-        // 최신 사용자 정보를 sessionStorage에서 가져오기 (베팅 후 업데이트된 정보)
+        // 사용자 정보 우선순위: currentUser > sessionStorage (만료된 데이터 방지)
+        let latestUser = currentUser;
         const sessionUser = sessionStorage.getItem('yegame-user');
-        const latestUser = sessionUser ? JSON.parse(sessionUser) : currentUser;
+        
+        // sessionStorage에 데이터가 있고, currentUser와 같은 사용자인 경우만 사용
+        if (sessionUser) {
+            try {
+                const sessionUserData = JSON.parse(sessionUser);
+                if (sessionUserData.id === currentUser.id && sessionUserData.username === currentUser.username) {
+                    latestUser = sessionUserData;
+                } else {
+                    // 다른 사용자의 데이터라면 삭제
+                    sessionStorage.removeItem('yegame-user');
+                }
+            } catch (error) {
+                console.error('SessionStorage user data parsing error:', error);
+                sessionStorage.removeItem('yegame-user');
+            }
+        }
+        
         const userCoins = latestUser.gam_balance || latestUser.coins || 0;
         const tierBadge = generateCommentTierBadge(userCoins);
         
@@ -174,9 +251,26 @@ function updateIssueRequestButtons(isLoggedIn) {
 }
 
 function logout() {
+    // localStorage 정리
     localStorage.removeItem('yegame-token');
+    localStorage.removeItem('admin-token');
+    
+    // sessionStorage 정리
+    sessionStorage.removeItem('yegame-user');
+    sessionStorage.removeItem('admin-user');
+    
+    // 전역 변수 초기화
     userToken = null;
     currentUser = null;
+    window.currentUser = null;
+    
+    // 관리자 관련 변수 정리
+    window.adminAuthCompleted = false;
+    window.isAdminPage = false;
+    
+    // 헤더 업데이트
+    updateHeader(false);
+    
     showSuccess('안전하게 로그아웃되었습니다.', '로그아웃 완료');
     window.location.href = 'index.html';
 }
@@ -1742,6 +1836,13 @@ async function placeBetLegacy(issueId, choice) {
             if (data.currentBalance !== undefined) {
                 currentUser.gam_balance = data.currentBalance;
                 currentUser.coins = data.currentBalance;
+                
+                // sessionStorage도 업데이트
+                sessionStorage.setItem('yegame-user', JSON.stringify(currentUser));
+                
+                // 전역 변수 동기화
+                window.currentUser = currentUser;
+                
                 updateHeader(true);
             }
             
