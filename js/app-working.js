@@ -1265,12 +1265,12 @@ function renderComment(comment) {
         <div class="comment ${highlightClass} border rounded-lg p-4 mb-4" data-comment-id="${comment.id}">
             <div class="flex items-start space-x-3 mb-3">
                 <div class="flex-shrink-0">
-                    ${generateCommentTierIcon(comment.user_coins)}
+                    ${generateCommentTierIcon(comment.gam_balance || comment.coins || 0)}
                 </div>
                 <div class="flex-grow min-w-0">
                     <div class="flex items-center space-x-2 mb-1">
                         <span class="font-medium text-gray-900">${comment.username}</span>
-                        ${generateCommentTierBadge(comment.user_coins)}
+                        ${generateCommentTierBadge(comment.gam_balance || comment.coins || 0)}
                         ${highlightBadge}
                         <span class="text-xs text-gray-500">${comment.timeAgo}</span>
                     </div>
@@ -1319,12 +1319,12 @@ function renderReply(reply) {
         <div class="reply border-b border-gray-100 pb-3 mb-3 last:border-b-0 last:pb-0 last:mb-0" data-comment-id="${reply.id}">
             <div class="flex items-start space-x-3">
                 <div class="flex-shrink-0">
-                    ${generateReplyTierIcon(reply.user_coins)}
+                    ${generateReplyTierIcon(reply.gam_balance || reply.coins || 0)}
                 </div>
                 <div class="flex-grow min-w-0">
                     <div class="flex items-center space-x-2 mb-1">
                         <span class="font-medium text-gray-900 text-sm">${reply.username}</span>
-                        ${generateCommentTierBadge(reply.user_coins)}
+                        ${generateCommentTierBadge(reply.gam_balance || reply.coins || 0)}
                         <span class="text-xs text-gray-500">${reply.timeAgo}</span>
                     </div>
                     <p class="text-gray-800 text-sm leading-relaxed">${reply.content}</p>
@@ -1469,12 +1469,6 @@ async function handleCommentSubmit(form, issueId, parentId = null) {
         submitBtn.disabled = true;
         submitBtn.textContent = '작성 중...';
         
-        console.log('댓글 작성 요청:', {
-            userId: currentUser.id,
-            issueId: parseInt(issueId),
-            content: content,
-            parentId: parentId ? parseInt(parentId) : null
-        });
         
         const response = await fetch('/api/comments', {
             method: 'POST',

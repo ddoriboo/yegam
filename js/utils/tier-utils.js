@@ -137,6 +137,15 @@ export function addTierStyles() {
     const style = document.createElement('style');
     style.id = 'tier-styles';
     style.textContent = `
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            overflow-x: hidden;
+            width: 100%;
+        }
+        
         .tier-display {
             display: inline-flex;
             align-items: center;
@@ -146,6 +155,9 @@ export function addTierStyles() {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: fit-content;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
         
         .tier-icon {
