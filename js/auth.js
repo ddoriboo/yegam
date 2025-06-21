@@ -195,12 +195,12 @@ export async function checkAuth() {
                     const userNameEl = document.getElementById('user-name');
                     if (userNameEl) userNameEl.textContent = user.username;
                     
-                    // 코인 정보 업데이트
+                    // GAM 정보 업데이트
                     const userCoinsEl = document.getElementById('user-coins');
-                    if (userCoinsEl) userCoinsEl.textContent = `${user.coins?.toLocaleString() || '0'} 감`;
+                    if (userCoinsEl) userCoinsEl.textContent = `${user.gam_balance?.toLocaleString() || '0'} GAM`;
                     
-                    // 티어 정보 업데이트 (GAM 정보가 있다면)
-                    const userGam = user.gam || 0;
+                    // 티어 정보 업데이트
+                    const userGam = user.gam_balance || 0;
                     updateUserTierDisplay(userGam, 'user-tier-display');
                 }
                 

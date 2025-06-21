@@ -73,7 +73,7 @@ function updateUserProfile(user) {
 
     if (userNameEl) userNameEl.textContent = user.username;
     if (userEmailEl) userEmailEl.textContent = user.email;
-    if (userCoinsEl) userCoinsEl.textContent = `${(user.coins || 0).toLocaleString()} GAM`;
+    if (userCoinsEl) userCoinsEl.textContent = `${(user.gam_balance || 0).toLocaleString()} GAM`;
     
     if (userJoinedEl && user.created_at) {
         const joinDate = new Date(user.created_at).toLocaleDateString('ko-KR');
@@ -82,7 +82,7 @@ function updateUserProfile(user) {
 }
 
 function updateTierInfo(user) {
-    const userGam = user.coins || 0;
+    const userGam = user.gam_balance || 0;
     const currentTier = getUserTier(userGam);
     const nextTierInfo = getNextTierInfo(userGam);
     

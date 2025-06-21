@@ -101,6 +101,18 @@ const createTables = async () => {
             console.log('사용자 테이블 출석 보상 컬럼들 추가 스킵 (이미 존재함)');
         }
         
+        // coins 데이터를 gam_balance로 마이그레이션 (데이터 통일)
+        try {
+            await client.query(`
+                UPDATE users 
+                SET gam_balance = COALESCE(coins, 10000) 
+                WHERE gam_balance IS NULL OR gam_balance = 0
+            `);
+            console.log('✅ coins 데이터를 gam_balance로 마이그레이션 완료');
+        } catch (error) {
+            console.log('coins → gam_balance 마이그레이션 스킵:', error.message);
+        }
+        
         try {
             await client.query(`ALTER TABLE issues ADD COLUMN IF NOT EXISTS description TEXT`);
             await client.query(`ALTER TABLE issues ADD COLUMN IF NOT EXISTS image_url TEXT`);

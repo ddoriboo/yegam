@@ -1,7 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { query, run, get } = require('../database/database');
+const { query } = require('../database/postgres');
 const InputValidator = require('../utils/input-validation');
 
 const router = express.Router();
@@ -99,11 +99,11 @@ router.post('/signup', async (req, res) => {
             // 비밀번호 암호화
             const hashedPassword = await bcrypt.hash(validPassword, 12);
             
-            // 사용자 생성
-            const result = await run('INSERT INTO users (username, email, password_hash, coins, gam_balance) VALUES ($1, $2, $3, $4, $5)', 
-                [validUsername, validEmail, hashedPassword, 10000, 10000]);
+            // 사용자 생성 (GAM으로 통일)
+            const result = await query('INSERT INTO users (username, email, password_hash, gam_balance) VALUES ($1, $2, $3, $4) RETURNING id', 
+                [validUsername, validEmail, hashedPassword, 10000]);
             
-            const userId = result.lastID || result.rows[0]?.id;
+            const userId = result.rows[0].id;
             
             // JWT 토큰 생성
             const token = jwt.sign(
@@ -119,7 +119,6 @@ router.post('/signup', async (req, res) => {
                     id: userId,
                     username: validUsername,
                     email: validEmail,
-                    coins: 10000,
                     gam_balance: 10000
                 }
             });
@@ -170,7 +169,8 @@ router.post('/login', async (req, res) => {
             });
         }
         
-        const user = await get('SELECT * FROM users WHERE email = $1', [validEmail]);
+        const userResult = await query('SELECT id, username, email, password_hash, gam_balance FROM users WHERE email = $1', [validEmail]);
+        const user = userResult.rows[0];
         
         if (!user) {
             recordFailedAttempt(identifier);
@@ -264,15 +264,27 @@ router.post('/login', async (req, res) => {
             { expiresIn: '7d' }
         );
         
+        // 출석보상 후 업데이트된 사용자 정보 다시 조회
+        let updatedUser = user;
+        if (dailyRewardInfo) {
+            try {
+                const updatedResult = await query('SELECT id, username, email, gam_balance FROM users WHERE id = $1', [user.id]);
+                updatedUser = updatedResult.rows[0];
+                console.log(`[출석보상] 사용자 ${user.id} 업데이트된 GAM 잔액: ${updatedUser.gam_balance}`);
+            } catch (error) {
+                console.error('[출석보상] 업데이트된 사용자 정보 조회 실패:', error);
+            }
+        }
+
         // 응답에 일일 보상 정보 포함
         const response = {
             success: true,
             token,
             user: {
-                id: user.id,
-                username: user.username,
-                email: user.email,
-                coins: user.coins ?? 10000
+                id: updatedUser.id,
+                username: updatedUser.username,
+                email: updatedUser.email,
+                gam_balance: updatedUser.gam_balance ?? 10000
             }
         };
         
@@ -303,7 +315,8 @@ router.get('/verify', async (req, res) => {
         
         const decoded = jwt.verify(token, JWT_SECRET);
         
-        const user = await get('SELECT id, username, email, coins FROM users WHERE id = $1', [decoded.id]);
+        const userResult = await query('SELECT id, username, email, gam_balance FROM users WHERE id = $1', [decoded.id]);
+        const user = userResult.rows[0];
         
         if (!user) {
             return res.status(401).json({ 
@@ -318,7 +331,7 @@ router.get('/verify', async (req, res) => {
                 id: user.id,
                 username: user.username,
                 email: user.email,
-                coins: user.coins ?? 10000
+                gam_balance: user.gam_balance ?? 10000
             }
         });
     } catch (error) {
