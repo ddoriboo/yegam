@@ -91,6 +91,16 @@ async function loadComments(issueId) {
         loadingEl.classList.remove('hidden');
         containerEl.classList.add('hidden');
         
+        // 현재 사용자 정보 디버깅
+        if (auth.isLoggedIn()) {
+            const currentUser = auth.getCurrentUser();
+            console.log('현재 로그인 사용자:', {
+                username: currentUser.username,
+                coins: currentUser.coins,
+                id: currentUser.id
+            });
+        }
+        
         // 댓글 데이터 가져오기
         const response = await fetch(`/api/comments/issue/${issueId}`);
         const data = await response.json();
@@ -162,7 +172,15 @@ function renderComment(comment) {
     const isHighlighted = comment.is_highlighted;
     
     // 사용자 티어 계산 (마이페이지와 동일한 로직 사용)
+    console.log('댓글 사용자 정보:', {
+        username: comment.username,
+        coins: comment.coins,
+        user_id: comment.user_id
+    });
+    
     const userTier = getUserTier(comment.coins || 0);
+    console.log('계산된 티어:', userTier);
+    
     const tierBadge = createTierDisplay(userTier, true);
     
     let highlightClass = '';
@@ -248,7 +266,15 @@ function renderReply(reply) {
     const isOwner = currentUserId === reply.user_id;
     
     // 사용자 티어 계산 (마이페이지와 동일한 로직 사용)
+    console.log('답글 사용자 정보:', {
+        username: reply.username,
+        coins: reply.coins,
+        user_id: reply.user_id
+    });
+    
     const userTier = getUserTier(reply.coins || 0);
+    console.log('답글 계산된 티어:', userTier);
+    
     const tierBadge = createTierDisplay(userTier, true);
     
     return `
