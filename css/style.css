@@ -931,9 +931,22 @@ html {
 }
 
 .time-filter-tabs {
-    display: flex;
+    display: block; /* Changed to block to allow inner flex control */
+    width: 100%;
+}
+
+.time-filter-tabs .flex {
+    display: flex !important;
+    flex-wrap: nowrap !important; /* Force no wrapping */
     gap: 0.5rem;
-    flex-wrap: wrap;
+    overflow-x: auto;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE and Edge */
+    padding-bottom: 0.5rem;
+}
+
+.time-filter-tabs .flex::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
 }
 
 .time-tab {
@@ -947,6 +960,9 @@ html {
     cursor: pointer;
     transition: all 0.2s ease;
     position: relative;
+    flex-shrink: 0 !important; /* Prevent shrinking */
+    white-space: nowrap !important; /* Prevent text wrapping */
+    min-width: fit-content !important;
 }
 
 .time-tab:hover {
@@ -1173,17 +1189,30 @@ html {
     /* Issues.html specific mobile optimizations */
     .time-filter-tabs {
         width: 100%;
+        overflow-x: auto;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+    }
+    
+    .time-filter-tabs::-webkit-scrollbar {
+        display: none;
     }
     
     .time-filter-tabs .flex {
+        display: flex !important;
+        flex-wrap: nowrap !important;
         gap: 0.5rem;
+        min-width: max-content;
+        overflow-x: auto;
+        scrollbar-width: none;
     }
     
     .time-tab {
-        flex-shrink: 0;
+        flex-shrink: 0 !important;
         padding: 0.5rem 1rem;
         font-size: 0.875rem;
-        white-space: nowrap;
+        white-space: nowrap !important;
+        min-width: fit-content !important;
     }
     
     .filters-container {
