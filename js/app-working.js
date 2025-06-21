@@ -387,7 +387,50 @@ function setupHomePageEvents() {
         });
     }
     
-    // Search input
+    // Header search functionality
+    const headerSearchBtn = document.getElementById('header-search-btn');
+    const searchOverlay = document.getElementById('search-overlay');
+    const headerSearchInput = document.getElementById('header-search-input');
+    const searchCloseBtn = document.getElementById('search-close-btn');
+    const searchResults = document.getElementById('search-results');
+    
+    if (headerSearchBtn && searchOverlay) {
+        headerSearchBtn.addEventListener('click', () => {
+            searchOverlay.classList.remove('hidden');
+            headerSearchInput.focus();
+        });
+    }
+    
+    if (searchCloseBtn && searchOverlay) {
+        searchCloseBtn.addEventListener('click', () => {
+            searchOverlay.classList.add('hidden');
+            headerSearchInput.value = '';
+            searchResults.classList.add('hidden');
+        });
+    }
+    
+    // Header search input
+    if (headerSearchInput) {
+        headerSearchInput.addEventListener('input', debounce((e) => {
+            const query = e.target.value.trim();
+            if (query.length > 0) {
+                performHeaderSearch(query);
+            } else {
+                searchResults.classList.add('hidden');
+            }
+        }, 300));
+    }
+    
+    // Close search on escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !searchOverlay.classList.contains('hidden')) {
+            searchOverlay.classList.add('hidden');
+            headerSearchInput.value = '';
+            searchResults.classList.add('hidden');
+        }
+    });
+    
+    // Legacy search input (if exists)
     const searchInput = document.getElementById('search-input');
     if (searchInput) {
         searchInput.addEventListener('input', debounce((e) => {
@@ -738,6 +781,85 @@ function scrollToIssueInAllSection(issueId) {
             console.warn('Issue card not found after loading:', issueId);
         }
     }, 800); // Increased timeout to allow for render completion
+}
+
+// Header search functionality
+function performHeaderSearch(query) {
+    const searchResults = document.getElementById('search-results');
+    
+    if (!allIssues || allIssues.length === 0) {
+        searchResults.innerHTML = '<div class="p-4 text-center text-gray-500">검색할 이슈가 없습니다.</div>';
+        searchResults.classList.remove('hidden');
+        return;
+    }
+    
+    // Filter issues based on search query
+    const filteredIssues = allIssues.filter(issue => 
+        issue.title.toLowerCase().includes(query.toLowerCase()) ||
+        (issue.description && issue.description.toLowerCase().includes(query.toLowerCase())) ||
+        issue.category.toLowerCase().includes(query.toLowerCase())
+    );
+    
+    if (filteredIssues.length === 0) {
+        searchResults.innerHTML = '<div class="p-4 text-center text-gray-500">검색 결과가 없습니다.</div>';
+        searchResults.classList.remove('hidden');
+        return;
+    }
+    
+    // Limit to top 5 results
+    const topResults = filteredIssues.slice(0, 5);
+    
+    const resultsHTML = topResults.map(issue => {
+        const yesPrice = issue.yesPercentage || issue.yes_price || 50;
+        const timeLeft = getTimeLeft(issue.end_date || issue.endDate);
+        
+        return `
+            <div class="search-result-item p-3 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 cursor-pointer transition-colors" 
+                 onclick="selectSearchResult(${issue.id})">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="inline-block px-2 py-0.5 text-xs font-medium rounded" style="${getCategoryBadgeStyle(issue.category)}">
+                                ${issue.category}
+                            </span>
+                            <span class="text-xs text-gray-500 flex items-center">
+                                <i data-lucide="clock" class="w-3 h-3 mr-1"></i>
+                                ${timeLeft}
+                            </span>
+                        </div>
+                        <h4 class="text-sm font-medium text-gray-900 truncate">${issue.title}</h4>
+                    </div>
+                    <div class="text-right flex-shrink-0">
+                        <div class="text-sm font-bold text-green-600">Yes ${yesPrice}%</div>
+                        <div class="text-xs text-gray-500">${formatVolume(issue.total_volume || issue.totalVolume || 0)} GAM</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    searchResults.innerHTML = resultsHTML;
+    searchResults.classList.remove('hidden');
+    
+    // Re-initialize Lucide icons for search results
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+// Handle search result selection
+function selectSearchResult(issueId) {
+    const searchOverlay = document.getElementById('search-overlay');
+    const headerSearchInput = document.getElementById('header-search-input');
+    const searchResults = document.getElementById('search-results');
+    
+    // Close search overlay
+    searchOverlay.classList.add('hidden');
+    headerSearchInput.value = '';
+    searchResults.classList.add('hidden');
+    
+    // Scroll to the issue in the all issues section
+    scrollToIssueInAllSection(issueId);
 }
 
 // Setup scroll to top functionality
