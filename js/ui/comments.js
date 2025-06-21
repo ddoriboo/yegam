@@ -162,8 +162,8 @@ function renderComment(comment) {
     const isOwner = currentUserId === comment.user_id;
     const isHighlighted = comment.is_highlighted;
     
-    // 사용자 티어 계산 (헤더와 동일한 로직 사용)
-    const userCoins = comment.gam_balance || comment.coins || 0;
+    // 사용자 티어 계산 (헤더와 동일한 로직 사용) - 더 높은 값 사용
+    const userCoins = Math.max(comment.gam_balance || 0, comment.coins || 0);
     const userTier = getUserTier(userCoins);
     const tierBadge = createTierDisplay(userTier, true);
     
@@ -249,8 +249,8 @@ function renderReply(reply) {
     const isLiked = userLikedComments.has(reply.id);
     const isOwner = currentUserId === reply.user_id;
     
-    // 사용자 티어 계산 (헤더와 동일한 로직 사용)
-    const userCoins = reply.gam_balance || reply.coins || 0;
+    // 사용자 티어 계산 (헤더와 동일한 로직 사용) - 더 높은 값 사용
+    const userCoins = Math.max(reply.gam_balance || 0, reply.coins || 0);
     const userTier = getUserTier(userCoins);
     const tierBadge = createTierDisplay(userTier, true);
     

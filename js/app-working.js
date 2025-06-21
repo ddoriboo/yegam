@@ -1071,26 +1071,36 @@ async function loadComments(issueId, loadMore = false) {
         const data = await response.json();
         
         if (data.success) {
+            console.log('✅ 댓글 API 성공, 댓글 수:', data.comments.length);
+            
             if (currentUser) {
                 await loadUserLikeStatus(issueId);
             }
             
             // 페이지네이션 상태 초기화 또는 업데이트
             if (!commentsPagination.has(issueId) || !loadMore) {
-                commentsPagination.set(issueId, {
+                const paginationData = {
                     currentPage: 1,
                     totalComments: data.comments.length,
                     allComments: data.comments,
                     commentsPerPage: 3
-                });
+                };
+                commentsPagination.set(issueId, paginationData);
+                console.log('📊 pagination 초기화:', paginationData);
             }
             
-            containerEl.innerHTML = renderPaginatedComments(issueId);
+            console.log('🎨 renderPaginatedComments 호출 중...');
+            const renderedHtml = renderPaginatedComments(issueId);
+            console.log('📝 렌더된 HTML 길이:', renderedHtml.length);
+            
+            containerEl.innerHTML = renderedHtml;
             if (typeof lucide !== 'undefined') {
                 lucide.createIcons();
+                console.log('🎯 Lucide 아이콘 초기화 완료');
             }
             loadingEl.classList.add('hidden');
             containerEl.classList.remove('hidden');
+            console.log('👁️ 댓글 컨테이너 표시됨');
         } else {
             throw new Error(data.error || '댓글을 불러올 수 없습니다.');
         }
@@ -1121,12 +1131,19 @@ async function loadUserLikeStatus(issueId) {
 }
 
 function renderPaginatedComments(issueId) {
+    console.log('📄 renderPaginatedComments 호출됨, issueId:', issueId);
+    
     const pagination = commentsPagination.get(issueId);
-    if (!pagination) return '';
+    if (!pagination) {
+        console.log('❌ pagination 없음');
+        return '';
+    }
     
     const { currentPage, allComments, commentsPerPage, totalComments } = pagination;
+    console.log('📊 pagination 정보:', { currentPage, totalComments, commentsPerPage, allCommentsLength: allComments.length });
     
     if (totalComments === 0) {
+        console.log('📭 댓글 없음 - 빈 상태 표시');
         return `
             <div class="text-center py-8 text-gray-500">
                 <i data-lucide="message-circle" class="w-8 h-8 mx-auto mb-3 text-gray-300"></i>
@@ -1139,6 +1156,8 @@ function renderPaginatedComments(issueId) {
     const endIndex = currentPage * commentsPerPage;
     const visibleComments = allComments.slice(0, endIndex);
     const hasMore = endIndex < totalComments;
+    
+    console.log('📋 표시할 댓글:', { endIndex, visibleCommentsCount: visibleComments.length, hasMore });
     
     let html = `
         <div class="comments-header mb-4">
@@ -1159,17 +1178,21 @@ function renderPaginatedComments(issueId) {
     // 더보기 버튼
     if (hasMore) {
         const remainingComments = totalComments - endIndex;
+        console.log('➕ 더보기 버튼 생성:', { remainingComments, totalComments, endIndex });
         html += `
             <div class="comments-load-more mt-6 text-center">
                 <button class="load-more-comments-btn inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border border-blue-200 rounded-lg text-blue-700 font-medium transition-all duration-200 hover:shadow-md" 
                         onclick="loadMoreComments(${issueId})">
                     <i data-lucide="chevron-down" class="w-4 h-4 mr-2"></i>
-                    댓글 ${Math.min(10, remainingComments)}개 더보기
+                    댓글 ${Math.min(3, remainingComments)}개 더보기
                 </button>
             </div>
         `;
+    } else {
+        console.log('✅ 모든 댓글 표시됨 - 더보기 버튼 없음');
     }
     
+    console.log('🏁 renderPaginatedComments 완료, HTML 길이:', html.length);
     return html;
 }
 
@@ -1188,23 +1211,42 @@ function renderComments(comments) {
 
 // 더보기 댓글 로드 함수
 window.loadMoreComments = function(issueId) {
+    console.log('🔄 loadMoreComments 호출됨:', issueId);
+    
     const pagination = commentsPagination.get(issueId);
-    if (!pagination) return;
+    if (!pagination) {
+        console.log('❌ pagination 데이터 없음');
+        return;
+    }
+    
+    console.log('📊 현재 pagination 상태:', pagination);
     
     // 현재 위치 저장 (새로 추가될 첫 번째 댓글의 위치)
     const commentsSection = document.querySelector(`.comments-section[data-issue-id="${issueId}"]`);
     const containerEl = commentsSection.querySelector('.comments-container');
     const currentShowing = pagination.currentPage * pagination.commentsPerPage;
     
-    // 현재 표시된 댓글 수에 10개 더 추가
-    const newCommentsToShow = Math.min(10, pagination.totalComments - currentShowing);
+    console.log('📈 현재 표시 중인 댓글 수:', currentShowing);
     
-    // 새로운 페이지 계산
-    const newTotalShowing = currentShowing + newCommentsToShow;
-    pagination.currentPage = Math.ceil(newTotalShowing / pagination.commentsPerPage);
+    // 현재 표시된 댓글 수에 더 추가 (단순하게 3개씩 추가)
+    const newCommentsToShow = Math.min(3, pagination.totalComments - currentShowing);
+    
+    console.log('➕ 새로 추가할 댓글 수:', newCommentsToShow);
+    
+    if (newCommentsToShow <= 0) {
+        console.log('✅ 더 이상 표시할 댓글 없음');
+        return;
+    }
+    
+    // 페이지 증가
+    pagination.currentPage++;
+    
+    console.log('📄 새로운 페이지:', pagination.currentPage);
     
     // 댓글 섹션 다시 렌더링
     containerEl.innerHTML = renderPaginatedComments(issueId);
+    
+    console.log('🎨 렌더링 완료');
     
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
@@ -1265,12 +1307,12 @@ function renderComment(comment) {
         <div class="comment ${highlightClass} border rounded-lg p-4 mb-4" data-comment-id="${comment.id}">
             <div class="flex items-start space-x-3 mb-3">
                 <div class="flex-shrink-0">
-                    ${generateCommentTierIcon(comment.gam_balance || comment.coins || 0)}
+                    ${generateCommentTierIcon(Math.max(comment.gam_balance || 0, comment.coins || 0))}
                 </div>
                 <div class="flex-grow min-w-0">
                     <div class="flex items-center space-x-2 mb-1">
                         <span class="font-medium text-gray-900">${comment.username}</span>
-                        ${generateCommentTierBadge(comment.gam_balance || comment.coins || 0)}
+                        ${generateCommentTierBadge(Math.max(comment.gam_balance || 0, comment.coins || 0))}
                         ${highlightBadge}
                         <span class="text-xs text-gray-500">${comment.timeAgo}</span>
                     </div>
@@ -1319,12 +1361,12 @@ function renderReply(reply) {
         <div class="reply border-b border-gray-100 pb-3 mb-3 last:border-b-0 last:pb-0 last:mb-0" data-comment-id="${reply.id}">
             <div class="flex items-start space-x-3">
                 <div class="flex-shrink-0">
-                    ${generateReplyTierIcon(reply.gam_balance || reply.coins || 0)}
+                    ${generateReplyTierIcon(Math.max(reply.gam_balance || 0, reply.coins || 0))}
                 </div>
                 <div class="flex-grow min-w-0">
                     <div class="flex items-center space-x-2 mb-1">
                         <span class="font-medium text-gray-900 text-sm">${reply.username}</span>
-                        ${generateCommentTierBadge(reply.gam_balance || reply.coins || 0)}
+                        ${generateCommentTierBadge(Math.max(reply.gam_balance || 0, reply.coins || 0))}
                         <span class="text-xs text-gray-500">${reply.timeAgo}</span>
                     </div>
                     <p class="text-gray-800 text-sm leading-relaxed">${reply.content}</p>
