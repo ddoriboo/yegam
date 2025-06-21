@@ -1,10 +1,14 @@
 import * as auth from '../auth.js';
+import { getUserTier, createTierDisplay, addTierStyles } from '../utils/tier-utils.js';
 
 let currentUserId = null;
 let userLikedComments = new Set();
 
 // 댓글 시스템 초기화
 export function initComments() {
+    // 티어 스타일 추가
+    addTierStyles();
+    
     // 댓글 토글 버튼 이벤트 리스너
     document.addEventListener('click', async (e) => {
         if (e.target.closest('.comments-toggle-btn')) {
@@ -157,9 +161,9 @@ function renderComment(comment) {
     const isOwner = currentUserId === comment.user_id;
     const isHighlighted = comment.is_highlighted;
     
-    // 사용자 티어 계산
-    const userTier = window.TierSystem ? window.TierSystem.calculateTier(comment.coins || 0) : null;
-    const tierBadge = userTier ? window.TierSystem.generateTierBadge(userTier, 'sm') : '';
+    // 사용자 티어 계산 (마이페이지와 동일한 로직 사용)
+    const userTier = getUserTier(comment.coins || 0);
+    const tierBadge = createTierDisplay(userTier, true);
     
     let highlightClass = '';
     let highlightBadge = '';
@@ -243,9 +247,9 @@ function renderReply(reply) {
     const isLiked = userLikedComments.has(reply.id);
     const isOwner = currentUserId === reply.user_id;
     
-    // 사용자 티어 계산
-    const userTier = window.TierSystem ? window.TierSystem.calculateTier(reply.coins || 0) : null;
-    const tierBadge = userTier ? window.TierSystem.generateTierBadge(userTier, 'sm') : '';
+    // 사용자 티어 계산 (마이페이지와 동일한 로직 사용)
+    const userTier = getUserTier(reply.coins || 0);
+    const tierBadge = createTierDisplay(userTier, true);
     
     return `
         <div class="reply border-b border-gray-100 pb-3 mb-3 last:border-b-0 last:pb-0 last:mb-0" data-comment-id="${reply.id}">
