@@ -48,8 +48,8 @@ async function refreshUserInfo() {
                 currentUser = data.user;
                 window.currentUser = currentUser;
                 
-                // sessionStorage도 업데이트
-                sessionStorage.setItem('yegame-user', JSON.stringify(currentUser));
+                // localStorage 업데이트
+                localStorage.setItem('yegame-user', JSON.stringify(currentUser));
                 
                 // 헤더 업데이트
                 updateHeader();
@@ -142,7 +142,29 @@ async function checkAuthentication() {
         return;
     }
     
+    // localStorage에서 토큰과 사용자 정보 읽어오기
+    const storedToken = localStorage.getItem('yegame-token');
+    const storedUser = localStorage.getItem('yegame-user');
+    
+    if (storedToken) {
+        userToken = storedToken;
+        
+        if (storedUser) {
+            try {
+                currentUser = JSON.parse(storedUser);
+                window.currentUser = currentUser;
+                console.log('Restored user session:', currentUser.username);
+            } catch (error) {
+                console.error('Error parsing stored user data:', error);
+                localStorage.removeItem('yegame-user');
+                currentUser = null;
+                window.currentUser = null;
+            }
+        }
+    }
+    
     if (!userToken) {
+        console.log('No token found, user not authenticated');
         updateHeader();
         updateIssueRequestButtons(false);
         return;
@@ -160,21 +182,28 @@ async function checkAuthentication() {
         if (data.success && data.user) {
             currentUser = data.user;
             window.currentUser = currentUser; // 전역 변수 동기화
+            
+            // 사용자 정보를 localStorage에도 업데이트
+            localStorage.setItem('yegame-user', JSON.stringify(currentUser));
+            
             updateHeader();
-        updateIssueRequestButtons(true);
+            updateIssueRequestButtons(true);
             console.log('User authenticated:', currentUser.username);
         } else {
-            // Invalid token, clear it
+            // Invalid token, clear all auth data
+            console.log('Token verification failed, clearing auth data');
             localStorage.removeItem('yegame-token');
+            localStorage.removeItem('yegame-user');
             userToken = null;
             currentUser = null;
             window.currentUser = null;
             updateHeader();
-        updateIssueRequestButtons(false);
+            updateIssueRequestButtons(false);
         }
     } catch (error) {
         console.error('Auth check failed:', error);
         localStorage.removeItem('yegame-token');
+        localStorage.removeItem('yegame-user');
         userToken = null;
         currentUser = null;
         window.currentUser = null;
@@ -217,12 +246,10 @@ function updateIssueRequestButtons(isLoggedIn) {
 
 function logout() {
     // localStorage 정리
+    localStorage.removeItem('yegame-user');
     localStorage.removeItem('yegame-token');
+    localStorage.removeItem('admin-user');
     localStorage.removeItem('admin-token');
-    
-    // sessionStorage 정리
-    sessionStorage.removeItem('yegame-user');
-    sessionStorage.removeItem('admin-user');
     
     // 전역 변수 초기화
     userToken = null;
@@ -1896,8 +1923,8 @@ async function placeBetLegacy(issueId, choice) {
                 currentUser.gam_balance = data.currentBalance;
                 currentUser.coins = data.currentBalance;
                 
-                // sessionStorage도 업데이트
-                sessionStorage.setItem('yegame-user', JSON.stringify(currentUser));
+                // localStorage 업데이트
+                localStorage.setItem('yegame-user', JSON.stringify(currentUser));
                 
                 // 전역 변수 동기화
                 window.currentUser = currentUser;
@@ -2012,10 +2039,15 @@ async function handleLogin(e) {
         const data = await response.json();
         
         if (data.success && data.token) {
+            // localStorage에 토큰과 사용자 정보 모두 저장
             localStorage.setItem('yegame-token', data.token);
+            localStorage.setItem('yegame-user', JSON.stringify(data.user));
+            
             userToken = data.token;
             currentUser = data.user;
             window.currentUser = currentUser; // 전역 변수 동기화
+            
+            console.log('Login successful, user data saved:', data.user.username);
             
             showSuccess(data.message || '로그인 성공!', '환영합니다');
             window.location.href = 'index.html';
@@ -2055,10 +2087,15 @@ async function handleSignup(e) {
         
         if (data.success) {
             if (data.token) {
+                // localStorage에 토큰과 사용자 정보 모두 저장
                 localStorage.setItem('yegame-token', data.token);
+                localStorage.setItem('yegame-user', JSON.stringify(data.user));
+                
                 userToken = data.token;
                 currentUser = data.user;
                 window.currentUser = currentUser; // 전역 변수 동기화
+                
+                console.log('Signup successful, user data saved:', data.user.username);
             }
             
             showSuccess(data.message || '회원가입이 완료되었습니다!', '계정 생성 완료');
@@ -2794,7 +2831,7 @@ async function handleAdminHighlightComment(commentId, action) {
 function checkAdminAccess() {
     // 새로운 보안 관리자 인증 시스템 확인
     const adminToken = localStorage.getItem('admin-token');
-    const adminUser = sessionStorage.getItem('admin-user');
+    const adminUser = localStorage.getItem('admin-user');
     const adminAuthCompleted = window.adminAuthCompleted;
     
     // 관리자 페이지에서는 새로운 인증 시스템 사용
