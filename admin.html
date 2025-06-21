@@ -773,10 +773,14 @@
             }
             
             const headers = {
-                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${adminToken}`,
                 ...options.headers
             };
+            
+            // FormData가 아닌 경우에만 Content-Type 설정
+            if (!(options.body instanceof FormData) && !options.headers?.['Content-Type']) {
+                headers['Content-Type'] = 'application/json';
+            }
             
             console.log(`🔄 관리자 API 요청: ${options.method || 'GET'} ${url}`);
             

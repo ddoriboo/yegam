@@ -2626,10 +2626,16 @@ function setupImageUpload() {
         formData.append('image', file);
         
         try {
-            const response = await fetch('/api/upload/image', {
-                method: 'POST',
-                body: formData
-            });
+            // 관리자 페이지에서는 관리자 토큰 사용
+            const response = window.adminFetch ? 
+                await window.adminFetch('/api/upload/image', {
+                    method: 'POST',
+                    body: formData
+                }) : 
+                await fetch('/api/upload/image', {
+                    method: 'POST',
+                    body: formData
+                });
             
             const data = await response.json();
             
@@ -2686,10 +2692,16 @@ function setupEditImageUpload() {
         formData.append('image', file);
         
         try {
-            const response = await fetch('/api/upload/image', {
-                method: 'POST',
-                body: formData
-            });
+            // 관리자 페이지에서는 관리자 토큰 사용
+            const response = window.adminFetch ? 
+                await window.adminFetch('/api/upload/image', {
+                    method: 'POST',
+                    body: formData
+                }) : 
+                await fetch('/api/upload/image', {
+                    method: 'POST',
+                    body: formData
+                });
             
             const data = await response.json();
             
