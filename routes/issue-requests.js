@@ -1,5 +1,5 @@
 const express = require('express');
-const { query, run, get, getDB } = require('../database/database');
+const { query } = require('../database/postgres');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 const NotificationService = require('../services/notificationService');
 
@@ -21,7 +21,7 @@ const router = express.Router();
 // 이슈 신청 테이블 생성 (첫 실행 시)
 async function createIssueRequestsTable() {
     try {
-        await run(`
+        await query(`
             CREATE TABLE IF NOT EXISTS issue_requests (
                 id SERIAL PRIMARY KEY,
                 user_id INTEGER NOT NULL,
@@ -84,6 +84,15 @@ router.post('/', authMiddleware, async (req, res) => {
         // 마감일 유효성 검사
         const deadlineDate = new Date(deadline);
         const now = new Date();
+        
+        console.log('🔍 이슈 신청 시간 정보:', {
+            received_deadline: deadline,
+            deadline_type: typeof deadline,
+            parsed_deadline: deadlineDate.toISOString(),
+            current_time: now.toISOString(),
+            is_future: deadlineDate > now
+        });
+        
         if (deadlineDate <= now) {
             return res.status(400).json({
                 success: false,
@@ -101,11 +110,12 @@ router.post('/', authMiddleware, async (req, res) => {
         }
         
         // 사용자의 대기 중인 신청이 너무 많은지 확인 (최대 3개)
-        const pendingCount = await get(`
+        const pendingResult = await query(`
             SELECT COUNT(*) as count 
             FROM issue_requests 
             WHERE user_id = $1 AND status = 'pending'
         `, [userId]);
+        const pendingCount = pendingResult.rows[0];
         
         if (pendingCount && pendingCount.count >= 3) {
             return res.status(400).json({
@@ -115,16 +125,25 @@ router.post('/', authMiddleware, async (req, res) => {
         }
         
         // 이슈 신청 생성
-        const result = await run(`
+        console.log('💾 이슈 신청 저장 중:', {
+            userId,
+            title,
+            category,
+            deadline,
+            deadline_iso: deadlineDate.toISOString()
+        });
+        
+        const result = await query(`
             INSERT INTO issue_requests (
                 user_id, title, description, category, deadline
-            ) VALUES ($1, $2, $3, $4, $5)
+            ) VALUES ($1, $2, $3, $4, $5::timestamp)
+            RETURNING id
         `, [userId, title, description, category, deadline]);
         
         res.json({
             success: true,
             message: '이슈 신청이 완료되었습니다.',
-            requestId: result.lastID
+            requestId: result.rows[0].id
         });
         
     } catch (error) {
@@ -220,12 +239,13 @@ router.put('/:id/approve', tempAdminMiddleware, async (req, res) => {
         const { adminComments } = req.body;
         
         // 신청 존재 확인
-        const request = await get(`
+        const requestResult = await query(`
             SELECT ir.*, u.username, u.id as user_id
             FROM issue_requests ir
             JOIN users u ON ir.user_id = u.id
             WHERE ir.id = $1 AND ir.status = 'pending'
         `, [requestId]);
+        const request = requestResult.rows[0];
         
         if (!request) {
             return res.status(404).json({
@@ -235,18 +255,32 @@ router.put('/:id/approve', tempAdminMiddleware, async (req, res) => {
         }
         
         try {
-            // 1. 정식 이슈로 등록 (PostgreSQL 방식)
+            // 디버깅: 신청 정보 확인
+            console.log('🔍 이슈 승인 중 - 신청 정보:', {
+                title: request.title,
+                category: request.category,
+                deadline: request.deadline,
+                deadline_type: typeof request.deadline,
+                deadline_string: new Date(request.deadline).toISOString()
+            });
+            
+            // 1. 정식 이슈로 등록 (원래 신청 마감시간 사용)
             const issueResult = await query(`
                 INSERT INTO issues (title, category, description, image_url, yes_price, end_date, is_popular, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, false, NOW(), NOW())
-                RETURNING id
+                VALUES ($1, $2, $3, $4, $5, $6::timestamp, false, NOW(), NOW())
+                RETURNING id, end_date
             `, [request.title, request.category, request.description || '', '', 50, request.deadline]);
             
             const issueId = issueResult.rows[0].id;
-            console.log('✅ 이슈 생성 성공:', issueId);
+            const actualEndDate = issueResult.rows[0].end_date;
+            console.log('✅ 이슈 생성 성공:', {
+                issueId: issueId,
+                requested_deadline: request.deadline,
+                actual_end_date: actualEndDate
+            });
             
             // 2. 신청 상태 업데이트 (approved_by는 NULL로 설정)
-            await run(`
+            await query(`
                 UPDATE issue_requests 
                 SET status = 'approved', 
                     approved_by = NULL, 
@@ -256,10 +290,10 @@ router.put('/:id/approve', tempAdminMiddleware, async (req, res) => {
                 WHERE id = $2
             `, [adminComments || '임시 관리자에 의해 승인됨', requestId]);
             
-            // 3. 신청자에게 1000 GAM 지급
-            await run(`
+            // 3. 신청자에게 1000 GAM 지급 (gam_balance로 통일)
+            await query(`
                 UPDATE users 
-                SET coins = COALESCE(coins, 0) + 1000
+                SET gam_balance = COALESCE(gam_balance, 0) + 1000
                 WHERE id = $1
             `, [request.user_id]);
             
@@ -310,10 +344,11 @@ router.put('/:id/reject', tempAdminMiddleware, async (req, res) => {
         const { adminComments } = req.body;
         
         // 신청 존재 확인
-        const request = await get(`
+        const requestResult = await query(`
             SELECT * FROM issue_requests 
             WHERE id = $1 AND status = 'pending'
         `, [requestId]);
+        const request = requestResult.rows[0];
         
         if (!request) {
             return res.status(404).json({
@@ -323,7 +358,7 @@ router.put('/:id/reject', tempAdminMiddleware, async (req, res) => {
         }
         
         // 신청 상태 업데이트 (approved_by는 NULL로 설정)
-        await run(`
+        await query(`
             UPDATE issue_requests 
             SET status = 'rejected', 
                 approved_by = NULL, 
