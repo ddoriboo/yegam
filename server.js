@@ -90,7 +90,6 @@ app.use('/api/issue-requests', issueRequestRoutes);
 app.use('/api/bets', betRoutes);
 app.use('/api/comments', commentRoutes);
 app.use('/api/admin/comments', adminCommentRoutes);
-app.use('/api/admin/auth', adminAuthRoutes);
 app.use('/api/admin-auth', secureAdminAuthRoutes); // 보안 관리자 인증 API
 app.use('/api/admin', adminRoutes);
 app.use('/api/upload', uploadRoutes);
