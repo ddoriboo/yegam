@@ -90,6 +90,17 @@ const createTables = async () => {
             console.log('사용자 테이블 gam_balance 컬럼 추가 스킵 (이미 존재함)');
         }
         
+        // 일일 출석 보상용 컬럼들 추가
+        try {
+            await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_date DATE`);
+            await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS consecutive_login_days INTEGER DEFAULT 0`);
+            await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS first_prediction_reward BOOLEAN DEFAULT FALSE`);
+            await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS first_comment_reward BOOLEAN DEFAULT FALSE`);
+            console.log('✅ 사용자 테이블 출석 보상 컬럼들 추가 완료');
+        } catch (error) {
+            console.log('사용자 테이블 출석 보상 컬럼들 추가 스킵 (이미 존재함)');
+        }
+        
         try {
             await client.query(`ALTER TABLE issues ADD COLUMN IF NOT EXISTS description TEXT`);
             await client.query(`ALTER TABLE issues ADD COLUMN IF NOT EXISTS image_url TEXT`);
@@ -192,6 +203,21 @@ const createTables = async () => {
             )
         `);
         
+        // GAM 거래 내역 테이블
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS gam_transactions (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                type VARCHAR(20) NOT NULL CHECK (type IN ('earn', 'burn')),
+                category VARCHAR(50) NOT NULL,
+                amount INTEGER NOT NULL,
+                description TEXT,
+                reference_id INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+            )
+        `);
+        
         // 성능 최적화를 위한 인덱스 생성
         console.log('🔧 데이터베이스 인덱스 생성 중...');
         await client.query('CREATE INDEX IF NOT EXISTS idx_issues_status ON issues(status)');
@@ -204,6 +230,9 @@ const createTables = async () => {
         await client.query('CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id)');
         await client.query('CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read)');
         await client.query('CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications(type)');
+        await client.query('CREATE INDEX IF NOT EXISTS idx_gam_transactions_user_id ON gam_transactions(user_id)');
+        await client.query('CREATE INDEX IF NOT EXISTS idx_gam_transactions_type ON gam_transactions(type)');
+        await client.query('CREATE INDEX IF NOT EXISTS idx_gam_transactions_created_at ON gam_transactions(created_at)');
         console.log('✅ 데이터베이스 인덱스 생성 완료');
         
         await client.query('COMMIT');

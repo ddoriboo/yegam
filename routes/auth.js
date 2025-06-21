@@ -193,6 +193,36 @@ router.post('/login', async (req, res) => {
         // 로그인 성공 시 실패 카운트 초기화
         clearFailedAttempts(identifier);
         
+        // 일일 출석 보상 체크
+        let dailyRewardInfo = null;
+        try {
+            const gamService = require('../services/gamService');
+            gamService.init();
+            
+            const rewardResult = await gamService.giveLoginReward(user.id);
+            if (rewardResult.success) {
+                dailyRewardInfo = {
+                    amount: rewardResult.amount,
+                    consecutiveDays: rewardResult.consecutiveDays,
+                    message: `출석 보상 ${rewardResult.amount} GAM을 받았습니다! (${rewardResult.consecutiveDays}일 연속)`,
+                    thankMessage: rewardResult.thankMessage
+                };
+                
+                // 출석 보상 알림 생성
+                const NotificationService = require('../services/notificationService');
+                await NotificationService.createNotification({
+                    userId: user.id,
+                    type: 'gam_reward',
+                    title: '🎁 출석 보상 지급!',
+                    message: `연속 ${rewardResult.consecutiveDays}일 출석으로 ${rewardResult.amount} GAM을 받았습니다!\n\n${rewardResult.thankMessage}`,
+                    relatedId: null,
+                    relatedType: 'daily_login'
+                });
+            }
+        } catch (rewardError) {
+            console.error('일일 출석 보상 처리 실패:', rewardError);
+        }
+        
         // JWT 토큰 생성
         const token = jwt.sign(
             { id: user.id, username: user.username, email: user.email }, 
@@ -200,7 +230,8 @@ router.post('/login', async (req, res) => {
             { expiresIn: '7d' }
         );
         
-        res.json({
+        // 응답에 일일 보상 정보 포함
+        const response = {
             success: true,
             token,
             user: {
@@ -209,7 +240,13 @@ router.post('/login', async (req, res) => {
                 email: user.email,
                 coins: user.coins ?? 10000
             }
-        });
+        };
+        
+        if (dailyRewardInfo) {
+            response.dailyReward = dailyRewardInfo;
+        }
+        
+        res.json(response);
     } catch (error) {
         res.status(500).json({ 
             success: false, 

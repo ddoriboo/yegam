@@ -19,6 +19,12 @@ export async function login(email, password) {
         if (data.success) {
             storage.setItem(USER_KEY, JSON.stringify(data.user));
             storage.setItem(TOKEN_KEY, data.token);
+            
+            // 일일 출석 보상 알림 표시
+            if (data.dailyReward) {
+                showDailyRewardNotification(data.dailyReward);
+            }
+            
             return { success: true, user: data.user, message: data.message };
         } else {
             return { success: false, message: data.message };
@@ -129,6 +135,44 @@ export async function sendVerificationEmail(email) {
 }
 
 // 사용자 인증 상태 확인 및 UI 업데이트
+// 일일 출석 보상 알림 표시 함수
+function showDailyRewardNotification(rewardInfo) {
+    // 커스텀 알림 모달 생성
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    modal.innerHTML = `
+        <div class="bg-white rounded-lg p-6 max-w-md mx-4 text-center animate-bounce">
+            <div class="text-6xl mb-4">🎁</div>
+            <h3 class="text-xl font-bold text-gray-900 mb-2">출석 완료!</h3>
+            <p class="text-gray-600 mb-4">${rewardInfo.message}</p>
+            <div class="bg-gradient-to-r from-yellow-100 to-orange-100 rounded-lg p-4 mb-4">
+                <p class="text-2xl font-bold text-orange-800 mb-1">+${rewardInfo.amount} GAM</p>
+                <p class="text-sm text-orange-600 mb-2">연속 ${rewardInfo.consecutiveDays}일 출석</p>
+                ${rewardInfo.consecutiveDays >= 5 ? '<p class="text-xs text-red-600 font-bold">🔥 연속 출석 마스터!</p>' : 
+                  rewardInfo.consecutiveDays >= 3 ? '<p class="text-xs text-blue-600 font-bold">⭐ 연속 출석 보너스!</p>' : ''}
+            </div>
+            ${rewardInfo.thankMessage ? `
+                <div class="bg-blue-50 rounded-lg p-3 mb-4">
+                    <p class="text-sm text-blue-700 font-medium">${rewardInfo.thankMessage}</p>
+                </div>
+            ` : ''}
+            <button onclick="this.closest('.fixed').remove()" 
+                    class="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-3 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-105 font-bold">
+                고마워요! 😊
+            </button>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // 5초 후 자동 닫기 (감사 메시지를 읽을 시간 제공)
+    setTimeout(() => {
+        if (modal.parentNode) {
+            modal.remove();
+        }
+    }, 5000);
+}
+
 export async function checkAuth() {
     try {
         const { addTierStyles, updateUserTierDisplay } = await import('./utils/tier-utils.js');
