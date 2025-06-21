@@ -34,6 +34,11 @@
                 
                 <!-- Mobile & User Actions Container -->
                 <div class="flex items-center space-x-2">
+                    <!-- Search Button -->
+                    <button id="header-search-btn" class="p-2 rounded-md hover:bg-gray-100 transition-colors">
+                        <i data-lucide="search" class="w-5 h-5 text-gray-600"></i>
+                    </button>
+                    
                     <!-- Mobile Menu Button -->
                     <button id="mobile-menu-btn" class="md:hidden p-2 rounded-md hover:bg-gray-100 transition-colors">
                         <i data-lucide="menu" class="w-5 h-5 text-gray-600"></i>
@@ -45,6 +50,27 @@
                     </div>
                 </div>
             </nav>
+            
+            <!-- Search Overlay -->
+            <div id="search-overlay" class="hidden absolute top-full left-0 right-0 bg-white/95 backdrop-blur-sm border-b border-gray-200 z-40">
+                <div class="container mx-auto px-4 lg:px-8 py-4">
+                    <div class="max-w-2xl mx-auto">
+                        <div class="relative">
+                            <input type="text" id="header-search-input" class="block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base" placeholder="이슈 제목으로 검색하세요...">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i data-lucide="search" class="h-5 w-5 text-gray-400"></i>
+                            </div>
+                            <button id="search-close-btn" class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                                <i data-lucide="x" class="h-5 w-5 text-gray-400 hover:text-gray-600"></i>
+                            </button>
+                        </div>
+                        <!-- Search Results Container -->
+                        <div id="search-results" class="hidden mt-4 max-h-96 overflow-y-auto bg-white rounded-lg border border-gray-200 shadow-lg">
+                            <!-- Search results will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
             
             <!-- Mobile Navigation Menu -->
             <div id="mobile-menu" class="hidden md:hidden bg-white/95 backdrop-blur-sm border-t border-gray-200">
@@ -72,45 +98,42 @@
             
             <!-- Enhanced Filters with Time-based Navigation -->
             <div class="filters-container mb-8">
-                <!-- Time-based Filter Tabs (like Manifold) -->
+                <!-- Time-based Filter Tabs -->
                 <div class="time-filters mb-6">
-                    <div class="flex items-center justify-between mb-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
                         <h2 class="text-lg font-semibold text-gray-900">정렬 기준</h2>
-                        <div class="flex items-center space-x-4">
+                        <div class="flex flex-col sm:flex-row gap-3">
                             <select id="sort-filter" class="modern-select text-sm">
-                                <option value="newest">인기순</option>
-                                <option value="hot">핫 이슈</option>
+                                <option value="popular">인기순</option>
                                 <option value="newest">최신순</option>
-                                <option value="ending_soon">마감 임박순</option>
-                                <option value="volume">거래량순</option>
-                            </select>
-                            <select id="open-filter" class="modern-select text-sm">
-                                <option value="open">진행중</option>
-                                <option value="closed">종료됨</option>
-                                <option value="all">전체</option>
+                                <option value="ending">마감 임박순</option>
+                                <option value="volume">참여량순</option>
                             </select>
                         </div>
                     </div>
-                    <div class="time-filter-tabs">
-                        <button class="time-tab active" data-time="ALL">전체</button>
-                        <button class="time-tab" data-time="1M">1개월</button>
-                        <button class="time-tab" data-time="1W">1주</button>
-                        <button class="time-tab" data-time="1D">1일</button>
-                        <button class="time-tab" data-time="6H">6시간</button>
-                        <button class="time-tab" data-time="1H">1시간</button>
+                    <div class="time-filter-tabs overflow-x-auto scrollbar-hide">
+                        <div class="flex gap-2 min-w-max pb-2">
+                            <button class="time-tab active" data-time="ALL">전체</button>
+                            <button class="time-tab" data-time="1M">1개월</button>
+                            <button class="time-tab" data-time="1W">1주</button>
+                            <button class="time-tab" data-time="1D">1일</button>
+                            <button class="time-tab" data-time="6H">6시간</button>
+                            <button class="time-tab" data-time="1H">1시간</button>
+                        </div>
                     </div>
                 </div>
 
                 <!-- Search and Category Filters -->
-                <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-4">
-                    <div class="flex-grow">
-                        <div class="relative">
-                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500"></i>
-                            <input type="text" id="search-input" placeholder="질문, 사용자, 주제, 게시물 검색" class="modern-input w-full pl-10 pr-4">
-                        </div>
+                <div class="space-y-4">
+                    <!-- Search Bar -->
+                    <div class="relative">
+                        <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500"></i>
+                        <input type="text" id="search-input" placeholder="이슈 제목으로 검색하세요..." class="modern-input w-full pl-10 pr-4">
                     </div>
-                    <div class="flex space-x-2">
-                        <select id="category-filter" class="modern-select">
+                    
+                    <!-- Mobile Optimized Filters -->
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <select id="category-filter" class="modern-select flex-1">
                             <option value="all">모든 카테고리</option>
                             <option value="정치">정치</option>
                             <option value="스포츠">스포츠</option>
@@ -121,17 +144,19 @@
                             <option value="날씨">날씨</option>
                             <option value="해외">해외</option>
                         </select>
-                        <div class="filter-settings">
-                            <button class="filter-icon-btn" title="필터 설정">
-                                <i data-lucide="sliders" class="w-4 h-4"></i>
-                            </button>
+                        <div class="flex gap-2">
+                            <select id="open-filter" class="modern-select">
+                                <option value="open">진행중</option>
+                                <option value="closed">종료됨</option>
+                                <option value="all">전체</option>
+                            </select>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Issues Grid -->
-            <div id="all-issues-grid" class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div id="all-issues-grid" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- All issue cards will be injected here by JavaScript -->
             </div>
              <div id="no-results" class="hidden text-center py-16">

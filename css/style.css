@@ -1170,6 +1170,26 @@ html {
         max-width: 150px;
     }
     
+    /* Issues.html specific mobile optimizations */
+    .time-filter-tabs {
+        width: 100%;
+    }
+    
+    .time-filter-tabs .flex {
+        gap: 0.5rem;
+    }
+    
+    .time-tab {
+        flex-shrink: 0;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        white-space: nowrap;
+    }
+    
+    .filters-container {
+        overflow-x: hidden;
+    }
+    
     /* Header User Actions Mobile */
     #header-user-actions {
         gap: 0.5rem;

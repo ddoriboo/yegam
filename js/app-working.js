@@ -3042,11 +3042,17 @@ async function initIssuesPage() {
     }
 }
 
+// Global filters for issues page
+let currentTimeFilter = 'ALL';
+let currentOpenFilter = 'open';
+
 function setupIssuesPageEvents() {
     // Issues page specific event setup
     const searchInput = document.getElementById('search-input');
     const categoryFilter = document.getElementById('category-filter');
     const sortFilter = document.getElementById('sort-filter');
+    const openFilter = document.getElementById('open-filter');
+    const timeFilterTabs = document.querySelectorAll('.time-tab');
     
     if (searchInput) {
         searchInput.addEventListener('input', debounce((e) => {
@@ -3072,6 +3078,28 @@ function setupIssuesPageEvents() {
         });
     }
     
+    if (openFilter) {
+        openFilter.addEventListener('change', (e) => {
+            currentOpenFilter = e.target.value;
+            currentPage = 1;
+            renderAllIssuesOnPage();
+        });
+    }
+    
+    // Time filter tabs
+    timeFilterTabs.forEach(tab => {
+        tab.addEventListener('click', (e) => {
+            // Remove active class from all tabs
+            timeFilterTabs.forEach(t => t.classList.remove('active'));
+            // Add active class to clicked tab
+            e.target.classList.add('active');
+            
+            currentTimeFilter = e.target.dataset.time;
+            currentPage = 1;
+            renderAllIssuesOnPage();
+        });
+    });
+    
     // Setup comments system for issues page
     initCommentsSystem();
 }
@@ -3093,6 +3121,37 @@ function renderAllIssuesOnPage() {
         filteredIssues = filteredIssues.filter(issue => 
             issue.title.toLowerCase().includes(currentSearch.toLowerCase())
         );
+    }
+    
+    // Apply open/closed filter
+    if (currentOpenFilter !== 'all') {
+        const now = new Date();
+        filteredIssues = filteredIssues.filter(issue => {
+            const endDate = new Date(issue.end_date || issue.endDate);
+            const isOpen = endDate > now;
+            return currentOpenFilter === 'open' ? isOpen : !isOpen;
+        });
+    }
+    
+    // Apply time filter
+    if (currentTimeFilter !== 'ALL') {
+        const now = new Date();
+        const timeMap = {
+            '1H': 1 * 60 * 60 * 1000,
+            '6H': 6 * 60 * 60 * 1000,
+            '1D': 24 * 60 * 60 * 1000,
+            '1W': 7 * 24 * 60 * 60 * 1000,
+            '1M': 30 * 24 * 60 * 60 * 1000
+        };
+        
+        const timeLimit = timeMap[currentTimeFilter];
+        if (timeLimit) {
+            const cutoffTime = new Date(now.getTime() - timeLimit);
+            filteredIssues = filteredIssues.filter(issue => {
+                const createdDate = new Date(issue.created_at || issue.createdAt || issue.created_date);
+                return createdDate >= cutoffTime;
+            });
+        }
     }
     
     // Apply sorting
