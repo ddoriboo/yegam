@@ -1075,6 +1075,11 @@ html {
         display: block;
     }
     
+    /* Reduce spacing in popular issues section for mobile */
+    .popular-issues-mobile .popular-issues-scroll {
+        margin-bottom: 0.5rem;
+    }
+    
     /* Category Filters Mobile */
     .category-filters-desktop {
         display: none !important;
