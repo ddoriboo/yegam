@@ -1164,6 +1164,34 @@ html {
         padding: 0.375rem 0.75rem !important; /* Even more compact for mobile scroll */
         font-size: 0.7rem !important; /* Smaller text for mobile */
         min-width: auto !important; /* Allow smaller buttons */
+        flex-shrink: 0 !important; /* Prevent shrinking */
+        white-space: nowrap !important; /* Prevent text wrapping */
+    }
+    
+    /* Ensure mobile category scroll works */
+    .category-scroll-container {
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        -webkit-overflow-scrolling: touch !important;
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
+    }
+    
+    .category-scroll-container::-webkit-scrollbar {
+        display: none !important;
+    }
+    
+    #category-filters-mobile {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        gap: 0.5rem !important;
+        min-width: max-content !important;
+        padding-bottom: 0.25rem !important;
+    }
+    
+    #category-filters-mobile .category-filter-btn {
+        flex-shrink: 0 !important;
+        white-space: nowrap !important;
     }
     
     /* Prevent horizontal overflow on mobile */
@@ -1188,31 +1216,49 @@ html {
     
     /* Issues.html specific mobile optimizations */
     .time-filter-tabs {
-        width: 100%;
-        overflow-x: auto;
-        scrollbar-width: none;
-        -ms-overflow-style: none;
+        width: 100% !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        scrollbar-width: none !important;
+        -ms-overflow-style: none !important;
     }
     
     .time-filter-tabs::-webkit-scrollbar {
-        display: none;
+        display: none !important;
     }
     
-    .time-filter-tabs .flex {
+    .time-filter-buttons-container {
         display: flex !important;
         flex-wrap: nowrap !important;
-        gap: 0.5rem;
-        min-width: max-content;
-        overflow-x: auto;
-        scrollbar-width: none;
+        flex-direction: row !important;
+        gap: 0.5rem !important;
+        min-width: max-content !important;
+        overflow-x: auto !important;
+        scrollbar-width: none !important;
+        width: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+    
+    .time-filter-buttons-container::-webkit-scrollbar {
+        display: none !important;
     }
     
     .time-tab {
         flex-shrink: 0 !important;
-        padding: 0.5rem 1rem;
-        font-size: 0.875rem;
+        flex-grow: 0 !important;
+        padding: 0.5rem 1rem !important;
+        font-size: 0.875rem !important;
         white-space: nowrap !important;
         min-width: fit-content !important;
+        width: auto !important;
+        display: inline-block !important;
+    }
+    
+    /* Force horizontal layout for time filter tabs */
+    .time-filter-tabs button {
+        display: inline-block !important;
+        float: none !important;
+        clear: none !important;
     }
     
     .filters-container {
@@ -1274,6 +1320,30 @@ html {
     
     .text-sm {
         font-size: 1rem;
+    }
+    
+    /* Additional mobile category filter fixes */
+    .category-filters-section {
+        width: 100% !important;
+        overflow: visible !important;
+    }
+    
+    .category-filters-mobile {
+        width: 100% !important;
+        overflow: visible !important;
+    }
+    
+    .category-scroll-container {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    /* Ensure category buttons don't break layout */
+    .category-filters-mobile #category-filters-mobile .category-filter-btn {
+        display: inline-block !important;
+        float: none !important;
+        clear: none !important;
+        margin: 0 !important;
     }
 }
 
