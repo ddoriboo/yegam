@@ -28,7 +28,7 @@ function handleBettingClick(event) {
 
 async function placeBet(issueId, choice, cardElement) {
     const user = auth.getCurrentUser();
-    const amountStr = prompt(`'${choice}'에 얼마나 예측하시겠습니까?\\n보유 감: ${user.coins.toLocaleString()}`, "100");
+    const amountStr = prompt(`'${choice}'에 얼마나 예측하시겠습니까?\\n보유 GAM: ${user.gam_balance.toLocaleString()}`, "100");
 
     if (amountStr === null) return;
     const amount = parseInt(amountStr);
@@ -38,8 +38,8 @@ async function placeBet(issueId, choice, cardElement) {
         return;
     }
     
-    if (amount > user.coins) {
-        alert(MESSAGES.ERROR.INSUFFICIENT_COINS);
+    if (amount > user.gam_balance) {
+        alert('보유 GAM이 부족합니다.');
         return;
     }
 
@@ -50,7 +50,7 @@ async function placeBet(issueId, choice, cardElement) {
             alert(MESSAGES.SUCCESS.BET_PLACED);
             
             // 사용자 정보 업데이트
-            const updatedUser = { ...user, coins: result.updatedUser.coins };
+            const updatedUser = { ...user, gam_balance: result.updatedUser.gam_balance };
             auth.updateUserInSession(updatedUser);
             updateUserWallet();
             updateCardAfterBet(cardElement, choice, amount);
@@ -77,6 +77,6 @@ function updateUserWallet() {
     const userCoinsEl = document.getElementById('user-coins');
     if (userCoinsEl && auth.isLoggedIn()) {
         const user = auth.getCurrentUser();
-        userCoinsEl.textContent = user.coins.toLocaleString();
+        userCoinsEl.textContent = user.gam_balance.toLocaleString();
     }
 }

@@ -381,7 +381,7 @@ router.post('/issues/:id/result', secureAdminMiddleware, async (req, res) => {
                     // 사용자 잔액 업데이트
                     await new Promise((resolve, reject) => {
                         db.run(
-                            'UPDATE users SET coins = coins + ? WHERE id = ?',
+                            'UPDATE users SET gam_balance = gam_balance + ? WHERE id = ?',
                             [userReward, bet.user_id],
                             function(err) {
                                 if (err) reject(err);
@@ -438,7 +438,7 @@ router.post('/issues/:id/result', secureAdminMiddleware, async (req, res) => {
             for (const bet of bets) {
                 await new Promise((resolve, reject) => {
                     db.run(
-                        'UPDATE users SET coins = coins + ? WHERE id = ?',
+                        'UPDATE users SET gam_balance = gam_balance + ? WHERE id = ?',
                         [bet.amount, bet.user_id],
                         function(err) {
                             if (err) reject(err);

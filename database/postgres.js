@@ -103,14 +103,30 @@ const createTables = async () => {
         
         // coins 데이터를 gam_balance로 마이그레이션 (데이터 통일)
         try {
+            // 1. coins가 있지만 gam_balance가 없거나 0인 경우 동기화
             await client.query(`
                 UPDATE users 
                 SET gam_balance = COALESCE(coins, 10000) 
                 WHERE gam_balance IS NULL OR gam_balance = 0
             `);
-            console.log('✅ coins 데이터를 gam_balance로 마이그레이션 완료');
+            
+            // 2. 앞으로는 gam_balance를 기본값으로 설정
+            await client.query(`
+                UPDATE users 
+                SET gam_balance = COALESCE(gam_balance, 10000) 
+                WHERE gam_balance IS NULL
+            `);
+            
+            // 3. coins 컬럼을 gam_balance와 동기화 (하위 호환성)
+            await client.query(`
+                UPDATE users 
+                SET coins = gam_balance 
+                WHERE coins != gam_balance OR coins IS NULL
+            `);
+            
+            console.log('✅ GAM 시스템 완전 통일 마이그레이션 완료');
         } catch (error) {
-            console.log('coins → gam_balance 마이그레이션 스킵:', error.message);
+            console.log('GAM 마이그레이션 스킵:', error.message);
         }
         
         try {

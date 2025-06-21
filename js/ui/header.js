@@ -42,7 +42,7 @@ export function updateHeader() {
                 <!-- GAM 잔액 -->
                 <div id="user-wallet" class="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-md border border-gray-200 shadow-sm">
                     <i data-lucide="coins" class="w-4 h-4 text-yellow-500"></i>
-                    <span id="user-coins" class="text-sm font-semibold text-gray-900">${(user.gam_balance || user.coins || 0).toLocaleString()}</span>
+                    <span id="user-coins" class="text-sm font-semibold text-gray-900">${(user.gam_balance || 0).toLocaleString()}</span>
                 </div>
                 
                 <!-- 로그아웃 버튼 -->
@@ -72,7 +72,7 @@ export function updateUserWallet() {
     const userCoinsEl = document.getElementById('user-coins');
     if (userCoinsEl && auth.isLoggedIn()) {
         const user = auth.getCurrentUser();
-        userCoinsEl.textContent = (user.gam_balance || user.coins || 0).toLocaleString();
+        userCoinsEl.textContent = (user.gam_balance || 0).toLocaleString();
     }
 }
 
