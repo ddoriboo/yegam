@@ -17,6 +17,7 @@ const adminCommentRoutes = require('./routes/admin-comments');
 const adminRoutes = require('./routes/admin');
 const { router: secureAdminAuthRoutes } = require('./routes/admin-auth-secure');
 const uploadRoutes = require('./routes/upload');
+const notificationRoutes = require('./routes/notifications');
 const { initDatabase } = require('./database/database');
 const issueScheduler = require('./services/scheduler');
 const { errorHandler } = require('./middleware/errorHandler');
@@ -89,6 +90,7 @@ app.use('/api/issues', issueRoutes);
 app.use('/api/issue-requests', issueRequestRoutes);
 app.use('/api/bets', betRoutes);
 app.use('/api/comments', commentRoutes);
+app.use('/api/notifications', notificationRoutes);
 app.use('/api/admin/comments', adminCommentRoutes);
 app.use('/api/admin-auth', secureAdminAuthRoutes); // 보안 관리자 인증 API
 app.use('/api/admin', adminRoutes);

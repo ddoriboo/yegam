@@ -21,6 +21,12 @@ export async function renderMyPage() {
     
     // 베팅 기록 로드
     await loadUserBets();
+    
+    // 알림 로드
+    await loadNotifications();
+    
+    // 알림 관련 이벤트 리스너 설정
+    setupNotificationEventListeners();
 }
 
 function updateUserProfile(user) {
@@ -267,3 +273,285 @@ function addMypageStyles() {
 document.addEventListener('DOMContentLoaded', () => {
     addMypageStyles();
 });
+
+// 알림 관련 기능들
+let currentNotificationPage = 1;
+const notificationsPerPage = 20;
+
+async function loadNotifications(page = 1) {
+    const loadingEl = document.getElementById('notifications-loading');
+    const listEl = document.getElementById('notifications-list');
+    const emptyEl = document.getElementById('notifications-empty');
+    const paginationEl = document.getElementById('notifications-pagination');
+
+    if (!loadingEl || !listEl || !emptyEl) return;
+
+    // 로딩 상태 표시
+    loadingEl.classList.remove('hidden');
+    listEl.classList.add('hidden');
+    emptyEl.classList.add('hidden');
+    paginationEl.classList.add('hidden');
+
+    try {
+        const token = localStorage.getItem('yegame-token');
+        const response = await fetch(`/api/notifications?page=${page}&limit=${notificationsPerPage}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            const notifications = data.data.notifications;
+            const pagination = data.data.pagination;
+
+            loadingEl.classList.add('hidden');
+
+            if (notifications.length === 0) {
+                emptyEl.classList.remove('hidden');
+                return;
+            }
+
+            // 알림 목록 렌더링
+            listEl.innerHTML = renderNotificationsList(notifications);
+            listEl.classList.remove('hidden');
+
+            // 페이지네이션 렌더링
+            if (pagination.totalPages > 1) {
+                paginationEl.innerHTML = renderNotificationsPagination(pagination);
+                paginationEl.classList.remove('hidden');
+            }
+
+            currentNotificationPage = page;
+
+        } else {
+            loadingEl.classList.add('hidden');
+            listEl.innerHTML = '<div class="p-4 text-center text-red-500">알림을 불러올 수 없습니다.</div>';
+            listEl.classList.remove('hidden');
+        }
+
+    } catch (error) {
+        console.error('알림 로드 실패:', error);
+        loadingEl.classList.add('hidden');
+        listEl.innerHTML = '<div class="p-4 text-center text-red-500">알림을 불러올 수 없습니다.</div>';
+        listEl.classList.remove('hidden');
+    }
+}
+
+function renderNotificationsList(notifications) {
+    return notifications.map(notification => `
+        <div class="notification-item border-b border-gray-100 last:border-b-0 hover:bg-gray-50 cursor-pointer ${!notification.is_read ? 'bg-blue-50' : ''}" 
+             data-notification-id="${notification.id}" data-is-read="${notification.is_read}">
+            <div class="p-4 flex items-start space-x-4">
+                <div class="flex-shrink-0">
+                    ${getNotificationIcon(notification.type)}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-start justify-between">
+                        <h4 class="text-sm font-medium text-gray-900 pr-2">${notification.title}</h4>
+                        <div class="flex items-center space-x-2">
+                            <span class="text-xs text-gray-400">${formatNotificationTime(notification.created_at)}</span>
+                            ${!notification.is_read ? '<div class="w-2 h-2 bg-blue-500 rounded-full"></div>' : ''}
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-600 mt-1 whitespace-pre-line">${notification.message}</p>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderNotificationsPagination(pagination) {
+    const pages = [];
+    const { page, totalPages, hasPrev, hasNext } = pagination;
+
+    if (hasPrev) {
+        pages.push(`<button class="pagination-btn" data-page="${page - 1}">이전</button>`);
+    }
+
+    // 페이지 번호들
+    const startPage = Math.max(1, page - 2);
+    const endPage = Math.min(totalPages, page + 2);
+
+    for (let i = startPage; i <= endPage; i++) {
+        const isActive = i === page;
+        pages.push(`
+            <button class="pagination-btn ${isActive ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-100'}" 
+                    data-page="${i}" ${isActive ? 'disabled' : ''}>${i}</button>
+        `);
+    }
+
+    if (hasNext) {
+        pages.push(`<button class="pagination-btn" data-page="${page + 1}">다음</button>`);
+    }
+
+    return `
+        <div class="flex items-center justify-center space-x-2">
+            ${pages.join('')}
+        </div>
+        <style>
+            .pagination-btn {
+                padding: 0.5rem 0.75rem;
+                border: 1px solid #d1d5db;
+                border-radius: 0.375rem;
+                background: white;
+                color: #374151;
+                font-size: 0.875rem;
+                cursor: pointer;
+                transition: all 0.15s;
+            }
+            .pagination-btn:hover:not(:disabled) {
+                background: #f3f4f6;
+            }
+            .pagination-btn:disabled {
+                cursor: not-allowed;
+                opacity: 0.6;
+            }
+        </style>
+    `;
+}
+
+function setupNotificationEventListeners() {
+    // 모두 읽기 버튼
+    const markAllReadBtn = document.getElementById('mark-all-notifications-read');
+    markAllReadBtn?.addEventListener('click', markAllNotificationsAsRead);
+
+    // 읽은 알림 삭제 버튼
+    const clearReadBtn = document.getElementById('clear-read-notifications');
+    clearReadBtn?.addEventListener('click', clearReadNotifications);
+
+    // 알림 아이템 클릭 이벤트 (이벤트 위임)
+    const notificationsList = document.getElementById('notifications-list');
+    notificationsList?.addEventListener('click', (e) => {
+        const notificationItem = e.target.closest('.notification-item');
+        if (!notificationItem) return;
+
+        const notificationId = notificationItem.dataset.notificationId;
+        const isRead = notificationItem.dataset.isRead === 'true';
+
+        if (!isRead) {
+            markNotificationAsRead(notificationId);
+        }
+    });
+
+    // 페이지네이션 클릭 이벤트 (이벤트 위임)
+    const paginationEl = document.getElementById('notifications-pagination');
+    paginationEl?.addEventListener('click', (e) => {
+        const btn = e.target.closest('.pagination-btn');
+        if (!btn || btn.disabled) return;
+
+        const page = parseInt(btn.dataset.page);
+        if (page && page !== currentNotificationPage) {
+            loadNotifications(page);
+        }
+    });
+}
+
+async function markAllNotificationsAsRead() {
+    try {
+        const token = localStorage.getItem('yegame-token');
+        const response = await fetch('/api/notifications/read-all', {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (response.ok) {
+            await loadNotifications(currentNotificationPage);
+            
+            // 헤더의 알림 개수도 업데이트
+            if (window.updateNotificationCount) {
+                window.updateNotificationCount();
+            }
+        }
+    } catch (error) {
+        console.error('모든 알림 읽음 처리 실패:', error);
+    }
+}
+
+async function clearReadNotifications() {
+    try {
+        const token = localStorage.getItem('yegame-token');
+        const response = await fetch('/api/notifications/read', {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (response.ok) {
+            await loadNotifications(currentNotificationPage);
+        }
+    } catch (error) {
+        console.error('읽은 알림 삭제 실패:', error);
+    }
+}
+
+async function markNotificationAsRead(notificationId) {
+    try {
+        const token = localStorage.getItem('yegame-token');
+        const response = await fetch(`/api/notifications/${notificationId}/read`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (response.ok) {
+            // 해당 알림 아이템의 읽음 상태 업데이트
+            const notificationItem = document.querySelector(`[data-notification-id="${notificationId}"]`);
+            if (notificationItem) {
+                notificationItem.dataset.isRead = 'true';
+                notificationItem.classList.remove('bg-blue-50');
+                
+                // 읽지 않음 표시 제거
+                const unreadDot = notificationItem.querySelector('.bg-blue-500');
+                if (unreadDot) unreadDot.remove();
+            }
+            
+            // 헤더의 알림 개수도 업데이트
+            if (window.updateNotificationCount) {
+                window.updateNotificationCount();
+            }
+        }
+    } catch (error) {
+        console.error('알림 읽음 처리 실패:', error);
+    }
+}
+
+// 알림 타입별 아이콘 반환 (header.js와 동일)
+function getNotificationIcon(type) {
+    const iconMap = {
+        'issue_request_approved': '<i data-lucide="check-circle" class="w-5 h-5 text-green-500"></i>',
+        'issue_request_rejected': '<i data-lucide="x-circle" class="w-5 h-5 text-red-500"></i>',
+        'betting_win': '<i data-lucide="trophy" class="w-5 h-5 text-yellow-500"></i>',
+        'betting_loss': '<i data-lucide="minus-circle" class="w-5 h-5 text-gray-500"></i>',
+        'issue_closed': '<i data-lucide="clock" class="w-5 h-5 text-blue-500"></i>',
+        'gam_reward': '<i data-lucide="coins" class="w-5 h-5 text-yellow-500"></i>',
+        'reward_distributed': '<i data-lucide="gift" class="w-5 h-5 text-purple-500"></i>',
+        'premium_feature': '<i data-lucide="star" class="w-5 h-5 text-orange-500"></i>',
+        'system_announcement': '<i data-lucide="megaphone" class="w-5 h-5 text-blue-500"></i>',
+        'system_broadcast': '<i data-lucide="radio" class="w-5 h-5 text-blue-500"></i>'
+    };
+    
+    return iconMap[type] || '<i data-lucide="bell" class="w-5 h-5 text-gray-500"></i>';
+}
+
+// 알림 시간 포맷팅 (header.js와 동일)
+function formatNotificationTime(timestamp) {
+    const now = new Date();
+    const time = new Date(timestamp);
+    const diffInMinutes = Math.floor((now - time) / (1000 * 60));
+    
+    if (diffInMinutes < 1) return '방금 전';
+    if (diffInMinutes < 60) return `${diffInMinutes}분 전`;
+    
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours}시간 전`;
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 7) return `${diffInDays}일 전`;
+    
+    return time.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+}

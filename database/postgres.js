@@ -176,6 +176,22 @@ const createTables = async () => {
             )
         `);
         
+        // 알림 테이블
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS notifications (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL,
+                type VARCHAR(50) NOT NULL,
+                title VARCHAR(200) NOT NULL,
+                message TEXT NOT NULL,
+                related_id INTEGER,
+                related_type VARCHAR(50),
+                is_read BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        `);
+        
         // 성능 최적화를 위한 인덱스 생성
         console.log('🔧 데이터베이스 인덱스 생성 중...');
         await client.query('CREATE INDEX IF NOT EXISTS idx_issues_status ON issues(status)');
@@ -185,6 +201,9 @@ const createTables = async () => {
         await client.query('CREATE INDEX IF NOT EXISTS idx_comments_issue_id ON comments(issue_id)');
         await client.query('CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id)');
         await client.query('CREATE INDEX IF NOT EXISTS idx_comment_likes_comment_id ON comment_likes(comment_id)');
+        await client.query('CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id)');
+        await client.query('CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON notifications(is_read)');
+        await client.query('CREATE INDEX IF NOT EXISTS idx_notifications_type ON notifications(type)');
         console.log('✅ 데이터베이스 인덱스 생성 완료');
         
         await client.query('COMMIT');
