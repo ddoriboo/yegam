@@ -1057,6 +1057,10 @@ async function toggleComments(issueId) {
 }
 
 async function loadComments(issueId, loadMore = false) {
+    // issueId를 항상 문자열로 통일
+    issueId = String(issueId);
+    console.log('🔄 loadComments issueId 정규화:', issueId, 'type:', typeof issueId);
+    
     const commentsSection = document.querySelector(`.comments-section[data-issue-id="${issueId}"]`);
     const loadingEl = commentsSection.querySelector('.comments-loading');
     const containerEl = commentsSection.querySelector('.comments-container');
@@ -1132,7 +1136,9 @@ async function loadUserLikeStatus(issueId) {
 }
 
 function renderPaginatedComments(issueId) {
-    console.log('📄 renderPaginatedComments 호출됨, issueId:', issueId);
+    // issueId를 항상 문자열로 통일
+    issueId = String(issueId);
+    console.log('📄 renderPaginatedComments 호출됨, issueId:', issueId, 'type:', typeof issueId);
     
     const pagination = commentsPagination.get(issueId);
     if (!pagination) {
@@ -1213,7 +1219,9 @@ function renderComments(comments) {
 
 // 더보기 댓글 로드 함수
 window.loadMoreComments = function(issueId) {
-    console.log('🔄 loadMoreComments 호출됨:', issueId);
+    // issueId를 항상 문자열로 통일
+    issueId = String(issueId);
+    console.log('🔄 loadMoreComments 호출됨:', issueId, 'type:', typeof issueId);
     console.log('🗂️ 현재 commentsPagination 전체:', commentsPagination);
     console.log('🔑 commentsPagination keys:', Array.from(commentsPagination.keys()));
     
@@ -1261,13 +1269,23 @@ window.loadMoreComments = function(issueId) {
         return;
     }
     
-    // 페이지 증가
+    // 페이지 증가 및 업데이트
     pagination.currentPage++;
     
-    console.log('📄 새로운 페이지:', pagination.currentPage);
+    // pagination 객체를 올바른 key로 다시 저장
+    const originalKey = Array.from(commentsPagination.keys()).find(key => String(key) === String(issueId));
+    if (originalKey) {
+        commentsPagination.set(originalKey, pagination);
+        console.log('📄 새로운 페이지:', pagination.currentPage, '저장 key:', originalKey);
+    } else {
+        console.log('⚠️ 원본 key를 찾을 수 없음, 현재 key로 저장');
+        commentsPagination.set(issueId, pagination);
+    }
     
-    // 댓글 섹션 다시 렌더링
-    containerEl.innerHTML = renderPaginatedComments(issueId);
+    // 댓글 섹션 다시 렌더링 (같은 key 타입 사용)
+    const keyToUse = Array.from(commentsPagination.keys()).find(key => String(key) === String(issueId));
+    console.log('🔑 렌더링에 사용할 key:', keyToUse);
+    containerEl.innerHTML = renderPaginatedComments(keyToUse || issueId);
     
     console.log('🎨 렌더링 완료');
     
