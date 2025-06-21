@@ -2049,9 +2049,6 @@ async function handleLogin(e) {
             
             console.log('Login successful, user data saved:', data.user.username);
             
-            // 출석보상 체크
-            await checkDailyLoginReward(data.user.id);
-            
             showSuccess(data.message || '로그인 성공!', '환영합니다');
             window.location.href = 'index.html';
         } else {
