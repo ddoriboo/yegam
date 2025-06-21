@@ -2,15 +2,64 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { query, run, get } = require('../database/database');
+const InputValidator = require('../utils/input-validation');
 
 const router = express.Router();
-// Railway에서 환경변수가 설정되지 않은 경우를 대비해 기본값 사용
-const JWT_SECRET = process.env.JWT_SECRET || 'yegame-production-secret-key-2025-very-secure-random-string';
 
-// 프로덕션에서 기본값을 사용하는 경우 경고 출력
-if (!process.env.JWT_SECRET && process.env.NODE_ENV === 'production') {
-    console.warn('⚠️ JWT_SECRET 환경변수가 설정되지 않았습니다. 기본값을 사용합니다.');
-    console.warn('⚠️ Railway 대시보드에서 JWT_SECRET 환경변수를 설정하는 것을 권장합니다.');
+// JWT_SECRET 보안 강화 - 프로덕션에서 환경변수 필수
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+    console.error('❌ JWT_SECRET 환경변수가 필수입니다.');
+    if (process.env.NODE_ENV === 'production') {
+        console.error('❌ 프로덕션 환경에서는 JWT_SECRET 설정 없이 실행할 수 없습니다.');
+        process.exit(1);
+    } else {
+        console.warn('⚠️ 개발 환경: JWT_SECRET이 설정되지 않았습니다. 임시 키를 생성합니다.');
+        // 개발 환경에서만 임시 키 생성
+        require('crypto').randomBytes(32).toString('hex');
+    }
+}
+
+// Rate limiting을 위한 간단한 메모리 저장소
+const loginAttempts = new Map();
+const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15분
+const MAX_ATTEMPTS = 5;
+
+// Rate limiting 함수
+function checkRateLimit(identifier) {
+    const now = Date.now();
+    const attemptData = loginAttempts.get(identifier) || { count: 0, lastAttempt: now };
+    
+    // 시간 윈도우가 지났으면 카운트 리셋
+    if (now - attemptData.lastAttempt > RATE_LIMIT_WINDOW) {
+        attemptData.count = 0;
+    }
+    
+    if (attemptData.count >= MAX_ATTEMPTS) {
+        const timeLeft = Math.ceil((RATE_LIMIT_WINDOW - (now - attemptData.lastAttempt)) / 1000 / 60);
+        return { blocked: true, timeLeft };
+    }
+    
+    return { blocked: false };
+}
+
+function recordFailedAttempt(identifier) {
+    const now = Date.now();
+    const attemptData = loginAttempts.get(identifier) || { count: 0, lastAttempt: now };
+    
+    if (now - attemptData.lastAttempt > RATE_LIMIT_WINDOW) {
+        attemptData.count = 1;
+    } else {
+        attemptData.count++;
+    }
+    
+    attemptData.lastAttempt = now;
+    loginAttempts.set(identifier, attemptData);
+}
+
+function clearFailedAttempts(identifier) {
+    loginAttempts.delete(identifier);
 }
 
 // 회원가입
@@ -18,39 +67,27 @@ router.post('/signup', async (req, res) => {
     try {
         const { username, email, password } = req.body;
         
-        if (!username || !email || !password) {
+        // 입력값 검증
+        const validation = InputValidator.validateFields(req.body, {
+            username: { type: 'username' },
+            email: { type: 'email' },
+            password: { type: 'password' }
+        });
+        
+        if (!validation.valid) {
+            const firstError = Object.values(validation.errors)[0];
             return res.status(400).json({ 
                 success: false, 
-                message: '모든 필드를 입력해주세요.' 
+                message: firstError,
+                errors: validation.errors
             });
         }
         
-        // Basic validation
-        if (username.length < 2 || username.length > 20) {
-            return res.status(400).json({ 
-                success: false, 
-                message: '사용자명은 2-20자 사이여야 합니다.' 
-            });
-        }
-        
-        if (password.length < 6) {
-            return res.status(400).json({ 
-                success: false, 
-                message: '비밀번호는 최소 6자 이상이어야 합니다.' 
-            });
-        }
-        
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            return res.status(400).json({ 
-                success: false, 
-                message: '올바른 이메일 형식이 아닙니다.' 
-            });
-        }
+        const { username: validUsername, email: validEmail, password: validPassword } = validation.sanitized;
         
         try {
             // 중복 사용자 확인
-            const existingUser = await get('SELECT id FROM users WHERE email = $1 OR username = $2', [email, username]);
+            const existingUser = await get('SELECT id FROM users WHERE email = $1 OR username = $2', [validEmail, validUsername]);
             
             if (existingUser) {
                 return res.status(400).json({ 
@@ -60,17 +97,17 @@ router.post('/signup', async (req, res) => {
             }
             
             // 비밀번호 암호화
-            const hashedPassword = await bcrypt.hash(password, 10);
+            const hashedPassword = await bcrypt.hash(validPassword, 12);
             
             // 사용자 생성
-            const result = await run('INSERT INTO users (username, email, password_hash, coins) VALUES ($1, $2, $3, $4)', 
-                [username, email, hashedPassword, 10000]);
+            const result = await run('INSERT INTO users (username, email, password_hash, coins, gam_balance) VALUES ($1, $2, $3, $4, $5)', 
+                [validUsername, validEmail, hashedPassword, 10000, 10000]);
             
             const userId = result.lastID || result.rows[0]?.id;
             
             // JWT 토큰 생성
             const token = jwt.sign(
-                { id: userId, username, email }, 
+                { id: userId, username: validUsername, email: validEmail }, 
                 JWT_SECRET, 
                 { expiresIn: '7d' }
             );
@@ -80,9 +117,10 @@ router.post('/signup', async (req, res) => {
                 token,
                 user: {
                     id: userId,
-                    username,
-                    email,
-                    coins: 10000
+                    username: validUsername,
+                    email: validEmail,
+                    coins: 10000,
+                    gam_balance: 10000
                 }
             });
         } catch (error) {
@@ -105,30 +143,55 @@ router.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body;
         
-        if (!email || !password) {
+        // 입력값 검증
+        const validation = InputValidator.validateFields(req.body, {
+            email: { type: 'email' },
+            password: { type: 'text', maxLength: 128, allowEmpty: false }
+        });
+        
+        if (!validation.valid) {
+            const firstError = Object.values(validation.errors)[0];
             return res.status(400).json({ 
                 success: false, 
-                message: '이메일과 비밀번호를 입력해주세요.' 
+                message: firstError
             });
         }
         
-        const user = await get('SELECT * FROM users WHERE email = $1', [email]);
+        const { email: validEmail } = validation.sanitized;
+        const clientIp = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
+        const identifier = `${validEmail}_${clientIp}`;
+        
+        // Rate limiting 체크
+        const rateLimitCheck = checkRateLimit(identifier);
+        if (rateLimitCheck.blocked) {
+            return res.status(429).json({
+                success: false,
+                message: `로그인 시도가 너무 많습니다. ${rateLimitCheck.timeLeft}분 후에 다시 시도해주세요.`
+            });
+        }
+        
+        const user = await get('SELECT * FROM users WHERE email = $1', [validEmail]);
         
         if (!user) {
+            recordFailedAttempt(identifier);
             return res.status(400).json({ 
                 success: false, 
-                message: '존재하지 않는 사용자입니다.' 
+                message: '이메일 또는 비밀번호가 올바르지 않습니다.' 
             });
         }
         
         // 비밀번호 확인
         const validPassword = await bcrypt.compare(password, user.password_hash);
         if (!validPassword) {
+            recordFailedAttempt(identifier);
             return res.status(400).json({ 
                 success: false, 
-                message: '비밀번호가 올바르지 않습니다.' 
+                message: '이메일 또는 비밀번호가 올바르지 않습니다.' 
             });
         }
+        
+        // 로그인 성공 시 실패 카운트 초기화
+        clearFailedAttempts(identifier);
         
         // JWT 토큰 생성
         const token = jwt.sign(

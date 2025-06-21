@@ -2,34 +2,14 @@ const express = require('express');
 const { query, run, get, isPostgreSQL } = require('../database/database');
 const { getClient } = require('../database/postgres');
 const { authMiddleware } = require('../middleware/auth');
+const { validateBetRequest } = require('../middleware/validation');
 
 const router = express.Router();
 
 // 베팅하기
-router.post('/', authMiddleware, async (req, res) => {
-    const { issueId, choice, amount } = req.body;
+router.post('/', authMiddleware, validateBetRequest, async (req, res) => {
+    const { issueId, choice, amount } = req.validatedData;
     const userId = req.user.id;
-    
-    if (!issueId || !choice || !amount) {
-        return res.status(400).json({ 
-            success: false, 
-            message: '모든 필드를 입력해주세요.' 
-        });
-    }
-    
-    if (amount <= 0) {
-        return res.status(400).json({ 
-            success: false, 
-            message: '베팅 금액은 0보다 커야 합니다.' 
-        });
-    }
-    
-    if (!['Yes', 'No'].includes(choice)) {
-        return res.status(400).json({ 
-            success: false, 
-            message: '올바른 선택이 아닙니다.' 
-        });
-    }
     
     let client;
     

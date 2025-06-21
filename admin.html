@@ -604,9 +604,9 @@
 
     </div>
 
-    <!-- 관리자 인증 스크립트 (app-working.js보다 먼저 실행) -->
+    <!-- 관리자 인증 스크립트 (app.js보다 먼저 실행) -->
     <script>
-        // 관리자 페이지 플래그 설정 (app-working.js에서 확인)
+        // 관리자 페이지 플래그 설정 (app.js에서 확인)
         window.isAdminPage = true;
         window.adminAuthCompleted = false;
         
@@ -712,7 +712,7 @@
         // 전역 함수로 노출
         window.adminLogout = adminLogout;
         
-        // 관리자 인증을 즉시 실행 (js/app-working.js보다 먼저)
+        // 관리자 인증을 즉시 실행 (js/app.js보다 먼저)
         (async function() {
             console.log('🔐 관리자 페이지 접근 - 인증 확인 중...');
             
@@ -723,7 +723,7 @@
             
             console.log('✅ 관리자 인증 완료 - 사용자 정보 설정 중...');
             
-            // 관리자 인증 완료 플래그 설정 (app-working.js에서 확인)
+            // 관리자 인증 완료 플래그 설정 (app.js에서 확인)
             window.adminAuthCompleted = true;
             window.adminAuthenticated = true;
             window.adminUser = authResult.admin;
@@ -737,17 +737,17 @@
                 isAdmin: true
             };
             
-            // 일반 사용자 토큰도 설정 (app-working.js 호환을 위해)
+            // 일반 사용자 토큰도 설정 (app.js 호환을 위해)
             localStorage.setItem('yegame-token', localStorage.getItem('admin-token'));
             sessionStorage.setItem('yegame-user', JSON.stringify(window.currentUser));
             
-            // app-working.js가 사용하는 전역 변수 미리 설정
+            // app.js가 사용하는 전역 변수 미리 설정
             window.userToken = localStorage.getItem('admin-token');
             window.currentUser = window.currentUser; // 이미 설정됨
             
-            console.log('🎯 관리자 모드 설정 완료 - app-working.js 로드 준비됨');
+            console.log('🎯 관리자 모드 설정 완료 - app.js 로드 준비됨');
             
-            // app-working.js 로드 후 헤더 강제 업데이트
+            // app.js 로드 후 헤더 강제 업데이트
             setTimeout(() => {
                 if (typeof updateHeader === 'function') {
                     updateHeader(true);
@@ -841,6 +841,6 @@
     </script>
     
     <script src="utils/tierSystem.js"></script>
-    <script type="module" src="js/app-working.js"></script>
+    <script type="module" src="js/app.js"></script>
 </body>
 </html>

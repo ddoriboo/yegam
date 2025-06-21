@@ -4,6 +4,10 @@ const helmet = require('helmet');
 const path = require('path');
 require('dotenv').config();
 
+// 환경변수 검증 (서버 시작 전 실행)
+const EnvironmentValidator = require('./utils/env-validator');
+const envConfig = EnvironmentValidator.validate();
+
 const authRoutes = require('./routes/auth');
 const issueRoutes = require('./routes/issues');
 const issueRequestRoutes = require('./routes/issue-requests');
@@ -11,19 +15,22 @@ const betRoutes = require('./routes/bets');
 const commentRoutes = require('./routes/comments');
 const adminCommentRoutes = require('./routes/admin-comments');
 const adminRoutes = require('./routes/admin');
-const adminAuthRoutes = require('./routes/admin-auth');
 const { router: secureAdminAuthRoutes } = require('./routes/admin-auth-secure');
 const uploadRoutes = require('./routes/upload');
 const { initDatabase } = require('./database/database');
 const issueScheduler = require('./services/scheduler');
 const { errorHandler } = require('./middleware/errorHandler');
 const { setupAdminEndpoint } = require('./setup-admin');
+const HealthCheck = require('./utils/health-check');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = envConfig.port || 3000;
+
+// 헬스체크 인스턴스 생성
+const healthCheck = new HealthCheck();
 
 // 버전 정보 - PostgreSQL 완전 통일 버전
-console.log('🚀 예겜 서버 v2.0 - PostgreSQL 완전 통일 버전');
+console.log('🚀 예겜 서버 v2.1 - 보안 및 모니터링 강화 버전');
 
 // 미들웨어 (개발/프로덕션 환경에 따라 보안 설정 조정)
 if (process.env.NODE_ENV === 'production') {
@@ -46,6 +53,36 @@ app.use(express.static(path.join(__dirname), {
         }
     }
 }));
+
+// 헬스체크 및 모니터링 라우트
+app.get('/health', async (req, res) => {
+    try {
+        const result = await healthCheck.quickCheck();
+        const statusCode = result.status === 'healthy' ? 200 : 503;
+        res.status(statusCode).json(result);
+    } catch (error) {
+        res.status(503).json({
+            status: 'unhealthy',
+            timestamp: new Date().toISOString(),
+            error: error.message
+        });
+    }
+});
+
+app.get('/health/detailed', async (req, res) => {
+    try {
+        const result = await healthCheck.performHealthCheck();
+        const statusCode = result.status === 'healthy' ? 200 : 
+                          result.status === 'warning' ? 200 : 503;
+        res.status(statusCode).json(result);
+    } catch (error) {
+        res.status(503).json({
+            status: 'unhealthy',
+            timestamp: new Date().toISOString(),
+            error: error.message
+        });
+    }
+});
 
 // API 라우트
 app.use('/api/auth', authRoutes);
