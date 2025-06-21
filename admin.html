@@ -603,8 +603,12 @@
 
     </div>
 
-    <!-- 관리자 인증 스크립트 (반드시 다른 스크립트보다 먼저 실행) -->
+    <!-- 관리자 인증 스크립트 (app-working.js보다 먼저 실행) -->
     <script>
+        // 관리자 페이지 플래그 설정 (app-working.js에서 확인)
+        window.isAdminPage = true;
+        window.adminAuthCompleted = false;
+        
         // 관리자 인증 확인 함수
         async function checkAdminAuth() {
             const adminToken = localStorage.getItem('admin-token');
@@ -707,8 +711,8 @@
         // 전역 함수로 노출
         window.adminLogout = adminLogout;
         
-        // 페이지 로드 시 관리자 인증 확인
-        document.addEventListener('DOMContentLoaded', async function() {
+        // 관리자 인증을 즉시 실행 (js/app-working.js보다 먼저)
+        (async function() {
             console.log('🔐 관리자 페이지 접근 - 인증 확인 중...');
             
             const authResult = await checkAdminAuth();
@@ -716,9 +720,10 @@
                 return; // 인증 실패 시 리다이렉트됨
             }
             
-            console.log('✅ 관리자 인증 완료 - 페이지 로드 중...');
+            console.log('✅ 관리자 인증 완료 - 사용자 정보 설정 중...');
             
             // 관리자 인증 완료 플래그 설정 (app-working.js에서 확인)
+            window.adminAuthCompleted = true;
             window.adminAuthenticated = true;
             window.adminUser = authResult.admin;
             
@@ -733,15 +738,37 @@
             
             // 일반 사용자 토큰도 설정 (app-working.js 호환을 위해)
             localStorage.setItem('yegame-token', localStorage.getItem('admin-token'));
+            sessionStorage.setItem('yegame-user', JSON.stringify(window.currentUser));
             
-            console.log('🎯 관리자 모드로 app-working.js 기능 활성화');
-        });
+            // app-working.js가 사용하는 전역 변수 미리 설정
+            window.userToken = localStorage.getItem('admin-token');
+            window.currentUser = window.currentUser; // 이미 설정됨
+            
+            console.log('🎯 관리자 모드 설정 완료 - app-working.js 로드 준비됨');
+            
+            // app-working.js 로드 후 헤더 강제 업데이트
+            setTimeout(() => {
+                if (typeof updateHeader === 'function') {
+                    updateHeader(true);
+                    console.log('🔄 관리자 헤더 강제 업데이트 완료');
+                } else {
+                    // updateHeader가 아직 정의되지 않았다면 조금 더 기다림
+                    setTimeout(() => {
+                        if (typeof updateHeader === 'function') {
+                            updateHeader(true);
+                            console.log('🔄 관리자 헤더 강제 업데이트 완료 (지연)');
+                        }
+                    }, 1000);
+                }
+            }, 500);
+        })();
         
         // API 요청 시 관리자 토큰 자동 추가 함수
         window.adminFetch = async function(url, options = {}) {
             const adminToken = localStorage.getItem('admin-token');
             
             if (!adminToken) {
+                console.error('❌ 관리자 토큰이 없습니다.');
                 throw new Error('관리자 토큰이 없습니다.');
             }
             
@@ -751,18 +778,60 @@
                 ...options.headers
             };
             
-            const response = await fetch(url, {
-                ...options,
-                headers
-            });
+            console.log(`🔄 관리자 API 요청: ${options.method || 'GET'} ${url}`);
             
-            if (response.status === 401) {
-                console.warn('⚠️ 관리자 토큰이 만료되었습니다.');
-                adminLogout();
-                throw new Error('인증이 만료되었습니다.');
+            try {
+                const response = await fetch(url, {
+                    ...options,
+                    headers
+                });
+                
+                console.log(`📡 응답 상태: ${response.status} ${response.statusText}`);
+                
+                // 401 Unauthorized - 토큰 만료 또는 무효
+                if (response.status === 401) {
+                    console.warn('⚠️ 관리자 인증 실패 - 토큰이 만료되었거나 무효합니다.');
+                    
+                    // 응답 내용을 확인해서 실제 인증 문제인지 확인
+                    try {
+                        const errorData = await response.json();
+                        console.warn('401 응답 내용:', errorData);
+                        
+                        // 명확한 인증 오류인 경우에만 로그아웃
+                        if (errorData.message && (
+                            errorData.message.includes('토큰') || 
+                            errorData.message.includes('인증') ||
+                            errorData.message.includes('로그인')
+                        )) {
+                            console.warn('🚪 관리자 자동 로그아웃 실행');
+                            adminLogout();
+                        }
+                    } catch (e) {
+                        // JSON 파싱 실패해도 401이면 로그아웃
+                        console.warn('🚪 관리자 자동 로그아웃 실행 (응답 파싱 실패)');
+                        adminLogout();
+                    }
+                    
+                    throw new Error('관리자 인증이 만료되었습니다.');
+                }
+                
+                // 다른 오류들은 로그아웃하지 않고 그대로 반환
+                if (!response.ok) {
+                    console.warn(`⚠️ API 오류: ${response.status} - 로그아웃하지 않음`);
+                }
+                
+                return response;
+                
+            } catch (error) {
+                // 네트워크 오류 등
+                if (error.name === 'TypeError' && error.message.includes('fetch')) {
+                    console.error('❌ 네트워크 연결 오류:', error.message);
+                    throw new Error('서버에 연결할 수 없습니다. 네트워크를 확인해주세요.');
+                }
+                
+                // 기타 오류는 그대로 전파
+                throw error;
             }
-            
-            return response;
         };
     </script>
     

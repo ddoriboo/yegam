@@ -2484,6 +2484,8 @@ function setupCreateIssueForm() {
         const isPopular = e.target.isPopular.checked;
         
         try {
+            console.log('🔄 이슈 생성 시작:', { title, category, endDate });
+            
             const response = await window.adminFetch('/api/issues', {
                 method: 'POST',
                 body: JSON.stringify({
@@ -2497,9 +2499,19 @@ function setupCreateIssueForm() {
                 })
             });
             
-            const data = await response.json();
+            console.log('📡 이슈 생성 응답:', response.status, response.statusText);
+            
+            let data;
+            try {
+                data = await response.json();
+                console.log('📄 응답 데이터:', data);
+            } catch (jsonError) {
+                console.error('❌ 응답 JSON 파싱 실패:', jsonError);
+                throw new Error(`서버 응답을 처리할 수 없습니다 (상태: ${response.status})`);
+            }
             
             if (data.success || response.ok) {
+                console.log('✅ 이슈 생성 성공');
                 alert('이슈가 성공적으로 생성되었습니다!');
                 e.target.reset();
                 document.getElementById('create-issue-modal').classList.add('hidden');
@@ -2509,11 +2521,26 @@ function setupCreateIssueForm() {
                 document.getElementById('image-url').value = '';
                 await loadAdminIssues();
             } else {
+                console.warn('⚠️ 이슈 생성 실패:', data);
                 alert(data.message || '이슈 생성에 실패했습니다.');
             }
         } catch (error) {
-            console.error('Issue creation failed:', error);
-            alert('이슈 생성 중 오류가 발생했습니다.');
+            console.error('❌ 이슈 생성 중 오류:', error);
+            
+            // 구체적인 오류 메시지 제공
+            let errorMessage = '이슈 생성 중 오류가 발생했습니다.';
+            
+            if (error.message.includes('네트워크')) {
+                errorMessage = '네트워크 연결을 확인해주세요.';
+            } else if (error.message.includes('인증')) {
+                errorMessage = '관리자 인증이 만료되었습니다. 다시 로그인해주세요.';
+            } else if (error.message.includes('서버')) {
+                errorMessage = '서버에 일시적인 문제가 있습니다. 잠시 후 다시 시도해주세요.';
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            
+            alert(errorMessage);
         }
     });
     
