@@ -65,20 +65,40 @@ router.get('/:id/betting-stats', async (req, res) => {
         });
         
         const totalAmount = yesAmount + noAmount;
-        const houseEdge = 0.05; // 5% 수수료
+        const houseEdge = 0.02; // 수수료 2%로 통일
         const effectivePool = totalAmount * (1 - houseEdge);
         
-        // 배당률 계산
+        // 개선된 배당률 계산 시스템
         let yesOdds = 1.0;
         let noOdds = 1.0;
         
         if (totalAmount > 0) {
-            if (yesAmount > 0) {
+            // 극단적 상황 처리: 한 쪽에만 베팅이 있는 경우
+            if (yesAmount === 0 && noAmount > 0) {
+                // Yes 베팅이 없는 경우: Yes는 매우 높은 배당, No는 낮은 배당
+                yesOdds = Math.min(50.0, effectivePool / Math.max(1, totalAmount * 0.01)); // 최대 50배
+                noOdds = 1.01; // 최소 배당
+            } else if (noAmount === 0 && yesAmount > 0) {
+                // No 베팅이 없는 경우: No는 매우 높은 배당, Yes는 낮은 배당  
+                noOdds = Math.min(50.0, effectivePool / Math.max(1, totalAmount * 0.01)); // 최대 50배
+                yesOdds = 1.01; // 최소 배당
+            } else if (yesAmount > 0 && noAmount > 0) {
+                // 양쪽 모두 베팅이 있는 정상적인 경우
                 yesOdds = Math.max(1.01, effectivePool / yesAmount);
-            }
-            if (noAmount > 0) {
                 noOdds = Math.max(1.01, effectivePool / noAmount);
+            } else {
+                // 아무 베팅도 없는 초기 상태
+                yesOdds = 2.0;
+                noOdds = 2.0;
             }
+            
+            // 배당률 상한선 설정 (너무 높은 배당 방지)
+            yesOdds = Math.min(yesOdds, 50.0);
+            noOdds = Math.min(noOdds, 50.0);
+        } else {
+            // 베팅이 전혀 없는 초기 상태
+            yesOdds = 2.0;
+            noOdds = 2.0;
         }
         
         // 확률 계산 (배당률 역수)

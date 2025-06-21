@@ -101,21 +101,30 @@ router.post('/calculate', async (req, res) => {
                     const loserPool = choice === 'yes' ? simulatedNoVolume : simulatedYesVolume;
                     
                     if (winnerPool > 0 && loserPool > 0) {
-                        // 사용자의 승리 비율
+                        // 정상적인 양방향 베팅 상황
                         const userWinRatio = amount / winnerPool;
-                        
-                        // 패배자 풀에서 얻는 수익
                         profit = Math.floor(loserPool * userWinRatio);
-                        
-                        // 총 획득액 (원금 + 수익)
                         const totalWinAmount = amount + profit;
-                        
-                        // 수수료 (총 획득액의 2%)
-                        commission = Math.floor(totalWinAmount * 0.02);
-                        
-                        // 최종 수령액
+                        commission = Math.floor(totalWinAmount * 0.02); // 2% 수수료
                         expectedReturn = totalWinAmount - commission;
+                    } else if (winnerPool > 0 && loserPool === 0) {
+                        // 한쪽에만 베팅이 있는 극단적 상황 (배당률 1.01배로 제한)
+                        const totalWinAmount = Math.floor(amount * 1.01);
+                        commission = Math.floor(totalWinAmount * 0.02);
+                        expectedReturn = totalWinAmount - commission;
+                        profit = expectedReturn - amount;
+                    } else if (winnerPool === 0) {
+                        // 새로운 베팅 방향 (반대편에만 베팅이 있었던 경우 - 높은 배당률)
+                        const maxMultiplier = Math.min(10.0, (simulatedTotalVolume * 0.98) / amount);
+                        const totalWinAmount = Math.floor(amount * maxMultiplier);
+                        commission = Math.floor(totalWinAmount * 0.02);
+                        expectedReturn = totalWinAmount - commission;
+                        profit = expectedReturn - amount;
                     }
+                } else {
+                    // 첫 베팅인 경우 (2배 배당)
+                    expectedReturn = Math.floor(amount * 2.0 * 0.98);
+                    profit = expectedReturn - amount;
                 }
                 
                 // 현재 확률 계산
