@@ -5,6 +5,7 @@ const fs = require('fs');
 const { getDB, getCurrentTimeSQL, query, get, run } = require('../database/database');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 const { secureAdminMiddleware, requireAdminRole, requirePermission } = require('../middleware/admin-auth-secure');
+const NotificationService = require('../services/notificationService');
 
 // ⚠️ 위험한 tempAdminMiddleware 제거됨 - secureAdminMiddleware로 대체됨
 const issueScheduler = require('../services/scheduler');
@@ -398,6 +399,37 @@ router.post('/issues/:id/result', secureAdminMiddleware, async (req, res) => {
                             }
                         );
                     });
+                    
+                    // 승리 알림 생성
+                    try {
+                        await NotificationService.notifyBettingWin(
+                            bet.user_id, 
+                            id, 
+                            issue.title, 
+                            bet.amount, 
+                            userReward
+                        );
+                        console.log(`✅ 승리 알림 생성 완료: 사용자 ${bet.user_id}`);
+                    } catch (notificationError) {
+                        console.error(`승리 알림 생성 실패: 사용자 ${bet.user_id}:`, notificationError);
+                    }
+                }
+                
+                // 패배한 베터들에게 패배 알림 생성
+                const losingBets = bets.filter(bet => bet.choice !== result);
+                for (const bet of losingBets) {
+                    try {
+                        await NotificationService.notifyBettingLoss(
+                            bet.user_id, 
+                            id, 
+                            issue.title, 
+                            bet.amount, 
+                            reason || '예측이 빗나갔습니다.'
+                        );
+                        console.log(`✅ 패배 알림 생성 완료: 사용자 ${bet.user_id}`);
+                    } catch (notificationError) {
+                        console.error(`패배 알림 생성 실패: 사용자 ${bet.user_id}:`, notificationError);
+                    }
                 }
             }
         } else if (result === 'Draw' || result === 'Cancelled') {
@@ -425,6 +457,26 @@ router.post('/issues/:id/result', secureAdminMiddleware, async (req, res) => {
                         }
                     );
                 });
+                
+                // 무승부/취소 알림 생성
+                try {
+                    const resultText = result === 'Draw' ? '무승부' : '취소';
+                    const message = result === 'Draw' 
+                        ? `"${issue.title}" 이슈가 무승부로 종료되어 베팅 금액 ${bet.amount.toLocaleString()} GAM이 전액 환불되었습니다.`
+                        : `"${issue.title}" 이슈가 취소되어 베팅 금액 ${bet.amount.toLocaleString()} GAM이 전액 환불되었습니다.`;
+                    
+                    await NotificationService.createNotification({
+                        userId: bet.user_id,
+                        type: result === 'Draw' ? 'betting_draw' : 'betting_cancelled',
+                        title: `💰 베팅 금액이 환불되었습니다`,
+                        message,
+                        relatedId: id,
+                        relatedType: 'issue'
+                    });
+                    console.log(`✅ ${resultText} 알림 생성 완료: 사용자 ${bet.user_id}`);
+                } catch (notificationError) {
+                    console.error(`${resultText} 알림 생성 실패: 사용자 ${bet.user_id}:`, notificationError);
+                }
             }
         }
         

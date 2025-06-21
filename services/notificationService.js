@@ -99,6 +99,40 @@ class NotificationService {
     }
     
     /**
+     * 베팅 무승부 알림
+     */
+    static async notifyBettingDraw(userId, issueId, issueTitle, betAmount) {
+        return this.createNotification({
+            userId,
+            type: 'betting_draw',
+            title: '↩️ 베팅 무승부 - 환불 완료',
+            message: `"${issueTitle}" 이슈가 무승부로 종료되어 베팅 금액 ${betAmount.toLocaleString()} GAM이 전액 환불되었습니다.`,
+            relatedId: issueId,
+            relatedType: 'issue'
+        });
+    }
+    
+    /**
+     * 베팅 취소 알림
+     */
+    static async notifyBettingCancelled(userId, issueId, issueTitle, betAmount, reason = null) {
+        let message = `"${issueTitle}" 이슈가 취소되어 베팅 금액 ${betAmount.toLocaleString()} GAM이 전액 환불되었습니다.`;
+        
+        if (reason) {
+            message += `\n\n취소 사유: ${reason}`;
+        }
+        
+        return this.createNotification({
+            userId,
+            type: 'betting_cancelled',
+            title: '❌ 베팅 취소 - 환불 완료',
+            message,
+            relatedId: issueId,
+            relatedType: 'issue'
+        });
+    }
+    
+    /**
      * 이슈 마감 알림 (결과 대기)
      */
     static async notifyIssueClosed(userId, issueId, issueTitle, betAmount, choice) {

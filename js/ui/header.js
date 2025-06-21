@@ -257,6 +257,8 @@ function getNotificationIcon(type) {
         'issue_request_rejected': '<i data-lucide="x-circle" class="w-5 h-5 text-red-500"></i>',
         'betting_win': '<i data-lucide="trophy" class="w-5 h-5 text-yellow-500"></i>',
         'betting_loss': '<i data-lucide="minus-circle" class="w-5 h-5 text-gray-500"></i>',
+        'betting_draw': '<i data-lucide="rotate-ccw" class="w-5 h-5 text-blue-500"></i>',
+        'betting_cancelled': '<i data-lucide="x-square" class="w-5 h-5 text-red-400"></i>',
         'issue_closed': '<i data-lucide="clock" class="w-5 h-5 text-blue-500"></i>',
         'gam_reward': '<i data-lucide="coins" class="w-5 h-5 text-yellow-500"></i>',
         'reward_distributed': '<i data-lucide="gift" class="w-5 h-5 text-purple-500"></i>',
