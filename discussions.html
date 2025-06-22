@@ -11,6 +11,31 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <style>
+        .category-btn {
+            transition: all 0.2s ease;
+        }
+        .category-btn:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+            transform: translateY(-1px);
+        }
+        .category-btn.active {
+            background-color: rgb(59, 130, 246);
+            color: white !important;
+            border-color: rgb(59, 130, 246) !important;
+        }
+        .post-list-item:hover {
+            background-color: rgb(249, 250, 251);
+        }
+        .compact-spacing {
+            padding: 0.75rem;
+        }
+        @media (min-width: 768px) {
+            .compact-spacing {
+                padding: 1rem;
+            }
+        }
+    </style>
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans">
 
@@ -87,38 +112,38 @@
             </section>
 
             <!-- Discussion Content -->
-            <section class="container mx-auto px-4 lg:px-8 py-6 md:py-8">
+            <section class="container mx-auto px-4 lg:px-8 py-3 md:py-4">
                 <!-- Controls & Categories -->
-                <div class="bg-white rounded-lg border border-gray-200 mb-6">
-                    <div class="p-4 md:p-6">
+                <div class="bg-white rounded-lg border border-gray-200 mb-3">
+                    <div class="compact-spacing">
                         <!-- Top Controls -->
-                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-3">
                             <div class="flex items-center space-x-2">
-                                <button id="new-post-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center">
-                                    <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
-                                    새 글 작성
+                                <button id="new-post-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center">
+                                    <i data-lucide="plus" class="w-4 h-4 mr-1"></i>
+                                    새 글
                                 </button>
-                                <button id="admin-notice-btn" class="hidden bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center">
-                                    <i data-lucide="megaphone" class="w-4 h-4 mr-2"></i>
-                                    공지 작성
+                                <button id="admin-notice-btn" class="hidden bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center">
+                                    <i data-lucide="megaphone" class="w-4 h-4 mr-1"></i>
+                                    공지
                                 </button>
                             </div>
                             
-                            <div class="flex items-center space-x-3">
+                            <div class="flex items-center space-x-2">
                                 <!-- Search -->
                                 <div class="relative">
                                     <input type="text" id="search-input" placeholder="검색..." 
-                                        class="w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                    <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2"></i>
+                                        class="w-48 pl-8 pr-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                    <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-2.5 top-1/2 transform -translate-y-1/2"></i>
                                 </div>
                                 
                                 <!-- Concept Posts Toggle -->
-                                <button id="concept-posts-btn" class="concept-btn px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium transition-colors hover:bg-gray-50">
+                                <button id="concept-posts-btn" class="concept-btn px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium transition-colors hover:bg-gray-50">
                                     개념글
                                 </button>
                                 
                                 <!-- Sort -->
-                                <select id="sort-select" class="border border-gray-300 rounded-lg px-3 py-2 text-sm">
+                                <select id="sort-select" class="border border-gray-300 rounded-md px-2 py-1.5 text-sm">
                                     <option value="latest">최신순</option>
                                     <option value="popular">인기순</option>
                                     <option value="discussed">댓글순</option>
@@ -128,9 +153,9 @@
                         </div>
                         
                         <!-- Category Filter -->
-                        <div id="category-filter" class="flex flex-wrap gap-2">
-                            <button class="category-btn active px-3 py-1.5 rounded-full text-sm font-medium border transition-colors" data-category="all">
-                                전체
+                        <div id="category-filter" class="flex flex-wrap gap-1.5">
+                            <button class="category-btn active px-2.5 py-1 rounded-full text-xs font-medium border transition-colors border-blue-500 text-blue-600 bg-blue-50" data-category="all">
+                                💬 전체
                             </button>
                             <!-- Categories will be loaded dynamically -->
                         </div>
@@ -139,9 +164,9 @@
 
                 <!-- Posts List -->
                 <div class="bg-white rounded-lg border border-gray-200">
-                    <div id="posts-loading" class="text-center py-12">
-                        <i data-lucide="loader" class="w-8 h-8 animate-spin mx-auto mb-4 text-gray-400"></i>
-                        <p class="text-gray-500">게시글을 불러오는 중...</p>
+                    <div id="posts-loading" class="text-center py-6">
+                        <i data-lucide="loader" class="w-5 h-5 animate-spin mx-auto mb-2 text-gray-400"></i>
+                        <p class="text-gray-500 text-sm">게시글을 불러오는 중...</p>
                     </div>
                     
                     <div id="posts-container" class="hidden">
@@ -150,15 +175,15 @@
                         </div>
                         
                         <!-- Pagination -->
-                        <div id="pagination-container" class="px-6 py-4 border-t border-gray-200">
+                        <div id="pagination-container" class="px-3 py-2 border-t border-gray-200 bg-gray-50">
                             <!-- Pagination will be loaded here -->
                         </div>
                     </div>
                     
-                    <div id="posts-empty" class="hidden text-center py-12">
-                        <i data-lucide="message-circle-x" class="w-12 h-12 mx-auto text-gray-300 mb-4"></i>
-                        <p class="text-gray-500 mb-4">아직 게시글이 없습니다.</p>
-                        <button id="first-post-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                    <div id="posts-empty" class="hidden text-center py-6">
+                        <i data-lucide="message-circle-x" class="w-6 h-6 mx-auto text-gray-300 mb-2"></i>
+                        <p class="text-gray-500 mb-2 text-sm">아직 게시글이 없습니다.</p>
+                        <button id="first-post-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors">
                             첫 번째 글 작성하기
                         </button>
                     </div>

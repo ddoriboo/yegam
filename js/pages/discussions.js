@@ -47,24 +47,61 @@ async function checkAdminStatus() {
 // 카테고리 로드
 async function loadCategories() {
     try {
+        console.log('카테고리 로드 시작...');
         const response = await fetch('/api/discussions/categories');
         const data = await response.json();
         
-        if (data.success) {
+        console.log('카테고리 API 응답:', data);
+        
+        if (data.success && data.data) {
             categories = data.data;
-            renderCategoryFilter();
-            renderCategoryOptions();
+            console.log('카테고리 로드 성공:', categories);
+        } else {
+            console.warn('카테고리 API 응답이 올바르지 않음, 기본 카테고리 사용');
+            loadFallbackCategories();
         }
+        
+        renderCategoryFilter();
+        renderCategoryOptions();
         
     } catch (error) {
         console.error('카테고리 로드 오류:', error);
+        console.log('네트워크 오류로 인해 기본 카테고리 사용');
+        loadFallbackCategories();
+        renderCategoryFilter();
+        renderCategoryOptions();
     }
+}
+
+// 기본 카테고리 데이터 (API 실패시 사용)
+function loadFallbackCategories() {
+    categories = [
+        {id: 1, name: '전체', description: '모든 주제의 토론', icon: '💬', color: '#6B7280', display_order: 0},
+        {id: 2, name: '정치', description: '정치 관련 예측 및 토론', icon: '🏛️', color: '#DC2626', display_order: 1},
+        {id: 3, name: '경제', description: '경제 동향 및 시장 분석', icon: '📈', color: '#059669', display_order: 2},
+        {id: 4, name: '스포츠', description: '스포츠 경기 예측 및 분석', icon: '⚽', color: '#EA580C', display_order: 3},
+        {id: 5, name: '기술', description: 'IT 및 기술 트렌드', icon: '💻', color: '#7C3AED', display_order: 4},
+        {id: 6, name: '연예', description: '연예계 및 엔터테인먼트', icon: '🎭', color: '#EC4899', display_order: 5},
+        {id: 7, name: '사회', description: '사회 이슈 및 트렌드', icon: '🏘️', color: '#0891B2', display_order: 6},
+        {id: 8, name: '기타', description: '기타 주제', icon: '🔗', color: '#6B7280', display_order: 99}
+    ];
+    console.log('기본 카테고리 로드 완료:', categories);
 }
 
 // 카테고리 필터 렌더링
 function renderCategoryFilter() {
     const filterContainer = document.getElementById('category-filter');
-    if (!filterContainer) return;
+    if (!filterContainer) {
+        console.error('category-filter 컨테이너를 찾을 수 없음');
+        return;
+    }
+    
+    console.log('카테고리 렌더링 시작:', categories.length, '개 카테고리');
+    
+    if (!categories || categories.length === 0) {
+        console.warn('카테고리 데이터가 없음');
+        return;
+    }
     
     // 전체 버튼은 유지
     const allBtn = filterContainer.querySelector('[data-category="all"]');
@@ -73,43 +110,72 @@ function renderCategoryFilter() {
     const existingBtns = filterContainer.querySelectorAll('.category-btn:not([data-category="all"])');
     existingBtns.forEach(btn => btn.remove());
     
-    // 새 카테고리 버튼들 추가
-    categories.forEach(category => {
+    // 새 카테고리 버튼들 추가 (전체 제외)
+    categories.forEach((category, index) => {
         if (category.name === '전체') return; // 전체는 이미 있음
         
+        console.log(`카테고리 버튼 생성 중: ${category.name} (ID: ${category.id})`);
+        
         const btn = document.createElement('button');
-        btn.className = 'category-btn px-3 py-1.5 rounded-full text-sm font-medium border transition-colors';
+        btn.className = 'category-btn px-2.5 py-1 rounded-full text-xs font-medium border transition-colors';
         btn.dataset.category = category.id;
-        btn.style.borderColor = category.color;
-        btn.innerHTML = `${category.icon || ''} ${category.name}`;
+        
+        // 기본 스타일 적용
+        btn.style.borderColor = category.color || '#6B7280';
+        btn.style.color = category.color || '#6B7280';
+        btn.style.backgroundColor = 'transparent';
+        
+        // 호버 효과를 위한 클래스 추가
+        btn.classList.add('hover:bg-opacity-10');
+        btn.style.setProperty('--hover-bg-color', category.color + '1a');
+        
+        btn.innerHTML = `${category.icon || '📝'} ${category.name}`;
         
         btn.addEventListener('click', () => {
+            console.log('카테고리 선택됨:', category.name, category.id);
             selectCategory(category.id);
         });
         
         filterContainer.appendChild(btn);
     });
+    
+    console.log('카테고리 버튼 생성 완료. 총 버튼 수:', filterContainer.children.length);
+    console.log('생성된 버튼들:', Array.from(filterContainer.children).map(btn => btn.textContent));
 }
 
 // 카테고리 옵션 렌더링 (모달용)
 function renderCategoryOptions() {
     const selectElement = document.getElementById('post-category');
-    if (!selectElement) return;
+    if (!selectElement) {
+        console.error('post-category 선택 요소를 찾을 수 없음 - 모달이 아직 로드되지 않음');
+        return;
+    }
+    
+    console.log('카테고리 옵션 렌더링 시작:', categories.length, '개');
+    
+    if (!categories || categories.length === 0) {
+        console.warn('카테고리 데이터가 없어서 옵션을 렌더링할 수 없음');
+        return;
+    }
     
     // 기존 옵션들 제거 (첫 번째 option은 유지)
     while (selectElement.children.length > 1) {
         selectElement.removeChild(selectElement.lastChild);
     }
     
-    // 카테고리 옵션 추가
+    // 카테고리 옵션 추가 (전체 제외)
     categories.forEach(category => {
         if (category.name === '전체') return; // 전체는 선택 불가
         
         const option = document.createElement('option');
         option.value = category.id;
-        option.textContent = `${category.icon || ''} ${category.name}`;
+        option.textContent = `${category.icon || '📝'} ${category.name}`;
         selectElement.appendChild(option);
+        console.log('카테고리 옵션 추가:', category.name, '(ID:', category.id, ')');
     });
+    
+    console.log('카테고리 옵션 렌더링 완료. 총 옵션 수:', selectElement.children.length);
+    console.log('생성된 옵션들:', Array.from(selectElement.children).map(opt => `${opt.value}: ${opt.textContent}`));
 }
 
 // 카테고리 선택
@@ -117,18 +183,31 @@ function selectCategory(categoryId) {
     currentCategory = categoryId;
     currentPage = 1;
     
+    console.log('카테고리 선택:', categoryId);
+    
     // 버튼 스타일 업데이트
     document.querySelectorAll('.category-btn').forEach(btn => {
         btn.classList.remove('active');
-        btn.classList.add('border-gray-300', 'text-gray-600', 'hover:border-gray-400');
         btn.classList.remove('border-blue-500', 'text-blue-600', 'bg-blue-50');
+        
+        if (btn.dataset.category === 'all') {
+            btn.classList.add('border-gray-300', 'text-gray-600', 'hover:border-gray-400');
+        } else {
+            // 개별 카테고리는 원래 색상 유지
+            const category = categories.find(c => c.id == btn.dataset.category);
+            if (category) {
+                btn.style.borderColor = category.color;
+                btn.style.color = category.color;
+            }
+        }
     });
     
     const selectedBtn = document.querySelector(`[data-category="${categoryId}"]`);
     if (selectedBtn) {
         selectedBtn.classList.add('active');
-        selectedBtn.classList.remove('border-gray-300', 'text-gray-600', 'hover:border-gray-400');
         selectedBtn.classList.add('border-blue-500', 'text-blue-600', 'bg-blue-50');
+        selectedBtn.style.borderColor = '#3b82f6';
+        selectedBtn.style.color = '#2563eb';
     }
     
     loadPosts();
@@ -248,46 +327,55 @@ function renderPosts(posts) {
         
         return `
             <div class="border-b border-gray-200 last:border-b-0 hover:bg-gray-50 transition-colors">
-                <div class="p-4 md:p-6">
-                    <div class="flex items-start space-x-4">
-                        <div class="flex-1">
+                <div class="p-3 md:p-4">
+                    <div class="flex items-start space-x-3">
+                        <!-- Category Badge -->
+                        <div class="flex-shrink-0 mt-0.5">
+                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border" 
+                                  style="background-color: ${categoryColor}15; color: ${categoryColor}; border-color: ${categoryColor}40;">
+                                ${category?.icon || '📝'} ${category?.name || '기타'}
+                            </span>
+                        </div>
+                        
+                        <div class="flex-1 min-w-0">
                             <!-- Post Header -->
-                            <div class="flex items-center space-x-3 mb-3">
+                            <div class="flex items-center space-x-2 mb-2">
                                 ${post.is_notice ? `
-                                    <span class="bg-purple-100 text-purple-800 px-2 py-1 rounded-full text-xs font-medium">공지</span>
+                                    <span class="bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded text-xs font-medium">공지</span>
                                 ` : ''}
                                 ${post.is_pinned ? `
-                                    <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium">고정</span>
+                                    <span class="bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded text-xs font-medium">고정</span>
                                 ` : ''}
-                                <span class="text-xs font-medium px-2 py-1 rounded-full" 
-                                      style="background-color: ${categoryColor}20; color: ${categoryColor}">
-                                    ${categoryDisplay}
-                                </span>
                                 <span class="text-xs text-gray-500">
                                     ${new Date(post.created_at).toLocaleDateString('ko-KR')}
+                                </span>
+                                <span class="text-xs text-gray-400">•</span>
+                                <span class="text-xs text-gray-500">
+                                    ${post.author_name || '익명'}
                                 </span>
                             </div>
                             
                             <!-- Post Title -->
-                            <h3 class="text-lg font-semibold text-gray-900 mb-2 hover:text-blue-600 cursor-pointer transition-colors"
+                            <h3 class="text-base font-semibold text-gray-900 mb-1 hover:text-blue-600 cursor-pointer transition-colors"
                                 onclick="goToPost(${post.id})">
                                 ${post.title}
+                                ${post.media_urls && post.media_urls.length > 0 ? `
+                                    <i data-lucide="paperclip" class="w-3 h-3 ml-1 text-blue-500 inline"></i>
+                                ` : ''}
                             </h3>
                             
                             <!-- Post Preview -->
-                            <p class="text-gray-600 text-sm mb-3 line-clamp-2">
-                                ${post.content_preview || ''}
-                            </p>
+                            ${post.content_preview ? `
+                                <p class="text-gray-600 text-sm mb-2 line-clamp-2">
+                                    ${post.content_preview}
+                                </p>
+                            ` : ''}
                             
                             <!-- Media Preview -->
                             ${mediaPreview}
                             
                             <!-- Post Stats -->
-                            <div class="flex items-center space-x-4 text-xs text-gray-500">
-                                <span class="flex items-center">
-                                    <i data-lucide="user" class="w-3 h-3 mr-1"></i>
-                                    ${post.author_name || '익명'}
-                                </span>
+                            <div class="flex items-center space-x-3 text-xs text-gray-500">
                                 <span class="flex items-center">
                                     <i data-lucide="eye" class="w-3 h-3 mr-1"></i>
                                     ${post.view_count || 0}
@@ -300,12 +388,6 @@ function renderPosts(posts) {
                                     <i data-lucide="heart" class="w-3 h-3 mr-1"></i>
                                     ${post.like_count || 0}
                                 </span>
-                                ${post.media_urls && post.media_urls.length > 0 ? `
-                                    <span class="flex items-center text-blue-500">
-                                        <i data-lucide="paperclip" class="w-3 h-3 mr-1"></i>
-                                        ${post.media_urls.length}
-                                    </span>
-                                ` : ''}
                             </div>
                         </div>
                     </div>
@@ -338,19 +420,19 @@ function createPostMediaPreview(mediaUrls, mediaTypes, postId) {
     switch (mediaInfo.type) {
         case 'youtube':
             previewHtml = `
-                <div class="mb-3">
+                <div class="mb-2">
                     <div class="relative">
                         <img src="${mediaInfo.thumbnailUrl}" alt="YouTube thumbnail" 
-                             class="w-full h-32 object-cover rounded-lg cursor-pointer"
+                             class="w-full h-20 object-cover rounded cursor-pointer"
                              onclick="goToPost(${postId})"
                              onerror="this.style.display='none'">
-                        <div class="absolute inset-0 bg-black bg-opacity-30 rounded-lg flex items-center justify-center">
-                            <div class="bg-white bg-opacity-90 rounded-full p-2">
-                                <i data-lucide="play" class="w-6 h-6 text-red-600"></i>
+                        <div class="absolute inset-0 bg-black bg-opacity-30 rounded flex items-center justify-center">
+                            <div class="bg-white bg-opacity-90 rounded-full p-1">
+                                <i data-lucide="play" class="w-4 h-4 text-red-600"></i>
                             </div>
                         </div>
                         ${remainingCount > 0 ? `
-                            <div class="absolute top-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+                            <div class="absolute top-1 right-1 bg-black bg-opacity-70 text-white text-xs px-1 py-0.5 rounded">
                                 +${remainingCount}
                             </div>
                         ` : ''}
@@ -772,6 +854,15 @@ function openPostModal(isNotice = false) {
     const noticeOptions = document.getElementById('notice-options');
     const submitBtn = document.getElementById('submit-btn');
     
+    console.log('모달 열기. 카테고리 상태:', categories.length, '개');
+    
+    // 카테고리 옵션이 아직 렌더링되지 않았다면 다시 시도
+    const selectElement = document.getElementById('post-category');
+    if (selectElement && selectElement.children.length <= 1) {
+        console.log('카테고리 옵션이 비어있음, 다시 렌더링 시도');
+        renderCategoryOptions();
+    }
+    
     if (isNotice) {
         modalTitle.textContent = '공지사항 작성';
         noticeOptions.classList.remove('hidden');
@@ -803,6 +894,8 @@ async function handlePostSubmit(e) {
         category_id: formData.get('category_id')
     };
     
+    console.log('게시글 제출 데이터:', postData);
+    
     if (isNotice) {
         postData.is_pinned = formData.get('is_pinned') === 'on';
     }
@@ -822,8 +915,17 @@ async function handlePostSubmit(e) {
     }
     
     // 유효성 검사
-    if (!postData.title.trim() || !postData.content.trim() || !postData.category_id) {
-        alert('모든 필드를 입력해주세요.');
+    if (!postData.title.trim()) {
+        alert('제목을 입력해주세요.');
+        return;
+    }
+    if (!postData.content.trim()) {
+        alert('내용을 입력해주세요.');
+        return;
+    }
+    if (!postData.category_id) {
+        alert('카테고리를 선택해주세요.');
+        console.error('카테고리 선택 안됨. 사용 가능한 카테고리:', categories);
         return;
     }
     
