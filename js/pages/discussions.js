@@ -13,17 +13,39 @@ let isConceptMode = false; // 개념글 모드
 export async function renderDiscussionsPage() {
     console.log('renderDiscussionsPage called');
     
-    // 관리자 권한 확인
-    await checkAdminStatus();
-    
-    // 카테고리 로드
-    await loadCategories();
-    
-    // 게시글 로드
-    await loadPosts();
-    
-    // 이벤트 리스너 설정
-    setupEventListeners();
+    try {
+        // 관리자 권한 확인
+        await checkAdminStatus();
+        
+        // 카테고리 로드 (fallback 보장)
+        await loadCategories();
+        
+        // 카테고리가 로드되지 않았다면 강제로 fallback 실행
+        if (!categories || categories.length === 0) {
+            console.warn('카테고리 로드 실패, fallback 강제 실행');
+            loadFallbackCategories();
+            renderCategoryFilter();
+            renderCategoryOptions();
+        }
+        
+        // 게시글 로드
+        await loadPosts();
+        
+        // 이벤트 리스너 설정
+        setupEventListeners();
+        
+        console.log('✅ 분석방 페이지 초기화 완료');
+        
+    } catch (error) {
+        console.error('❌ 분석방 페이지 초기화 실패:', error);
+        
+        // 에러 발생시 fallback으로 진행
+        console.log('에러 발생으로 fallback 모드로 진행');
+        loadFallbackCategories();
+        renderCategoryFilter();
+        renderCategoryOptions();
+        setupEventListeners();
+    }
 }
 
 // 관리자 상태 확인
@@ -46,47 +68,63 @@ async function checkAdminStatus() {
 
 // 카테고리 로드
 async function loadCategories() {
+    console.log('🔄 카테고리 로드 시작...');
+    
     try {
-        console.log('카테고리 로드 시작...');
         const response = await fetch('/api/discussions/categories');
-        const data = await response.json();
+        console.log('📡 카테고리 API 요청 상태:', response.status);
         
-        console.log('카테고리 API 응답:', data);
-        
-        if (data.success && data.data) {
-            categories = data.data;
-            console.log('카테고리 로드 성공:', categories);
-        } else {
-            console.warn('카테고리 API 응답이 올바르지 않음, 기본 카테고리 사용');
-            loadFallbackCategories();
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
-        renderCategoryFilter();
-        renderCategoryOptions();
+        const data = await response.json();
+        console.log('📋 카테고리 API 응답:', data);
+        
+        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+            // API에서 받은 카테고리 데이터 사용
+            categories = data.data;
+            console.log('✅ 카테고리 API에서 로드 성공:', categories.length, '개');
+            console.log('📝 API 카테고리 목록:', categories.map(c => `${c.name}(${c.id})`).join(', '));
+            
+            renderCategoryFilter();
+            renderCategoryOptions();
+            return true;
+        } else {
+            console.warn('⚠️ 카테고리 API 응답이 올바르지 않거나 비어있음');
+            throw new Error('Invalid API response');
+        }
         
     } catch (error) {
-        console.error('카테고리 로드 오류:', error);
-        console.log('네트워크 오류로 인해 기본 카테고리 사용');
+        console.error('❌ 카테고리 API 로드 실패:', error.message);
+        console.log('🔄 Fallback 카테고리로 전환...');
+        
+        // API 실패 시 무조건 fallback 사용
         loadFallbackCategories();
         renderCategoryFilter();
         renderCategoryOptions();
+        return false;
     }
 }
 
 // 기본 카테고리 데이터 (API 실패시 사용) - 기존 8개 카테고리 준용
 function loadFallbackCategories() {
+    console.log('🔄 Fallback 카테고리 데이터 로드 중...');
+    
+    // 데이터베이스 스키마와 일치하는 카테고리 ID 사용 (실제 DB 삽입 순서와 일치)
     categories = [
-        {id: 1, name: '전체', description: '모든 주제의 토론', icon: '💬', color: '#6B7280', display_order: 0},
-        {id: 2, name: '정치', description: '선거, 정책, 정치적 이벤트', icon: '🏛️', color: '#DC2626', display_order: 1},
-        {id: 3, name: '스포츠', description: '경기 결과, 시즌 성과', icon: '⚽', color: '#0891B2', display_order: 2},
-        {id: 4, name: '경제', description: '주식, 환율, 경제 지표', icon: '📈', color: '#059669', display_order: 3},
-        {id: 5, name: '코인', description: '암호화폐 가격, 트렌드', icon: '₿', color: '#F59E0B', display_order: 4},
-        {id: 6, name: '테크', description: '기술 트렌드, 제품 출시', icon: '💻', color: '#7C3AED', display_order: 5},
-        {id: 7, name: '엔터', description: '연예계, 문화 콘텐츠', icon: '🎭', color: '#EC4899', display_order: 6},
-        {id: 8, name: '날씨', description: '기상 예보, 계절 예측', icon: '🌤️', color: '#3B82F6', display_order: 7},
-        {id: 9, name: '해외', description: '국제 정치, 글로벌 이벤트', icon: '🌍', color: '#4F46E5', display_order: 8}
+        // '전체'는 필터용이므로 실제 카테고리가 아님
+        {id: 2, name: '정치', description: '정치 관련 예측 및 토론', icon: '🏛️', color: '#DC2626', display_order: 1},
+        {id: 3, name: '경제', description: '경제 동향 및 시장 분석', icon: '📈', color: '#059669', display_order: 2},
+        {id: 4, name: '스포츠', description: '스포츠 경기 예측 및 분석', icon: '⚽', color: '#EA580C', display_order: 3},
+        {id: 5, name: '기술', description: 'IT 및 기술 트렌드', icon: '💻', color: '#7C3AED', display_order: 4},
+        {id: 6, name: '연예', description: '연예계 및 엔터테인먼트', icon: '🎭', color: '#EC4899', display_order: 5},
+        {id: 7, name: '사회', description: '사회 이슈 및 트렌드', icon: '🏘️', color: '#0891B2', display_order: 6},
+        {id: 8, name: '기타', description: '기타 주제', icon: '🔗', color: '#6B7280', display_order: 99}
     ];
-    console.log('기존 8개 카테고리 로드 완료:', categories);
+    
+    console.log('✅ Fallback 카테고리 로드 완료:', categories.length, '개');
+    console.log('📋 로드된 카테고리:', categories.map(c => `${c.icon} ${c.name}(${c.id})`).join(', '));
 }
 
 // 카테고리 필터 렌더링
@@ -104,28 +142,25 @@ function renderCategoryFilter() {
         return;
     }
     
-    // 기존 이벤트 리스너 제거를 위해 컨테이너 전체를 다시 생성
-    const allBtn = filterContainer.querySelector('[data-category="all"]');
-    const isAllActive = allBtn?.classList.contains('active');
+    // 현재 활성화된 카테고리 저장
+    const currentActive = currentCategory || 'all';
     
     // 모든 버튼 제거
     filterContainer.innerHTML = '';
     
-    // '전체' 버튼 다시 생성
-    const newAllBtn = document.createElement('button');
-    newAllBtn.className = `category-btn ${isAllActive ? 'active' : ''}`;
-    newAllBtn.dataset.category = 'all';
-    newAllBtn.innerHTML = '💬 전체';
-    filterContainer.appendChild(newAllBtn);
+    // '전체' 버튼 생성
+    const allBtn = document.createElement('button');
+    allBtn.className = `category-btn ${currentActive === 'all' ? 'active' : ''}`;
+    allBtn.dataset.category = 'all';
+    allBtn.innerHTML = '💬 전체';
+    filterContainer.appendChild(allBtn);
     
-    // 새 카테고리 버튼들 추가 (전체 제외)
-    categories.forEach((category, index) => {
-        if (category.name === '전체') return; // 전체는 이미 있음
-        
-        console.log(`카테고리 버튼 생성 중: ${category.name} (ID: ${category.id})`);
+    // 카테고리 버튼들 추가
+    categories.forEach(category => {
+        console.log(`카테고리 버튼 생성: ${category.name} (ID: ${category.id})`);
         
         const btn = document.createElement('button');
-        btn.className = 'category-btn';
+        btn.className = `category-btn ${currentActive == category.id ? 'active' : ''}`;
         btn.dataset.category = category.id;
         btn.innerHTML = `${category.icon || '📝'} ${category.name}`;
         
@@ -136,7 +171,7 @@ function renderCategoryFilter() {
     setupCategoryEventListeners();
     
     console.log('카테고리 버튼 생성 완료. 총 버튼 수:', filterContainer.children.length);
-    console.log('생성된 버튼들:', Array.from(filterContainer.children).map(btn => btn.textContent));
+    console.log('생성된 버튼들:', Array.from(filterContainer.children).map(btn => `${btn.textContent}(${btn.dataset.category})`).join(', '));
 }
 
 // 카테고리 이벤트 리스너 설정 (이벤트 위임 방식)
@@ -153,11 +188,25 @@ function setupCategoryEventListeners() {
 
 // 카테고리 클릭 핸들러
 function handleCategoryClick(event) {
+    console.log('🔘 카테고리 영역 클릭 감지:', event.target);
+    
     const clickedBtn = event.target.closest('.category-btn');
-    if (!clickedBtn) return;
+    if (!clickedBtn) {
+        console.log('⚠️ 카테고리 버튼이 아닌 요소 클릭');
+        return;
+    }
     
     const categoryId = clickedBtn.dataset.category;
-    console.log('카테고리 클릭됨:', categoryId);
+    console.log('🎯 카테고리 버튼 클릭됨:', {
+        categoryId,
+        buttonText: clickedBtn.textContent,
+        dataset: clickedBtn.dataset
+    });
+    
+    if (!categoryId) {
+        console.error('❌ 카테고리 ID가 누락됨');
+        return;
+    }
     
     selectCategory(categoryId);
 }
@@ -182,10 +231,8 @@ function renderCategoryOptions() {
         selectElement.removeChild(selectElement.lastChild);
     }
     
-    // 카테고리 옵션 추가 (전체 제외)
+    // 카테고리 옵션 추가
     categories.forEach(category => {
-        if (category.name === '전체') return; // 전체는 선택 불가
-        
         const option = document.createElement('option');
         option.value = category.id;
         option.textContent = `${category.icon || '📝'} ${category.name}`;
@@ -194,18 +241,21 @@ function renderCategoryOptions() {
     });
     
     console.log('카테고리 옵션 렌더링 완료. 총 옵션 수:', selectElement.children.length);
-    console.log('생성된 옵션들:', Array.from(selectElement.children).map(opt => `${opt.value}: ${opt.textContent}`));
+    console.log('생성된 옵션들:', Array.from(selectElement.children).map(opt => `${opt.value}: ${opt.textContent}`).join(', '));
 }
 
 // 카테고리 선택
 function selectCategory(categoryId) {
+    console.log('🎯 카테고리 선택 시작:', categoryId);
+    
     currentCategory = categoryId;
     currentPage = 1;
     
-    console.log('카테고리 선택:', categoryId);
-    
     // 모든 버튼에서 active 제거
-    document.querySelectorAll('.category-btn').forEach(btn => {
+    const allBtns = document.querySelectorAll('.category-btn');
+    console.log('🔘 찾은 카테고리 버튼 수:', allBtns.length);
+    
+    allBtns.forEach(btn => {
         btn.classList.remove('active');
     });
     
@@ -213,9 +263,13 @@ function selectCategory(categoryId) {
     const selectedBtn = document.querySelector(`[data-category="${categoryId}"]`);
     if (selectedBtn) {
         selectedBtn.classList.add('active');
+        console.log('✅ 선택된 버튼에 active 추가:', selectedBtn.textContent);
+    } else {
+        console.error('❌ 선택된 버튼을 찾을 수 없음:', categoryId);
     }
     
     // 게시글 로드
+    console.log('📄 게시글 로드 시작...');
     loadPosts();
 }
 
@@ -256,6 +310,14 @@ function toggleConceptMode() {
 
 // 게시글 로드
 async function loadPosts() {
+    console.log('📄 게시글 로드 시작 - 상태:', {
+        currentCategory,
+        currentPage,
+        currentSort,
+        currentSearch,
+        isConceptMode
+    });
+    
     try {
         showLoading();
         
@@ -268,34 +330,59 @@ async function loadPosts() {
         // 카테고리 필터 (전체가 아닌 경우만)
         if (currentCategory && currentCategory !== 'all') {
             params.append('category_id', currentCategory);
+            console.log('🏷️ 카테고리 필터 적용:', currentCategory);
+        } else {
+            console.log('🏷️ 전체 카테고리 선택됨');
         }
         
         if (currentSearch.trim()) {
             params.append('search', currentSearch.trim());
+            console.log('🔍 검색어 적용:', currentSearch);
         }
         
         // 개념글 모드에서는 최소 좋아요 수 필터 추가
         if (isConceptMode) {
-            params.append('min_likes', '10'); // 최소 10개 이상의 좋아요
+            params.append('min_likes', '10');
+            console.log('💯 개념글 모드 활성화');
         }
         
-        console.log('게시글 로드 API 호출:', `/api/discussions/posts?${params}`);
+        const apiUrl = `/api/discussions/posts?${params}`;
+        console.log('📡 API 호출 URL:', apiUrl);
         
-        const response = await fetch(`/api/discussions/posts?${params}`);
+        const response = await fetch(apiUrl);
+        console.log('📶 API 응답 상태:', response.status, response.statusText);
+        
+        if (!response.ok) {
+            console.error('❌ API 요청 실패:', response.status, response.statusText);
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const data = await response.json();
+        console.log('📋 게시글 API 응답:', data);
         
-        console.log('게시글 API 응답:', data);
-        
-        if (data.success) {
-            renderPosts(data.data.posts);
-            renderPagination(data.data.pagination);
-            showPosts();
+        if (data.success && data.data) {
+            console.log('✅ 게시글 로드 성공:', data.data.posts?.length || 0, '개');
+            
+            // 게시글이 없어도 정상 처리
+            const posts = data.data.posts || [];
+            const pagination = data.data.pagination || { page: 1, pages: 1 };
+            
+            renderPosts(posts);
+            renderPagination(pagination);
+            
+            if (posts.length > 0) {
+                showPosts();
+            } else {
+                showEmpty();
+            }
         } else {
+            console.warn('⚠️ 게시글 API 응답 형식 오류:', data);
             showEmpty();
         }
         
     } catch (error) {
-        console.error('게시글 로드 오류:', error);
+        console.error('❌ 게시글 로드 오류:', error.message);
+        console.error('❌ 에러 스택:', error.stack);
         showEmpty();
     }
 }
