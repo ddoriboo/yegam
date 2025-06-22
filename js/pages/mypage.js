@@ -38,6 +38,9 @@ export async function renderMyPage() {
     // 베팅 기록 로드
     await loadUserBets();
     
+    // 베팅 필터 이벤트 리스너 설정
+    setupBettingFilter();
+    
     // GAM 트랜잭션 기록 로드
     await loadGamTransactions();
     
@@ -80,19 +83,22 @@ function updateUserProfile(user) {
     const userNameEl = document.getElementById('user-name');
     const userEmailEl = document.getElementById('user-email');
     const userCoinsEl = document.getElementById('user-coins');
-    const userJoinedEl = document.getElementById('user-joined');
+    const userJoinedDaysEl = document.getElementById('user-joined-days');
 
     if (userNameEl) userNameEl.textContent = user.username;
     if (userEmailEl) userEmailEl.textContent = user.email;
     if (userCoinsEl) {
         const gamBalance = user.gam_balance ?? 0;
-        userCoinsEl.textContent = `${gamBalance.toLocaleString()} GAM`;
+        userCoinsEl.textContent = gamBalance.toLocaleString();
         console.log('GAM Balance updated:', gamBalance);
     }
     
-    if (userJoinedEl && user.created_at) {
-        const joinDate = new Date(user.created_at).toLocaleDateString('ko-KR');
-        userJoinedEl.textContent = `가입일: ${joinDate}`;
+    if (userJoinedDaysEl && user.created_at) {
+        const joinDate = new Date(user.created_at);
+        const now = new Date();
+        const diffTime = Math.abs(now - joinDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        userJoinedDaysEl.textContent = `${diffDays}일째`;
     }
 }
 
@@ -108,112 +114,61 @@ function updateTierInfo(user) {
         const tierColor = currentTier.color || '#6b7280';
         
         tierIconEl.innerHTML = `
-            <div class="text-4xl">${tierIcon}</div>
+            <div class="text-3xl md:text-4xl">${tierIcon}</div>
         `;
         tierIconEl.style.background = `linear-gradient(135deg, ${tierColor}, ${tierColor}dd)`;
-        tierIconEl.classList.add('tier-profile-icon');
     }
     
-    // 이름 옆 티어 배지 표시
-    const tierBadgeEl = document.getElementById('user-tier-badge');
-    if (tierBadgeEl) {
-        tierBadgeEl.innerHTML = createTierDisplay(currentTier, false);
-        tierBadgeEl.classList.add('tier-display-large');
+    // 현재 등급명 표시
+    const currentTierNameEl = document.getElementById('current-tier-name');
+    if (currentTierNameEl) {
+        currentTierNameEl.textContent = `${currentTier.name} Lv.${currentTier.level}`;
     }
     
-    // 상세 티어 진행률 섹션 표시
-    const tierProgressEl = document.getElementById('tier-progress-section');
-    if (tierProgressEl) {
-        let progressHtml = `
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div class="space-y-4">
-                    <div class="flex items-center space-x-4">
-                        <div class="current-tier-display">
-                            ${createTierDisplay(currentTier, true)}
-                        </div>
-                        <div>
-                            <p class="text-sm text-gray-600">현재 등급</p>
-                            <p class="text-lg font-semibold text-gray-900">레벨 ${currentTier.level}</p>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-white rounded-lg p-4 border border-gray-200">
-                        <p class="text-sm text-gray-600 mb-1">보유 GAM</p>
-                        <p class="text-2xl font-bold text-blue-600">${formatNumber(userGam)}</p>
-                    </div>
-                </div>
-        `;
-        
+    // 다음 등급 진행률 표시
+    const nextTierProgressEl = document.getElementById('next-tier-progress');
+    if (nextTierProgressEl) {
         if (nextTierInfo) {
             const progressPercent = Math.min(nextTierInfo.progress, 100);
-            progressHtml += `
-                <div class="space-y-4">
-                    <div class="flex items-center space-x-4">
-                        <div class="next-tier-display opacity-70">
-                            ${createTierDisplay(nextTierInfo.nextTier, true)}
-                        </div>
+            nextTierProgressEl.textContent = `${Math.round(progressPercent)}%`;
+        } else {
+            nextTierProgressEl.textContent = '최고등급';
+        }
+    }
+    
+    // 상세 티어 진행률 섹션 표시 (간소화)
+    const tierProgressEl = document.getElementById('tier-progress-section');
+    if (tierProgressEl) {
+        if (nextTierInfo) {
+            const progressPercent = Math.min(nextTierInfo.progress, 100);
+            tierProgressEl.innerHTML = `
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-2xl">${nextTierInfo.nextTier.icon}</span>
                         <div>
-                            <p class="text-sm text-gray-600">다음 등급</p>
-                            <p class="text-lg font-semibold text-gray-900">레벨 ${nextTierInfo.nextTier.level}</p>
+                            <p class="text-sm font-medium text-gray-900">${nextTierInfo.nextTier.name} Lv.${nextTierInfo.nextTier.level}</p>
+                            <p class="text-xs text-gray-600">다음 등급</p>
                         </div>
                     </div>
-                    
-                    <div class="bg-white rounded-lg p-4 border border-gray-200">
-                        <div class="flex justify-between items-center mb-2">
-                            <p class="text-sm text-gray-600">다음 등급까지</p>
-                            <p class="text-sm font-semibold text-purple-600">${Math.round(progressPercent)}%</p>
-                        </div>
-                        <div class="w-full bg-gray-200 rounded-full h-3 mb-2">
-                            <div class="bg-gradient-to-r from-blue-500 to-purple-600 h-3 rounded-full transition-all duration-500" 
-                                 style="width: ${progressPercent}%"></div>
-                        </div>
-                        <p class="text-sm text-gray-600">
-                            <span class="font-semibold text-red-500">${formatNumber(nextTierInfo.requiredGam)}</span> GAM 더 필요
-                        </p>
+                    <div class="text-right">
+                        <p class="text-lg font-bold text-purple-600">${Math.round(progressPercent)}%</p>
+                        <p class="text-xs text-gray-600">${formatNumber(nextTierInfo.requiredGam)} GAM 더 필요</p>
                     </div>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div class="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-500" 
+                         style="width: ${progressPercent}%"></div>
                 </div>
             `;
         } else {
-            progressHtml += `
-                <div class="space-y-4">
-                    <div class="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-lg p-6 text-center">
-                        <div class="text-4xl mb-2">🏆</div>
-                        <p class="text-white font-bold text-lg">최고 등급 달성!</p>
-                        <p class="text-yellow-100 text-sm mt-1">당신은 예측의 신입니다</p>
-                    </div>
+            tierProgressEl.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="text-3xl mb-2">🏆</div>
+                    <p class="font-bold text-gray-900">최고 등급 달성!</p>
+                    <p class="text-sm text-gray-600 mt-1">당신은 예측의 신입니다</p>
                 </div>
             `;
         }
-        
-        progressHtml += '</div>';
-        
-        // 등급별 특별 메시지 추가
-        let specialMessage = '';
-        if (currentTier.level >= 20) {
-            specialMessage = `
-                <div class="mt-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg p-4 text-center">
-                    <p class="text-white font-semibold">✨ 모든 것을 보는 눈 ✨</p>
-                    <p class="text-purple-100 text-sm">전설 속의 존재가 되었습니다!</p>
-                </div>
-            `;
-        } else if (currentTier.level >= 15) {
-            specialMessage = `
-                <div class="mt-4 bg-gradient-to-r from-yellow-500 to-red-500 rounded-lg p-4 text-center">
-                    <p class="text-white font-semibold">🌟 전설 등급 달성! 🌟</p>
-                    <p class="text-yellow-100 text-sm">놀라운 예측 능력을 보여주고 있습니다!</p>
-                </div>
-            `;
-        } else if (currentTier.level >= 10) {
-            specialMessage = `
-                <div class="mt-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-4 text-center">
-                    <p class="text-white font-semibold">👑 고급 등급 달성!</p>
-                    <p class="text-blue-100 text-sm">뛰어난 통찰력을 인정받았습니다!</p>
-                </div>
-            `;
-        }
-        
-        progressHtml += specialMessage;
-        tierProgressEl.innerHTML = progressHtml;
     }
 }
 
@@ -248,6 +203,7 @@ async function loadUserBets() {
         console.log('Bets API response data:', data);
         
         if (data.success && data.bets) {
+            allBets = data.bets; // 전역 변수에 저장
             updateBetStats(data.bets);
             renderBetHistory(data.bets);
             console.log('Successfully loaded', data.bets.length, 'bets');
@@ -344,6 +300,50 @@ function renderBetHistory(bets) {
     betHistoryEl.innerHTML = betHistoryHtml;
 }
 
+// 전역 변수로 베팅 데이터 저장
+let allBets = [];
+
+// 베팅 필터 설정
+function setupBettingFilter() {
+    const filterEl = document.getElementById('bet-filter');
+    if (filterEl) {
+        filterEl.addEventListener('change', (e) => {
+            const filterValue = e.target.value;
+            filterAndRenderBets(filterValue);
+        });
+    }
+}
+
+// 베팅 필터링 및 렌더링
+function filterAndRenderBets(filterValue) {
+    let filteredBets = allBets;
+    
+    switch (filterValue) {
+        case 'yes':
+            filteredBets = allBets.filter(bet => bet.choice === 'Yes');
+            break;
+        case 'no':
+            filteredBets = allBets.filter(bet => bet.choice === 'No');
+            break;
+        case 'won':
+            filteredBets = allBets.filter(bet => bet.status === '성공');
+            break;
+        case 'lost':
+            filteredBets = allBets.filter(bet => bet.status === '실패');
+            break;
+        default:
+            // 'all' - 모든 베팅 표시
+            break;
+    }
+    
+    renderBetHistory(filteredBets);
+}
+
+// GAM 트랜잭션 관련 전역 변수
+let allTransactions = [];
+let currentTransactionPage = 1;
+const transactionsPerPage = 5;
+
 // GAM 트랜잭션 기록 로드
 async function loadGamTransactions() {
     const transactionHistoryEl = document.getElementById('gam-transaction-history');
@@ -353,7 +353,7 @@ async function loadGamTransactions() {
     transactionHistoryEl.innerHTML = `
         <div class="text-center py-8 text-gray-500">
             <i data-lucide="loader" class="w-8 h-8 animate-spin mx-auto mb-4 text-gray-400"></i>
-            <p>GAM 거래 내역을 불러오는 중...</p>
+            <p>GAM 증감 내역을 불러오는 중...</p>
         </div>
     `;
     
@@ -365,7 +365,7 @@ async function loadGamTransactions() {
     try {
         console.log('Loading GAM transactions with token:', auth.getToken() ? 'present' : 'missing');
         
-        const response = await fetch('/api/gam/my-transactions?limit=20', {
+        const response = await fetch('/api/gam/my-transactions?limit=100', {
             headers: {
                 'Authorization': `Bearer ${auth.getToken()}`
             }
@@ -377,19 +377,21 @@ async function loadGamTransactions() {
         console.log('GAM transactions API response data:', data);
         
         if (data.success && data.transactions) {
-            renderGamTransactionHistory(data.transactions);
+            allTransactions = data.transactions;
+            renderGamTransactionHistory();
+            setupTransactionLoadMore();
             console.log('Successfully loaded', data.transactions.length, 'transactions');
         } else {
-            throw new Error(data.message || 'GAM 거래 내역을 불러올 수 없습니다.');
+            throw new Error(data.message || 'GAM 증감 내역을 불러올 수 없습니다.');
         }
     } catch (error) {
-        console.error('GAM 거래 내역 로드 실패:', error);
+        console.error('GAM 증감 내역 로드 실패:', error);
         
         // 에러 상태 표시
         transactionHistoryEl.innerHTML = `
             <div class="text-center py-8 text-red-500">
                 <i data-lucide="alert-circle" class="w-8 h-8 mx-auto mb-4 text-red-400"></i>
-                <p>GAM 거래 내역을 불러오는데 실패했습니다.</p>
+                <p>GAM 증감 내역을 불러오는데 실패했습니다.</p>
                 <button onclick="window.location.reload()" class="mt-2 text-blue-600 hover:text-blue-700 underline">새로고침</button>
             </div>
         `;
@@ -399,21 +401,27 @@ async function loadGamTransactions() {
     }
 }
 
-function renderGamTransactionHistory(transactions) {
+function renderGamTransactionHistory() {
     const transactionHistoryEl = document.getElementById('gam-transaction-history');
+    const loadMoreEl = document.getElementById('gam-transaction-load-more');
     if (!transactionHistoryEl) return;
     
-    if (transactions.length === 0) {
+    if (allTransactions.length === 0) {
         transactionHistoryEl.innerHTML = `
             <div class="text-center py-8 text-gray-500">
                 <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-4 text-gray-400"></i>
-                <p>GAM 거래 내역이 없습니다.</p>
+                <p>GAM 증감 내역이 없습니다.</p>
             </div>
         `;
+        if (loadMoreEl) loadMoreEl.classList.add('hidden');
         return;
     }
     
-    const transactionHistoryHtml = transactions.map(transaction => {
+    // 현재 페이지까지의 트랜잭션 표시
+    const endIndex = currentTransactionPage * transactionsPerPage;
+    const displayTransactions = allTransactions.slice(0, endIndex);
+    
+    const transactionHistoryHtml = displayTransactions.map(transaction => {
         const isEarn = transaction.type === 'earn';
         const amountClass = isEarn ? 'text-green-600' : 'text-red-600';
         const amountSign = isEarn ? '+' : '-';
@@ -436,8 +444,8 @@ function renderGamTransactionHistory(transactions) {
         const timeAgo = formatTimeAgo(new Date(transaction.created_at));
         
         return `
-            <div class="bg-white rounded-lg border border-gray-200 p-4">
-                <div class="flex justify-between items-start mb-2">
+            <div class="bg-gray-50 rounded-lg p-4 mb-3 border border-gray-100">
+                <div class="flex justify-between items-start">
                     <div class="flex items-center space-x-3">
                         <i data-lucide="${icon}" class="w-5 h-5 ${iconClass}"></i>
                         <div>
@@ -447,7 +455,7 @@ function renderGamTransactionHistory(transactions) {
                     </div>
                     <div class="text-right">
                         <span class="text-lg font-bold ${amountClass}">
-                            ${amountSign}${transaction.amount.toLocaleString()} GAM
+                            ${amountSign}${transaction.amount.toLocaleString()}
                         </span>
                         <p class="text-xs text-gray-500">${timeAgo}</p>
                     </div>
@@ -458,9 +466,29 @@ function renderGamTransactionHistory(transactions) {
     
     transactionHistoryEl.innerHTML = transactionHistoryHtml;
     
+    // 더보기 버튼 표시/숨기기
+    if (loadMoreEl) {
+        if (endIndex < allTransactions.length) {
+            loadMoreEl.classList.remove('hidden');
+        } else {
+            loadMoreEl.classList.add('hidden');
+        }
+    }
+    
     // Lucide 아이콘 초기화
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
+    }
+}
+
+// 더보기 버튼 설정
+function setupTransactionLoadMore() {
+    const loadMoreBtn = document.getElementById('load-more-transactions-btn');
+    if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', () => {
+            currentTransactionPage++;
+            renderGamTransactionHistory();
+        });
     }
 }
 
@@ -724,7 +752,21 @@ async function markAllNotificationsAsRead() {
 }
 
 async function clearReadNotifications() {
+    const clearBtn = document.getElementById('clear-read-notifications');
+    if (!clearBtn) return;
+    
+    // 확인 대화상자 표시
+    if (!confirm('읽은 알림을 모두 삭제하시겠습니까?')) {
+        return;
+    }
+    
     try {
+        // 버튼 비활성화 및 로딩 상태 표시
+        const originalText = clearBtn.textContent;
+        clearBtn.disabled = true;
+        clearBtn.textContent = '삭제 중...';
+        clearBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        
         const token = localStorage.getItem('yegame-token');
         const response = await fetch('/api/notifications/read', {
             method: 'DELETE',
@@ -733,12 +775,58 @@ async function clearReadNotifications() {
             }
         });
 
-        if (response.ok) {
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            // 성공 시 알림 목록 새로고침
             await loadNotifications(currentNotificationPage);
+            
+            // 헤더의 알림 개수도 업데이트
+            if (window.updateNotificationCount) {
+                window.updateNotificationCount();
+            }
+            
+            // 성공 메시지 표시
+            if (data.data && data.data.deletedCount > 0) {
+                showTemporaryMessage(`${data.data.deletedCount}개의 읽은 알림이 삭제되었습니다.`, 'success');
+            } else {
+                showTemporaryMessage('삭제할 읽은 알림이 없습니다.', 'info');
+            }
+        } else {
+            throw new Error(data.message || '읽은 알림 삭제에 실패했습니다.');
         }
     } catch (error) {
         console.error('읽은 알림 삭제 실패:', error);
+        showTemporaryMessage('읽은 알림 삭제 중 오류가 발생했습니다.', 'error');
+    } finally {
+        // 버튼 상태 복구
+        if (clearBtn) {
+            clearBtn.disabled = false;
+            clearBtn.textContent = '읽은 알림 삭제';
+            clearBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        }
     }
+}
+
+// 임시 메시지 표시 함수
+function showTemporaryMessage(message, type = 'info') {
+    const container = document.getElementById('notifications-section');
+    if (!container) return;
+    
+    const messageDiv = document.createElement('div');
+    const bgColor = type === 'success' ? 'bg-green-100 text-green-800 border-green-200' : 
+                   type === 'error' ? 'bg-red-100 text-red-800 border-red-200' : 
+                   'bg-blue-100 text-blue-800 border-blue-200';
+    
+    messageDiv.className = `fixed top-4 right-4 z-50 px-4 py-2 rounded-lg border ${bgColor} shadow-lg transition-all duration-300`;
+    messageDiv.textContent = message;
+    
+    document.body.appendChild(messageDiv);
+    
+    // 3초 후 자동 제거
+    setTimeout(() => {
+        messageDiv.remove();
+    }, 3000);
 }
 
 async function markNotificationAsRead(notificationId) {
