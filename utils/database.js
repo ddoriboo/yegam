@@ -50,8 +50,8 @@ const findUserById = (id) => {
 const createUser = (userData) => {
     const { username, email, hashedPassword, verificationToken } = userData;
     return executeQuery(
-        'INSERT INTO users (username, email, password_hash, verification_token) VALUES (?, ?, ?, ?)',
-        [username, email, hashedPassword, verificationToken]
+        'INSERT INTO users (username, email, password_hash, verification_token, gam_balance) VALUES (?, ?, ?, ?, ?)',
+        [username, email, hashedPassword, verificationToken, 10000]
     );
 };
 

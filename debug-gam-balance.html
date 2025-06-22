@@ -91,7 +91,6 @@
                         <div class="border-l-4 border-blue-500 pl-4">
                             <h3 class="font-semibold mb-2">데이터베이스 정보</h3>
                             <p><strong>GAM 잔액:</strong> ${data.userTable.gam_balance ?? 'NULL'}</p>
-                            <p><strong>Coins (구 필드):</strong> ${data.userTable.coins ?? 'NULL'}</p>
                             <p><strong>GAM이 NULL인가?</strong> ${data.userTable.gam_balance_is_null ? '✅ 예' : '❌ 아니오'}</p>
                             <p><strong>GAM이 0인가?</strong> ${data.userTable.gam_balance_is_zero ? '✅ 예' : '❌ 아니오'}</p>
                             <p><strong>가입일:</strong> ${new Date(data.userTable.created_at).toLocaleDateString('ko-KR')}</p>

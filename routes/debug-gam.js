@@ -11,7 +11,7 @@ router.get('/check-balance', authMiddleware, async (req, res) => {
         
         // 1. users 테이블의 현재 잔액 확인
         const userResult = await query(
-            'SELECT id, username, email, gam_balance, coins, created_at FROM users WHERE id = $1',
+            'SELECT id, username, email, gam_balance, created_at FROM users WHERE id = $1',
             [userId]
         );
         const user = userResult.rows[0];
@@ -45,7 +45,6 @@ router.get('/check-balance', authMiddleware, async (req, res) => {
                     username: user.username,
                     email: user.email,
                     gam_balance: user.gam_balance,
-                    coins: user.coins,
                     created_at: user.created_at,
                     gam_balance_is_null: user.gam_balance === null,
                     gam_balance_is_zero: user.gam_balance === 0

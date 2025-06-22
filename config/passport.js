@@ -46,15 +46,15 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
                 verified: true
             };
             
-            db.run(`INSERT INTO users (username, email, provider, provider_id, profile_image, verified) 
-                    VALUES (?, ?, ?, ?, ?, ?)`,
+            db.run(`INSERT INTO users (username, email, provider, provider_id, profile_image, verified, gam_balance) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?)`,
                 [newUser.username, newUser.email, newUser.provider, newUser.provider_id, 
-                 newUser.profile_image, newUser.verified],
+                 newUser.profile_image, newUser.verified, 10000],
                 function(err) {
                     if (err) return done(err);
                     
                     newUser.id = this.lastID;
-                    newUser.coins = 10000;
+                    newUser.gam_balance = 10000;
                     return done(null, newUser);
                 }
             );
@@ -96,15 +96,15 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
                 verified: true
             };
             
-            db.run(`INSERT INTO users (username, email, provider, provider_id, profile_image, verified) 
-                    VALUES (?, ?, ?, ?, ?, ?)`,
+            db.run(`INSERT INTO users (username, email, provider, provider_id, profile_image, verified, gam_balance) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?)`,
                 [newUser.username, newUser.email, newUser.provider, newUser.provider_id, 
-                 newUser.profile_image, newUser.verified],
+                 newUser.profile_image, newUser.verified, 10000],
                 function(err) {
                     if (err) return done(err);
                     
                     newUser.id = this.lastID;
-                    newUser.coins = 10000;
+                    newUser.gam_balance = 10000;
                     return done(null, newUser);
                 }
             );
