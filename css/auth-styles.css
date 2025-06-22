@@ -443,7 +443,7 @@
     top: 2rem;
     right: 2rem;
     max-width: 400px;
-    z-index: 10000;
+    z-index: 999999;
     animation: toastSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -571,11 +571,12 @@
 /* 모바일 반응형 */
 @media (max-width: 640px) {
     .premium-toast {
+        position: fixed;
         top: 1rem;
         right: 1rem;
         left: 1rem;
         max-width: none;
-    }
+        z-index: 999999;
     
     .toast-content {
         padding: 1.25rem;
