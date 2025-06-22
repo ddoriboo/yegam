@@ -13,69 +13,73 @@
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
-        .achievement-card {
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
+        /* 모바일 우선 반응형 디자인 */
+        .tier-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             overflow: hidden;
         }
         
-        .achievement-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
-            transition: left 0.6s;
-        }
-        
-        .achievement-card:hover::before {
-            left: 100%;
-        }
-        
-        .achievement-card:hover {
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+        .tier-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
         }
         
         .tier-icon {
-            font-size: 3rem;
-            filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
-            animation: float 3s ease-in-out infinite;
+            font-size: 2rem;
+            line-height: 1;
+            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
         }
         
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-6px); }
+        .tier-level {
+            font-size: 0.7rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 20px;
+            background: rgba(0, 0, 0, 0.05);
+            color: rgba(0, 0, 0, 0.7);
         }
         
-        .sparkle {
-            position: absolute;
-            background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 70%);
-            border-radius: 50%;
-            animation: sparkle 2s linear infinite;
+        .tier-name {
+            font-size: 1rem;
+            font-weight: 700;
+            margin: 8px 0 4px 0;
+            line-height: 1.2;
         }
         
-        @keyframes sparkle {
-            0% { transform: scale(0) rotate(0deg); opacity: 1; }
-            50% { transform: scale(1) rotate(180deg); opacity: 0.8; }
-            100% { transform: scale(0) rotate(360deg); opacity: 0; }
+        .tier-name-en {
+            font-size: 0.75rem;
+            color: rgba(0, 0, 0, 0.5);
+            margin-bottom: 8px;
         }
         
-        .legendary-glow {
+        .tier-gam {
+            font-size: 0.875rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0;
+        }
+        
+        /* 특수 효과 */
+        .legendary-tier {
             position: relative;
+            overflow: visible;
         }
         
-        .legendary-glow::after {
+        .legendary-tier::before {
             content: '';
             position: absolute;
             top: -2px;
             left: -2px;
             right: -2px;
             bottom: -2px;
-            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #ffc107, #ff6b6b);
-            border-radius: 16px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #ffc107);
+            border-radius: 14px;
             z-index: -1;
             animation: rainbow-border 3s linear infinite;
             background-size: 400% 400%;
@@ -87,33 +91,33 @@
             100% { background-position: 0% 50%; }
         }
         
-        .mythic-pulse {
+        .mythic-tier {
             animation: mythic-pulse 2s ease-in-out infinite alternate;
         }
         
         @keyframes mythic-pulse {
-            0% { box-shadow: 0 0 20px rgba(139, 92, 246, 0.3); }
-            100% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.6), 0 0 60px rgba(139, 92, 246, 0.4); }
+            0% { box-shadow: 0 2px 8px rgba(139, 92, 246, 0.2); }
+            100% { box-shadow: 0 8px 30px rgba(139, 92, 246, 0.4); }
         }
         
-        .divine-aura {
+        .divine-tier {
             position: relative;
             overflow: visible;
         }
         
-        .divine-aura::before {
+        .divine-tier::after {
             content: '';
             position: absolute;
-            top: -10px;
-            left: -10px;
-            right: -10px;
-            bottom: -10px;
-            background: conic-gradient(from 0deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #ffc107, #ff6b6b);
-            border-radius: 20px;
-            z-index: -1;
+            top: -5px;
+            left: -5px;
+            right: -5px;
+            bottom: -5px;
+            background: conic-gradient(from 0deg, #ff6b6b, #4ecdc4, #45b7d1, #ffc107, #ff6b6b);
+            border-radius: 17px;
+            z-index: -2;
             animation: divine-rotate 4s linear infinite;
-            filter: blur(8px);
-            opacity: 0.7;
+            filter: blur(4px);
+            opacity: 0.6;
         }
         
         @keyframes divine-rotate {
@@ -121,17 +125,59 @@
             100% { transform: rotate(360deg); }
         }
         
-        .number-format {
-            font-family: 'Inter', sans-serif;
-            font-weight: 600;
+        /* 모바일 최적화 */
+        @media (max-width: 767px) {
+            .tier-card {
+                border-radius: 8px;
+                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+                margin-bottom: 8px;
+            }
+            
+            .tier-card:hover {
+                transform: none;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            }
+            
+            .tier-icon {
+                font-size: 1.5rem;
+            }
+            
+            .tier-name {
+                font-size: 0.9rem;
+            }
+            
+            .tier-gam {
+                font-size: 0.8rem;
+            }
+            
+            .hero-section {
+                padding: 2rem 0 !important;
+            }
+            
+            .container {
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+            }
+        }
+        
+        /* 헤로 섹션 그라디언트 */
+        .hero-gradient {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+        }
+        
+        /* GAM 정보 카드 */
+        .gam-info-card {
+            background: linear-gradient(135deg, #fff7ed 0%, #fed7aa 100%);
+            border: 1px solid #fdba74;
+        }
+        
+        /* 스크롤 최적화 */
+        .achievement-grid {
+            scroll-behavior: smooth;
         }
     </style>
 </head>
-<body class="bg-white text-gray-900 font-sans">
+<body class="bg-gray-50 text-gray-900 font-sans">
 
     <div id="app-container" class="min-h-screen flex flex-col">
 
@@ -189,76 +235,81 @@
         </header>
 
         <!-- Main Content -->
-        <main class="flex-grow bg-gradient-to-br from-gray-50 via-white to-gray-50">
+        <main class="flex-grow">
             <!-- Hero Section -->
-            <section class="container mx-auto px-4 lg:px-8 py-16 text-center">
-                <div class="max-w-4xl mx-auto">
-                    <h1 class="text-4xl md:text-6xl font-bold mb-6">
-                        <span class="bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
-                            🏆 예겜 업적 시스템
-                        </span>
-                    </h1>
-                    <p class="text-xl text-gray-600 mb-8 leading-relaxed">
+            <section class="hero-gradient text-white hero-section py-8 md:py-16">
+                <div class="container mx-auto px-4 lg:px-8 text-center">
+                    <div class="flex items-center justify-center mb-4">
+                        <i data-lucide="award" class="w-12 h-12 text-white mr-3"></i>
+                        <h1 class="text-3xl md:text-5xl font-bold">
+                            업적 시스템
+                        </h1>
+                    </div>
+                    <p class="text-lg md:text-xl text-white/90 mb-6 leading-relaxed">
                         정확한 예측으로 GAM을 모아 특별한 업적을 달성하세요!<br>
-                        총 21단계의 업적이 여러분을 기다리고 있습니다.
+                        <span class="font-semibold">총 21단계</span>의 업적이 여러분을 기다리고 있습니다.
                     </p>
-                    
-                    <!-- GAM 설명 -->
-                    <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-8 mb-12">
-                        <div class="flex items-center justify-center mb-4">
-                            <div class="bg-yellow-100 rounded-full p-3">
-                                <i data-lucide="coins" class="w-8 h-8 text-yellow-600"></i>
-                            </div>
-                        </div>
-                        <h2 class="text-2xl font-bold text-gray-900 mb-4">GAM이란?</h2>
-                        <p class="text-gray-600 leading-relaxed">
-                            GAM(감)은 예겜에서 사용하는 예측 능력 포인트입니다. 정확한 예측으로 베팅에서 승리하면 GAM을 획득할 수 있으며, 
-                            누적된 GAM에 따라 당신의 업적이 결정됩니다. 높은 업적일수록 더 특별한 혜택과 명예를 얻을 수 있습니다.
-                        </p>
-                        <div class="mt-6 inline-flex items-center space-x-2 text-sm text-gray-500">
-                            <i data-lucide="info" class="w-4 h-4"></i>
-                            <span>GAM은 환전이 불가능한 게임 내 포인트입니다</span>
-                        </div>
+                </div>
+            </section>
+
+            <!-- GAM 정보 -->
+            <section class="container mx-auto px-4 lg:px-8 py-6 md:py-8">
+                <div class="gam-info-card rounded-xl p-6 md:p-8 text-center">
+                    <div class="flex items-center justify-center mb-4">
+                        <i data-lucide="coins" class="w-8 h-8 text-amber-600 mr-2"></i>
+                        <h2 class="text-xl md:text-2xl font-bold text-gray-900">GAM이란?</h2>
+                    </div>
+                    <p class="text-gray-700 text-sm md:text-base leading-relaxed mb-4">
+                        GAM(감)은 예겜에서 사용하는 예측 능력 포인트입니다. 정확한 예측으로 베팅에서 승리하면 GAM을 획득할 수 있으며, 
+                        누적된 GAM에 따라 당신의 업적이 결정됩니다.
+                    </p>
+                    <div class="inline-flex items-center space-x-2 text-xs md:text-sm text-amber-700 bg-amber-100 px-3 py-1 rounded-full">
+                        <i data-lucide="info" class="w-3 h-3"></i>
+                        <span>GAM은 환전이 불가능한 게임 내 포인트입니다</span>
                     </div>
                 </div>
             </section>
 
-            <!-- Achievement Grid -->
-            <section class="container mx-auto px-4 lg:px-8 pb-16">
-                <div class="text-center mb-12">
-                    <h2 class="text-3xl font-bold text-gray-900 mb-4">업적 목록</h2>
-                    <p class="text-gray-600">티끌부터 모든 것을 보는 눈까지, 21단계의 업적을 확인해보세요</p>
+            <!-- 업적 목록 -->
+            <section class="container mx-auto px-4 lg:px-8 pb-8 md:pb-16">
+                <div class="text-center mb-6 md:mb-8">
+                    <h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">업적 목록</h2>
+                    <p class="text-gray-600 text-sm md:text-base">티끌부터 모든 것을 보는 눈까지, 21단계의 업적을 확인해보세요</p>
                 </div>
                 
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="achievement-grid">
+                <div class="achievement-grid grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4" id="achievement-grid">
                     <!-- Achievement cards will be generated by JavaScript -->
                 </div>
             </section>
 
-            <!-- Achievement Categories -->
-            <section class="container mx-auto px-4 lg:px-8 pb-16">
-                <div class="bg-white rounded-2xl shadow-lg border border-gray-200 p-8">
-                    <h3 class="text-2xl font-bold text-gray-900 mb-6 text-center">업적 단계</h3>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        <div class="text-center p-6 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl">
-                            <div class="text-3xl mb-3">🌱</div>
-                            <h4 class="font-bold text-gray-900 mb-2">초급 업적 (0-5단계)</h4>
-                            <p class="text-sm text-gray-600">예측 여정의 첫 걸음</p>
+            <!-- 업적 단계 안내 -->
+            <section class="container mx-auto px-4 lg:px-8 pb-8 md:pb-16">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 md:p-8">
+                    <h3 class="text-xl md:text-2xl font-bold text-gray-900 mb-6 text-center">업적 단계</h3>
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                        <div class="text-center p-4 md:p-6 bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg">
+                            <div class="text-2xl md:text-3xl mb-2 md:mb-3">🌱</div>
+                            <h4 class="font-bold text-gray-900 text-sm md:text-base mb-1 md:mb-2">초급 업적</h4>
+                            <p class="text-xs md:text-sm text-gray-600 mb-1">0-5단계</p>
+                            <p class="text-xs text-gray-500">예측 여정의 첫 걸음</p>
                         </div>
-                        <div class="text-center p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl">
-                            <div class="text-3xl mb-3">⚔️</div>
-                            <h4 class="font-bold text-gray-900 mb-2">중급 업적 (6-10단계)</h4>
-                            <p class="text-sm text-gray-600">안정적인 예측 실력</p>
+                        <div class="text-center p-4 md:p-6 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
+                            <div class="text-2xl md:text-3xl mb-2 md:mb-3">⚔️</div>
+                            <h4 class="font-bold text-gray-900 text-sm md:text-base mb-1 md:mb-2">중급 업적</h4>
+                            <p class="text-xs md:text-sm text-gray-600 mb-1">6-10단계</p>
+                            <p class="text-xs text-gray-500">안정적인 예측 실력</p>
                         </div>
-                        <div class="text-center p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl">
-                            <div class="text-3xl mb-3">🏆</div>
-                            <h4 class="font-bold text-gray-900 mb-2">고급 업적 (11-16단계)</h4>
-                            <p class="text-sm text-gray-600">뛰어난 통찰력과 경험</p>
+                        <div class="text-center p-4 md:p-6 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg">
+                            <div class="text-2xl md:text-3xl mb-2 md:mb-3">🏆</div>
+                            <h4 class="font-bold text-gray-900 text-sm md:text-base mb-1 md:mb-2">고급 업적</h4>
+                            <p class="text-xs md:text-sm text-gray-600 mb-1">11-16단계</p>
+                            <p class="text-xs text-gray-500">뛰어난 통찰력과 경험</p>
                         </div>
-                        <div class="text-center p-6 bg-gradient-to-br from-yellow-50 to-amber-100 rounded-xl">
-                            <div class="text-3xl mb-3">👁️‍🗨️</div>
-                            <h4 class="font-bold text-gray-900 mb-2">전설 업적 (17-20단계)</h4>
-                            <p class="text-sm text-gray-600">예측의 신화와 전설</p>
+                        <div class="text-center p-4 md:p-6 bg-gradient-to-br from-yellow-50 to-amber-100 rounded-lg">
+                            <div class="text-2xl md:text-3xl mb-2 md:mb-3">👁️‍🗨️</div>
+                            <h4 class="font-bold text-gray-900 text-sm md:text-base mb-1 md:mb-2">전설 업적</h4>
+                            <p class="text-xs md:text-sm text-gray-600 mb-1">17-20단계</p>
+                            <p class="text-xs text-gray-500">예측의 신화와 전설</p>
                         </div>
                     </div>
                 </div>
@@ -297,91 +348,62 @@
     <script src="js/ui/premium-notifications.js"></script>
     <script type="module" src="js/app.js"></script>
     <script>
-        // 한국어 숫자 포맷팅 함수
+        // 한국어 숫자 포맷팅 함수 (모바일 최적화)
         function formatKoreanNumber(num) {
             if (num >= 100000000) {
-                return Math.floor(num / 100000000).toLocaleString() + '억';
+                const eok = Math.floor(num / 100000000);
+                const remainder = num % 100000000;
+                const man = Math.floor(remainder / 10000);
+                if (man > 0) {
+                    return `${eok.toLocaleString()}억${man.toLocaleString()}만`;
+                }
+                return `${eok.toLocaleString()}억`;
             } else if (num >= 10000) {
-                return Math.floor(num / 10000).toLocaleString() + '만';
+                const man = Math.floor(num / 10000);
+                const remainder = num % 10000;
+                if (remainder > 0) {
+                    return `${man.toLocaleString()}만${remainder.toLocaleString()}`;
+                }
+                return `${man.toLocaleString()}만`;
             } else {
                 return num.toLocaleString();
             }
         }
 
-        // 반짝이는 효과 생성
-        function createSparkles(element) {
-            const sparkleCount = 3;
-            for (let i = 0; i < sparkleCount; i++) {
-                setTimeout(() => {
-                    const sparkle = document.createElement('div');
-                    sparkle.className = 'sparkle';
-                    sparkle.style.width = Math.random() * 6 + 4 + 'px';
-                    sparkle.style.height = sparkle.style.width;
-                    sparkle.style.left = Math.random() * 100 + '%';
-                    sparkle.style.top = Math.random() * 100 + '%';
-                    sparkle.style.animationDelay = Math.random() * 2 + 's';
-                    
-                    element.appendChild(sparkle);
-                    
-                    setTimeout(() => {
-                        if (sparkle.parentNode) {
-                            sparkle.parentNode.removeChild(sparkle);
-                        }
-                    }, 2000);
-                }, i * 300);
-            }
-        }
-
-        // 업적 카드 생성
+        // 업적 카드 생성 (모바일 최적화)
         function createAchievementCard(tier) {
             const gamRange = tier.maxGam 
-                ? `${formatKoreanNumber(tier.minGam)} ~ ${formatKoreanNumber(tier.maxGam)} GAM`
-                : `${formatKoreanNumber(tier.minGam)} GAM 이상`;
+                ? `${formatKoreanNumber(tier.minGam)} ~ ${formatKoreanNumber(tier.maxGam)}`
+                : `${formatKoreanNumber(tier.minGam)} 이상`;
             
             let specialClass = '';
-            let specialEffect = '';
             
             // 특별 효과 클래스 결정
-            if (tier.level >= 17) {
-                specialClass = 'legendary-glow';
-                specialEffect = 'legendary';
-            }
-            if (tier.level >= 19) {
-                specialClass = 'mythic-pulse';
-                specialEffect = 'mythic';
-            }
-            if (tier.level >= 20) {
-                specialClass = 'divine-aura';
-                specialEffect = 'divine';
+            if (tier.level >= 17 && tier.level < 19) {
+                specialClass = 'legendary-tier';
+            } else if (tier.level >= 19 && tier.level < 20) {
+                specialClass = 'mythic-tier';
+            } else if (tier.level >= 20) {
+                specialClass = 'divine-tier';
             }
             
             const card = document.createElement('div');
-            card.className = `achievement-card bg-white rounded-xl shadow-lg border border-gray-200 p-6 text-center ${specialClass}`;
+            card.className = `tier-card ${specialClass}`;
             card.style.backgroundColor = tier.bgColor || '#ffffff';
             card.style.borderColor = tier.borderColor || '#e5e7eb';
             
             card.innerHTML = `
-                <div class="relative">
-                    <div class="tier-icon mb-4">${tier.icon}</div>
-                    <div class="mb-2">
-                        <span class="inline-block bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-semibold">
-                            Lv.${tier.level}
-                        </span>
-                    </div>
-                    <h3 class="text-xl font-bold mb-2" style="color: ${tier.color || '#374151'}">${tier.name}</h3>
-                    <p class="text-gray-500 text-sm mb-4">${tier.nameEn}</p>
-                    <div class="number-format text-lg font-bold">
+                <div class="p-3 md:p-4 text-center">
+                    <div class="tier-icon mb-2">${tier.icon}</div>
+                    <div class="tier-level mb-2">Lv.${tier.level}</div>
+                    <h3 class="tier-name" style="color: ${tier.color || '#374151'}">${tier.name}</h3>
+                    <p class="tier-name-en">${tier.nameEn}</p>
+                    <div class="tier-gam">
                         ${gamRange}
+                        <div class="text-xs text-gray-500 mt-1">GAM</div>
                     </div>
                 </div>
             `;
-            
-            // 특별 효과가 있는 카드에 반짝이는 효과 추가
-            if (specialEffect) {
-                card.addEventListener('mouseenter', () => {
-                    createSparkles(card);
-                });
-            }
             
             return card;
         }
@@ -395,6 +417,15 @@
                     const card = createAchievementCard(tier);
                     achievementGrid.appendChild(card);
                 });
+            } else {
+                // Fallback: tierSystem.js가 로드되지 않은 경우
+                console.warn('TierSystem not loaded, showing placeholder');
+                achievementGrid.innerHTML = `
+                    <div class="col-span-full text-center py-8">
+                        <i data-lucide="loader" class="w-8 h-8 animate-spin mx-auto mb-4 text-gray-400"></i>
+                        <p class="text-gray-500">업적 정보를 불러오는 중...</p>
+                    </div>
+                `;
             }
             
             // Lucide 아이콘 초기화
