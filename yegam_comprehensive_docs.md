@@ -1523,7 +1523,368 @@ PORT=3000
 
 ---
 
+## 💬 분석방 (커뮤니티 시스템)
+
+### 📖 기능 개요
+**분석방**은 Yegam 플랫폼의 커뮤니티 기능으로, 사용자들이 다양한 주제에 대해 자유롭게 토론하고 의견을 나눌 수 있는 공간입니다.
+
+### 🎯 핵심 기능
+- **카테고리별 토론**: 8개 주요 카테고리별 게시글 분류
+- **미디어 지원**: 이미지 및 YouTube 동영상 첨부
+- **개념글 시스템**: 좋아요 10개 이상 받은 인기 게시글
+- **계층형 댓글**: 댓글과 대댓글 지원
+- **실시간 상호작용**: 좋아요, 조회수 실시간 업데이트
+
+### 🏷️ 카테고리 시스템
+| 카테고리 | 아이콘 | 색상 | 설명 |
+|---------|--------|------|------|
+| 정치 | 🏛️ | #DC2626 | 정치 관련 예측 및 토론 |
+| 경제 | 📈 | #059669 | 경제 동향 및 시장 분석 |
+| 스포츠 | ⚽ | #EA580C | 스포츠 경기 예측 및 분석 |
+| 기술 | 💻 | #7C3AED | IT 및 기술 트렌드 |
+| 연예 | 🎭 | #EC4899 | 연예계 및 엔터테인먼트 |
+| 사회 | 🏘️ | #0891B2 | 사회 이슈 및 트렌드 |
+| 기타 | 🔗 | #6B7280 | 기타 주제 |
+
+### 🗄️ 데이터베이스 스키마
+
+#### Discussion Categories
+```sql
+CREATE TABLE discussion_categories (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE,
+    description TEXT,
+    icon VARCHAR(20),
+    color VARCHAR(20) DEFAULT '#3B82F6',
+    display_order INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### Discussion Posts
+```sql
+CREATE TABLE discussion_posts (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(200) NOT NULL,
+    content TEXT NOT NULL,
+    category_id INTEGER REFERENCES discussion_categories(id),
+    author_id INTEGER REFERENCES users(id),
+    is_notice BOOLEAN DEFAULT FALSE,      -- 공지글
+    is_pinned BOOLEAN DEFAULT FALSE,      -- 상단 고정
+    view_count INTEGER DEFAULT 0,
+    like_count INTEGER DEFAULT 0,
+    comment_count INTEGER DEFAULT 0,
+    media_urls TEXT[],                    -- 미디어 URL 배열
+    media_types TEXT[],                   -- 미디어 타입 배열
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### Discussion Comments
+```sql
+CREATE TABLE discussion_comments (
+    id SERIAL PRIMARY KEY,
+    post_id INTEGER REFERENCES discussion_posts(id),
+    author_id INTEGER REFERENCES users(id),
+    content TEXT NOT NULL,
+    parent_id INTEGER REFERENCES discussion_comments(id), -- 대댓글
+    like_count INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### 🛠️ API 엔드포인트
+
+#### 분석방 API (`/api/discussions`)
+
+##### GET `/api/discussions/categories`
+**카테고리 목록 조회**
+```json
+{
+    "success": true,
+    "data": [
+        {
+            "id": 2,
+            "name": "정치",
+            "description": "정치 관련 예측 및 토론",
+            "icon": "🏛️",
+            "color": "#DC2626",
+            "display_order": 1
+        }
+    ]
+}
+```
+
+##### GET `/api/discussions/posts`
+**게시글 목록 조회**
+```json
+// Query: ?category_id=2&page=1&limit=20&sort=latest&search=keyword&min_likes=10
+
+{
+    "success": true,
+    "data": {
+        "posts": [
+            {
+                "id": 1,
+                "title": "2025년 정치 전망 토론",
+                "content_preview": "올해 정치 상황에 대한 예측...",
+                "category_id": 2,
+                "category_name": "정치",
+                "category_icon": "🏛️",
+                "category_color": "#DC2626",
+                "author_id": 5,
+                "author_name": "정치관찰자",
+                "is_notice": false,
+                "is_pinned": false,
+                "view_count": 152,
+                "like_count": 23,
+                "comment_count": 8,
+                "media_urls": ["https://example.com/image.jpg"],
+                "media_types": ["image"],
+                "created_at": "2025-06-22T10:00:00Z"
+            }
+        ],
+        "pagination": {
+            "page": 1,
+            "pages": 5,
+            "total": 47
+        }
+    }
+}
+```
+
+##### POST `/api/discussions/posts`
+**게시글 작성**
+```json
+// Request
+{
+    "title": "새로운 토론 주제",
+    "content": "상세 내용",
+    "category_id": 2,
+    "media_urls": ["https://example.com/image.jpg"],
+    "media_types": ["image"],
+    "is_notice": false,
+    "is_pinned": false
+}
+
+// Response
+{
+    "success": true,
+    "message": "게시글이 작성되었습니다.",
+    "data": {
+        "id": 42,
+        "title": "새로운 토론 주제"
+    }
+}
+```
+
+##### GET `/api/discussions/posts/:id`
+**게시글 상세 조회**
+```json
+{
+    "success": true,
+    "data": {
+        "id": 1,
+        "title": "2025년 정치 전망 토론",
+        "content": "전체 내용...",
+        "category_name": "정치",
+        "category_icon": "🏛️",
+        "category_color": "#DC2626",
+        "author_name": "정치관찰자",
+        "view_count": 153,
+        "like_count": 23,
+        "comment_count": 8,
+        "user_liked": false,
+        "media_urls": ["https://example.com/image.jpg"],
+        "media_types": ["image"],
+        "created_at": "2025-06-22T10:00:00Z"
+    }
+}
+```
+
+##### POST `/api/discussions/posts/:id/like`
+**게시글 좋아요/취소**
+```json
+{
+    "success": true,
+    "liked": true,
+    "like_count": 24
+}
+```
+
+##### GET `/api/discussions/posts/:id/comments`
+**댓글 목록 조회**
+```json
+{
+    "success": true,
+    "data": {
+        "comments": [
+            {
+                "id": 1,
+                "author_id": 7,
+                "author_name": "댓글러",
+                "content": "좋은 의견입니다!",
+                "parent_id": null,
+                "like_count": 5,
+                "user_liked": false,
+                "created_at": "2025-06-22T11:00:00Z"
+            }
+        ],
+        "pagination": {
+            "page": 1,
+            "pages": 2,
+            "total": 8
+        }
+    }
+}
+```
+
+##### POST `/api/discussions/posts/:id/comments`
+**댓글 작성**
+```json
+// Request
+{
+    "content": "댓글 내용",
+    "parent_id": null  // 대댓글인 경우 부모 댓글 ID
+}
+
+// Response
+{
+    "success": true,
+    "message": "댓글이 작성되었습니다.",
+    "data": {
+        "id": 42,
+        "content": "댓글 내용"
+    }
+}
+```
+
+### 🎨 프론트엔드 구성
+
+#### 분석방 메인 페이지 (`discussions.html`)
+**핵심 기능:**
+- 카테고리별 필터링 (홈페이지와 동일한 디자인)
+- 게시글 목록 (카테고리 배지, 미디어 미리보기)
+- 개념글 토글 (좋아요 10개 이상 필터)
+- 검색 및 정렬 기능
+- 새 글 작성 모달
+
+#### 게시글 상세 페이지 (`discussion-post.html`)
+**핵심 기능:**
+- 게시글 전체 내용 표시
+- 미디어 확대보기 (이미지 모달, YouTube 임베드)
+- 좋아요 기능
+- 댓글 및 대댓글 시스템
+- 브레드크럼 네비게이션
+
+#### JavaScript 모듈
+```javascript
+// js/pages/discussions.js - 메인 페이지 로직
+export async function renderDiscussionsPage() {
+    await loadCategories();
+    await loadPosts();
+    setupEventListeners();
+}
+
+// js/pages/discussion-post.js - 상세 페이지 로직
+export async function renderDiscussionPostPage() {
+    await loadPost();
+    await loadComments();
+    setupEventListeners();
+}
+```
+
+### 🔧 주요 기술적 특징
+
+#### 미디어 지원 시스템
+```javascript
+// 미디어 타입 자동 감지
+const detectMediaType = (url) => {
+    // YouTube URL 패턴 검사
+    const youtubePatterns = [
+        /(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
+        /youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/
+    ];
+    
+    // 이미지 확장자 검사
+    const imageExtensions = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/i;
+    
+    // 비디오 확장자 검사
+    const videoExtensions = /\.(mp4|webm|ogg|avi|mov)$/i;
+};
+```
+
+#### 실시간 UI 업데이트
+```javascript
+// 좋아요 버튼 실시간 업데이트
+const handlePostLike = async (postId) => {
+    const response = await fetch(`/api/discussions/posts/${postId}/like`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+    });
+    
+    const data = await response.json();
+    if (data.success) {
+        updateLikeButton(postId, data.liked, data.like_count);
+    }
+};
+```
+
+#### 개념글 필터링
+```javascript
+// 개념글 모드 토글
+const toggleConceptMode = () => {
+    isConceptMode = !isConceptMode;
+    
+    if (isConceptMode) {
+        // 좋아요 10개 이상 필터 적용
+        loadPosts({ min_likes: 10, sort: 'popular' });
+    } else {
+        loadPosts({ sort: 'latest' });
+    }
+};
+```
+
+### 🎯 사용자 경험 (UX) 개선사항
+
+#### 반응형 디자인
+- **모바일**: 컴팩트한 카드 레이아웃
+- **태블릿**: 2컬럼 그리드
+- **데스크톱**: 3컬럼 그리드 + 사이드바
+
+#### 접근성 향상
+- **키보드 네비게이션**: Tab 키로 모든 요소 접근 가능
+- **스크린 리더**: ARIA 라벨 및 semantic HTML 사용
+- **색상 대비**: WCAG 2.1 AA 기준 준수
+
+#### 성능 최적화
+- **지연 로딩**: 이미지 및 댓글 지연 로딩
+- **페이지네이션**: 20개씩 페이지 단위 로딩
+- **캐싱**: 카테고리 정보 로컬 스토리지 캐싱
+
+### 🔮 향후 확장 계획
+
+#### Phase 1: 고급 기능
+- **실시간 알림**: 댓글 달림, 좋아요 받음 등
+- **멘션 시스템**: @username 으로 사용자 태그
+- **해시태그**: #태그 기능으로 주제별 분류
+
+#### Phase 2: 소셜 기능
+- **팔로우 시스템**: 관심 있는 사용자 팔로우
+- **개인 프로필**: 사용자별 게시글 모음
+- **추천 시스템**: AI 기반 관심사 추천
+
+#### Phase 3: 고급 분석
+- **토론 인사이트**: 주제별 여론 분석
+- **트렌드 분석**: 실시간 인기 주제 탐지
+- **사용자 리워드**: 활발한 참여자 보상 시스템
+
+---
+
 *마지막 업데이트: 2025년 6월 22일*  
-*문서 버전: v1.0*
+*문서 버전: v1.1 - 분석방 커뮤니티 시스템 추가*
 
 **⚠️ 중요**: 이 문서는 Yegam 서비스의 전체 기술 사양을 포함하고 있습니다. 보안이 중요한 부분(JWT Secret, 관리자 비밀번호 등)은 절대 공개하지 마세요.
