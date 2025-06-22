@@ -73,19 +73,20 @@ async function loadCategories() {
     }
 }
 
-// 기본 카테고리 데이터 (API 실패시 사용)
+// 기본 카테고리 데이터 (API 실패시 사용) - 기존 8개 카테고리 준용
 function loadFallbackCategories() {
     categories = [
         {id: 1, name: '전체', description: '모든 주제의 토론', icon: '💬', color: '#6B7280', display_order: 0},
-        {id: 2, name: '정치', description: '정치 관련 예측 및 토론', icon: '🏛️', color: '#DC2626', display_order: 1},
-        {id: 3, name: '경제', description: '경제 동향 및 시장 분석', icon: '📈', color: '#059669', display_order: 2},
-        {id: 4, name: '스포츠', description: '스포츠 경기 예측 및 분석', icon: '⚽', color: '#EA580C', display_order: 3},
-        {id: 5, name: '기술', description: 'IT 및 기술 트렌드', icon: '💻', color: '#7C3AED', display_order: 4},
-        {id: 6, name: '연예', description: '연예계 및 엔터테인먼트', icon: '🎭', color: '#EC4899', display_order: 5},
-        {id: 7, name: '사회', description: '사회 이슈 및 트렌드', icon: '🏘️', color: '#0891B2', display_order: 6},
-        {id: 8, name: '기타', description: '기타 주제', icon: '🔗', color: '#6B7280', display_order: 99}
+        {id: 2, name: '정치', description: '선거, 정책, 정치적 이벤트', icon: '🏛️', color: '#DC2626', display_order: 1},
+        {id: 3, name: '스포츠', description: '경기 결과, 시즌 성과', icon: '⚽', color: '#0891B2', display_order: 2},
+        {id: 4, name: '경제', description: '주식, 환율, 경제 지표', icon: '📈', color: '#059669', display_order: 3},
+        {id: 5, name: '코인', description: '암호화폐 가격, 트렌드', icon: '₿', color: '#F59E0B', display_order: 4},
+        {id: 6, name: '테크', description: '기술 트렌드, 제품 출시', icon: '💻', color: '#7C3AED', display_order: 5},
+        {id: 7, name: '엔터', description: '연예계, 문화 콘텐츠', icon: '🎭', color: '#EC4899', display_order: 6},
+        {id: 8, name: '날씨', description: '기상 예보, 계절 예측', icon: '🌤️', color: '#3B82F6', display_order: 7},
+        {id: 9, name: '해외', description: '국제 정치, 글로벌 이벤트', icon: '🌍', color: '#4F46E5', display_order: 8}
     ];
-    console.log('기본 카테고리 로드 완료:', categories);
+    console.log('기존 8개 카테고리 로드 완료:', categories);
 }
 
 // 카테고리 필터 렌더링
