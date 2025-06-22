@@ -87,6 +87,15 @@ async function loadCategories() {
             console.log('✅ 카테고리 API에서 로드 성공:', categories.length, '개');
             console.log('📝 API 카테고리 목록:', categories.map(c => `${c.name}(${c.id})`).join(', '));
             
+            // '일반' 카테고리가 있는지 확인
+            const generalCategory = categories.find(c => c.name === '일반');
+            if (generalCategory) {
+                console.log('✅ 일반 카테고리 확인됨:', generalCategory);
+            } else {
+                console.warn('⚠️ 일반 카테고리가 API 응답에 없음 - fallback으로 대체');
+                loadFallbackCategories();
+            }
+            
             renderCategoryFilter();
             renderCategoryOptions();
             return true;
@@ -131,13 +140,20 @@ function loadFallbackCategories() {
 
 // 카테고리 필터 렌더링
 function renderCategoryFilter() {
-    const filterContainer = document.getElementById('category-filter');
-    if (!filterContainer) {
-        console.error('category-filter 컨테이너를 찾을 수 없음');
+    const desktopContainer = document.getElementById('category-filter-desktop');
+    const mobileContainer = document.getElementById('category-filter-mobile');
+    
+    if (!desktopContainer) {
+        console.error('desktop 카테고리 컨테이너를 찾을 수 없음');
+        return;
+    }
+    if (!mobileContainer) {
+        console.error('mobile 카테고리 컨테이너를 찾을 수 없음');
         return;
     }
     
     console.log('카테고리 렌더링 시작:', categories.length, '개 카테고리');
+    console.log('카테고리 목록:', categories.map(c => `${c.icon} ${c.name}(ID:${c.id})`).join(', '));
     
     if (!categories || categories.length === 0) {
         console.warn('카테고리 데이터가 없음');
@@ -146,46 +162,65 @@ function renderCategoryFilter() {
     
     // 현재 활성화된 카테고리 저장
     const currentActive = currentCategory || 'all';
+    console.log('현재 활성 카테고리:', currentActive);
     
-    // 모든 버튼 제거
-    filterContainer.innerHTML = '';
-    
-    // '전체' 버튼 생성
-    const allBtn = document.createElement('button');
-    allBtn.className = `category-btn ${currentActive === 'all' ? 'active' : ''}`;
-    allBtn.dataset.category = 'all';
-    allBtn.innerHTML = '💬 전체';
-    filterContainer.appendChild(allBtn);
-    
-    // 카테고리 버튼들 추가
-    categories.forEach(category => {
-        console.log(`카테고리 버튼 생성: ${category.name} (ID: ${category.id})`);
+    // 카테고리 버튼 생성 함수
+    const createCategoryButtons = (container, containerType) => {
+        console.log(`${containerType} 컨테이너 카테고리 버튼 생성 중...`);
+        container.innerHTML = '';
         
-        const btn = document.createElement('button');
-        btn.className = `category-btn ${currentActive == category.id ? 'active' : ''}`;
-        btn.dataset.category = category.id;
-        btn.innerHTML = `${category.icon || '📝'} ${category.name}`;
+        // '전체' 버튼 생성
+        const allBtn = document.createElement('button');
+        allBtn.className = `category-btn ${currentActive === 'all' ? 'active' : ''}`;
+        allBtn.dataset.category = 'all';
+        allBtn.innerHTML = '💬 전체';
+        allBtn.style.whiteSpace = 'nowrap';
+        container.appendChild(allBtn);
+        console.log(`${containerType} - 전체 버튼 생성됨`);
         
-        filterContainer.appendChild(btn);
-    });
+        // 카테고리 버튼들 추가
+        categories.forEach(category => {
+            const btn = document.createElement('button');
+            btn.className = `category-btn ${currentActive == category.id ? 'active' : ''}`;
+            btn.dataset.category = category.id;
+            btn.innerHTML = `${category.icon || '📝'} ${category.name}`;
+            btn.style.whiteSpace = 'nowrap';
+            
+            container.appendChild(btn);
+            console.log(`${containerType} - ${category.name} 버튼 생성됨`);
+        });
+        
+        console.log(`${containerType} 컨테이너에 총 ${container.children.length}개 버튼 생성됨`);
+    };
+    
+    // 데스크톱과 모바일 버전 모두 생성
+    createCategoryButtons(desktopContainer, 'Desktop');
+    createCategoryButtons(mobileContainer, 'Mobile');
     
     // 이벤트 위임으로 모든 카테고리 버튼 처리
     setupCategoryEventListeners();
     
-    console.log('카테고리 버튼 생성 완료. 총 버튼 수:', filterContainer.children.length);
-    console.log('생성된 버튼들:', Array.from(filterContainer.children).map(btn => `${btn.textContent}(${btn.dataset.category})`).join(', '));
+    console.log('카테고리 버튼 생성 완료 (데스크톱/모바일)');
+    console.log('Desktop 컨테이너 클래스:', desktopContainer.parentElement.className);
+    console.log('Mobile 컨테이너 클래스:', mobileContainer.parentElement.className);
 }
 
 // 카테고리 이벤트 리스너 설정 (이벤트 위임 방식)
 function setupCategoryEventListeners() {
-    const filterContainer = document.getElementById('category-filter');
-    if (!filterContainer) return;
+    const desktopContainer = document.getElementById('category-filter-desktop');
+    const mobileContainer = document.getElementById('category-filter-mobile');
     
-    // 기존 이벤트 리스너 제거
-    filterContainer.removeEventListener('click', handleCategoryClick);
+    // 데스크톱 컨테이너 이벤트 리스너
+    if (desktopContainer) {
+        desktopContainer.removeEventListener('click', handleCategoryClick);
+        desktopContainer.addEventListener('click', handleCategoryClick);
+    }
     
-    // 새로운 이벤트 리스너 추가 (이벤트 위임)
-    filterContainer.addEventListener('click', handleCategoryClick);
+    // 모바일 컨테이너 이벤트 리스너
+    if (mobileContainer) {
+        mobileContainer.removeEventListener('click', handleCategoryClick);
+        mobileContainer.addEventListener('click', handleCategoryClick);
+    }
 }
 
 // 카테고리 클릭 핸들러
@@ -429,7 +464,8 @@ function renderPosts(posts) {
         const mediaPreview = createPostMediaPreview(post.media_urls, post.media_types, post.id);
         
         return `
-            <div class="border-b border-gray-200 last:border-b-0 hover:bg-gray-50 transition-colors">
+            <div class="border-b border-gray-200 last:border-b-0 hover:bg-gray-50 transition-colors cursor-pointer"
+                 onclick="goToPost(${post.id})">
                 <div class="p-3 md:p-4">
                     <div class="flex items-start space-x-3">
                         <!-- Category Badge -->
@@ -459,8 +495,7 @@ function renderPosts(posts) {
                             </div>
                             
                             <!-- Post Title -->
-                            <h3 class="text-base font-semibold text-gray-900 mb-1 hover:text-blue-600 cursor-pointer transition-colors"
-                                onclick="goToPost(${post.id})">
+                            <h3 class="text-base font-semibold text-gray-900 mb-1 hover:text-blue-600 transition-colors">
                                 ${post.title}
                                 ${post.media_urls && post.media_urls.length > 0 ? `
                                     <i data-lucide="paperclip" class="w-3 h-3 ml-1 text-blue-500 inline"></i>
@@ -526,8 +561,7 @@ function createPostMediaPreview(mediaUrls, mediaTypes, postId) {
                 <div class="mb-2">
                     <div class="relative">
                         <img src="${mediaInfo.thumbnailUrl}" alt="YouTube thumbnail" 
-                             class="w-full h-20 object-cover rounded cursor-pointer"
-                             onclick="goToPost(${postId})"
+                             class="w-full h-20 object-cover rounded"
                              onerror="this.style.display='none'">
                         <div class="absolute inset-0 bg-black bg-opacity-30 rounded flex items-center justify-center">
                             <div class="bg-white bg-opacity-90 rounded-full p-1">
@@ -548,8 +582,7 @@ function createPostMediaPreview(mediaUrls, mediaTypes, postId) {
                 <div class="mb-3">
                     <div class="relative">
                         <img src="${firstUrl}" alt="이미지 미리보기" 
-                             class="w-full h-32 object-cover rounded-lg cursor-pointer"
-                             onclick="goToPost(${postId})"
+                             class="w-full h-32 object-cover rounded-lg"
                              onerror="this.style.display='none'">
                         ${remainingCount > 0 ? `
                             <div class="absolute top-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
@@ -564,8 +597,7 @@ function createPostMediaPreview(mediaUrls, mediaTypes, postId) {
             previewHtml = `
                 <div class="mb-3">
                     <div class="relative">
-                        <div class="w-full h-32 bg-gray-100 rounded-lg flex items-center justify-center cursor-pointer"
-                             onclick="goToPost(${postId})">
+                        <div class="w-full h-32 bg-gray-100 rounded-lg flex items-center justify-center">
                             <i data-lucide="play-circle" class="w-8 h-8 text-gray-400"></i>
                         </div>
                         ${remainingCount > 0 ? `

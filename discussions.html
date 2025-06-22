@@ -112,30 +112,43 @@
             }
         }
         
+        /* 스크롤바 숨기기 */
+        .scrollbar-hide {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        
         /* 모바일 UI 최적화 */
         @media (max-width: 767px) {
-            /* 카테고리 버튼 모바일 최적화 */
-            #category-filter {
+            /* 카테고리 버튼 모바일 최적화 - index.html 스타일 적용 */
+            #category-filter-mobile {
+                -webkit-overflow-scrolling: touch;
+                display: flex;
+                gap: 8px;
                 overflow-x: auto;
                 overflow-y: hidden;
                 white-space: nowrap;
-                padding-bottom: 8px;
-                -webkit-overflow-scrolling: touch;
-                scrollbar-width: none;
-                -ms-overflow-style: none;
+                scroll-behavior: smooth;
+                padding-bottom: 4px;
             }
             
-            #category-filter::-webkit-scrollbar {
-                display: none;
-            }
-            
-            .category-btn {
+            #category-filter-mobile .category-btn {
                 display: inline-block;
                 white-space: nowrap;
-                margin-right: 8px;
+                flex-shrink: 0;
                 min-width: fit-content;
                 padding: 8px 16px;
                 font-size: 0.875rem;
+                margin-right: 0;
+            }
+            
+            /* 스크롤바 완전 숨기기 */
+            #category-filter-mobile::-webkit-scrollbar {
+                display: none;
             }
             
             /* 컨트롤 영역 모바일 최적화 */
@@ -352,8 +365,26 @@
                         </div>
                         
                         <!-- Category Filter -->
-                        <div id="category-filter" class="relative flex flex-wrap gap-2">
-                            <!-- Categories will be loaded dynamically -->
+                        <!-- Desktop Category Filter -->
+                        <div class="hidden md:block">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="text-sm font-medium text-gray-700">카테고리:</span>
+                            </div>
+                            <div id="category-filter-desktop" class="flex flex-wrap gap-2">
+                                <!-- Desktop categories will be loaded dynamically -->
+                            </div>
+                        </div>
+                        
+                        <!-- Mobile Category Filter -->
+                        <div class="md:hidden">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="text-sm font-medium text-gray-700">카테고리:</span>
+                            </div>
+                            <div class="overflow-x-auto scrollbar-hide">
+                                <div id="category-filter-mobile" class="flex gap-2 pb-1" style="min-width: fit-content;">
+                                    <!-- Mobile categories will be loaded dynamically -->
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
