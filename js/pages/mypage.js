@@ -1,6 +1,44 @@
 import * as auth from '../auth.js';
 import { getUserTier, getNextTierInfo, formatNumber, createTierDisplay, addTierStyles } from '../utils/tier-utils.js';
 
+// 서버에서 최신 사용자 데이터를 직접 가져오는 함수
+async function fetchFreshUserData() {
+    try {
+        const token = auth.getToken();
+        if (!token) {
+            console.error('No token found');
+            return null;
+        }
+
+        console.log('🔄 서버에서 최신 사용자 데이터 요청 중...');
+        
+        const response = await fetch('/api/auth/verify', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            console.error('Server response not ok:', response.status);
+            return null;
+        }
+
+        const data = await response.json();
+        
+        if (!data.success) {
+            console.error('Server returned error:', data.message);
+            return null;
+        }
+
+        console.log('✅ 서버에서 최신 사용자 데이터 받음:', data.user);
+        return data.user;
+        
+    } catch (error) {
+        console.error('Fresh user data fetch error:', error);
+        return null;
+    }
+}
+
 export async function renderMyPage() {
     console.log('renderMyPage called');
     
@@ -13,34 +51,33 @@ export async function renderMyPage() {
         return;
     }
 
-    // 최신 사용자 정보 가져오기 (서버에서 검증)
-    const isTokenValid = await auth.verifyToken();
-    if (!isTokenValid) {
-        console.log('Token verification failed, redirecting to login');
+    // 최신 사용자 정보 가져오기 (서버에서 직접 조회)
+    console.log('🔄 마이페이지 로딩: 서버에서 최신 사용자 데이터 가져오는 중...');
+    
+    const freshUserData = await fetchFreshUserData();
+    if (!freshUserData) {
+        console.log('Failed to get fresh user data, redirecting to login');
         window.location.href = 'login.html';
         return;
     }
 
-    const user = auth.getCurrentUser();
-    if (!user) {
-        console.log('No user data found after verification');
-        return;
-    }
+    // localStorage도 최신 데이터로 업데이트
+    auth.updateCurrentUser(freshUserData);
 
     console.log('=== GAM 디버깅 ===');
-    console.log('사용자:', user.username);
-    console.log('Raw GAM value:', user.gam_balance);
-    console.log('GAM type:', typeof user.gam_balance);
-    console.log('GAM is null?', user.gam_balance === null);
-    console.log('GAM is undefined?', user.gam_balance === undefined);
-    console.log('Full user object:', user);
+    console.log('사용자:', freshUserData.username);
+    console.log('Raw GAM value:', freshUserData.gam_balance);
+    console.log('GAM type:', typeof freshUserData.gam_balance);
+    console.log('GAM is null?', freshUserData.gam_balance === null);
+    console.log('GAM is undefined?', freshUserData.gam_balance === undefined);
+    console.log('Full user object:', freshUserData);
     console.log('==================');
 
     // 사용자 기본 정보 표시
-    updateUserProfile(user);
+    updateUserProfile(freshUserData);
     
     // 티어 정보 표시
-    updateTierInfo(user);
+    updateTierInfo(freshUserData);
     
     // 베팅 기록 로드
     await loadUserBets();
@@ -60,6 +97,11 @@ export async function renderMyPage() {
     
     // Lucide 아이콘 초기화
     initializeLucideIcons();
+    
+    // 추가 검증: 3초 후 GAM 잔액 재확인
+    setTimeout(async () => {
+        await performGamBalanceValidation();
+    }, 3000);
 }
 
 // Lucide 아이콘 초기화 함수 (header.js와 동일한 로직)
@@ -110,6 +152,9 @@ function updateUserProfile(user) {
             // 백그라운드에서 자동 수정 시도
             tryAutoFixGamBalance();
         }
+        
+        // 헤더의 GAM 표시도 동기화
+        updateHeaderGamBalance(gamBalance);
     }
     
     if (userJoinedDaysEl && user.created_at) {
@@ -642,6 +687,100 @@ async function tryAutoFixGamBalance() {
         }
     } catch (error) {
         console.error('GAM 잔액 자동 수정 오류:', error);
+    }
+}
+
+// 헤더의 GAM 표시 동기화
+function updateHeaderGamBalance(gamBalance) {
+    try {
+        console.log('🔄 헤더 GAM 동기화 시작:', gamBalance);
+        
+        // 마이페이지에 있지 않은 user-coins 요소들 찾기 (헤더의 것들)
+        const allUserCoinsElements = document.querySelectorAll('#user-coins');
+        console.log('찾은 user-coins 요소들:', allUserCoinsElements.length);
+        
+        allUserCoinsElements.forEach((el, index) => {
+            // 마이페이지의 Essential Stats Grid 안에 있는지 확인
+            const isInMypage = el.closest('.grid.grid-cols-2.md\\:grid-cols-5');
+            
+            if (!isInMypage) {
+                // 헤더의 GAM 표시
+                el.textContent = gamBalance.toLocaleString();
+                console.log(`헤더 GAM 동기화 [${index}]:`, el.parentElement?.className, '→', gamBalance.toLocaleString());
+            } else {
+                console.log(`마이페이지 GAM 요소 [${index}] 건드리지 않음:`, el.textContent);
+            }
+        });
+        
+        // 다른 GAM 표시 요소들도 찾기
+        const otherGamElements = [
+            document.querySelector('#header-user-actions #user-coins'),
+            document.querySelector('.header-gam-balance'),
+            ...document.querySelectorAll('[data-gam-display]')
+        ].filter(el => el !== null);
+        
+        otherGamElements.forEach((el, index) => {
+            el.textContent = gamBalance.toLocaleString();
+            console.log(`기타 GAM 요소 [${index}]:`, el.className, '→', gamBalance.toLocaleString());
+        });
+        
+        // localStorage의 사용자 데이터도 업데이트
+        const currentUser = auth.getCurrentUser();
+        if (currentUser) {
+            currentUser.gam_balance = gamBalance;
+            auth.updateCurrentUser(currentUser);
+            console.log('localStorage 사용자 데이터 업데이트:', gamBalance);
+        }
+        
+    } catch (error) {
+        console.error('헤더 GAM 동기화 오류:', error);
+    }
+}
+
+// GAM 잔액 검증 및 자동 수정
+async function performGamBalanceValidation() {
+    try {
+        console.log('🔍 GAM 잔액 검증 시작...');
+        
+        const mypageGamEl = document.getElementById('user-coins');
+        const currentDisplayedGam = mypageGamEl ? parseInt(mypageGamEl.textContent.replace(/,/g, '')) : 0;
+        
+        console.log('현재 마이페이지에 표시된 GAM:', currentDisplayedGam);
+        
+        // 0이거나 NaN이면 문제가 있는 것
+        if (currentDisplayedGam === 0 || isNaN(currentDisplayedGam)) {
+            console.warn('⚠️ GAM 잔액 표시 문제 발견! 서버에서 실제 잔액 확인 중...');
+            
+            const freshData = await fetchFreshUserData();
+            if (freshData && freshData.gam_balance > 0) {
+                console.log('✅ 서버에서 올바른 GAM 잔액 확인:', freshData.gam_balance);
+                
+                // 마이페이지 GAM 표시 강제 업데이트
+                if (mypageGamEl) {
+                    mypageGamEl.textContent = freshData.gam_balance.toLocaleString();
+                    console.log('마이페이지 GAM 강제 업데이트:', freshData.gam_balance.toLocaleString());
+                }
+                
+                // 티어 정보도 재계산
+                updateTierInfo(freshData);
+                
+                // localStorage도 업데이트
+                auth.updateCurrentUser(freshData);
+                
+                // 성공 메시지 표시
+                showTemporaryMessage(`GAM 잔액이 올바르게 수정되었습니다: ${freshData.gam_balance.toLocaleString()} GAM`, 'success');
+                
+            } else {
+                console.error('❌ 서버에서도 GAM 잔액이 0이거나 조회할 수 없습니다.');
+                // 자동 수정 시도
+                tryAutoFixGamBalance();
+            }
+        } else {
+            console.log('✅ GAM 잔액이 정상적으로 표시되고 있습니다:', currentDisplayedGam);
+        }
+        
+    } catch (error) {
+        console.error('GAM 잔액 검증 오류:', error);
     }
 }
 
