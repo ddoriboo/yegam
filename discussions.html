@@ -45,6 +45,12 @@
         .category-btn[data-category="all"].active {
             background: linear-gradient(135deg, #4F46E5, #7C3AED);
         }
+        .category-btn[data-category="1"] {
+            background: linear-gradient(135deg, #6B7280, #9CA3AF);
+        }
+        .category-btn[data-category="1"].active {
+            background: linear-gradient(135deg, #4B5563, #6B7280);
+        }
         .category-btn[data-category="2"] {
             background: linear-gradient(135deg, #EF4444, #F87171);
         }
@@ -88,10 +94,10 @@
             background: linear-gradient(135deg, #2563EB, #3B82F6);
         }
         .category-btn[data-category="9"] {
-            background: linear-gradient(135deg, #6366F1, #8B5CF6);
+            background: linear-gradient(135deg, #4F46E5, #6366F1);
         }
         .category-btn[data-category="9"].active {
-            background: linear-gradient(135deg, #4F46E5, #6366F1);
+            background: linear-gradient(135deg, #3730A3, #4F46E5);
         }
         
         .post-list-item:hover {
@@ -103,6 +109,124 @@
         @media (min-width: 768px) {
             .compact-spacing {
                 padding: 1rem;
+            }
+        }
+        
+        /* 모바일 UI 최적화 */
+        @media (max-width: 767px) {
+            /* 카테고리 버튼 모바일 최적화 */
+            #category-filter {
+                overflow-x: auto;
+                overflow-y: hidden;
+                white-space: nowrap;
+                padding-bottom: 8px;
+                -webkit-overflow-scrolling: touch;
+                scrollbar-width: none;
+                -ms-overflow-style: none;
+            }
+            
+            #category-filter::-webkit-scrollbar {
+                display: none;
+            }
+            
+            .category-btn {
+                display: inline-block;
+                white-space: nowrap;
+                margin-right: 8px;
+                min-width: fit-content;
+                padding: 8px 16px;
+                font-size: 0.875rem;
+            }
+            
+            /* 컨트롤 영역 모바일 최적화 */
+            .controls-top {
+                flex-direction: column;
+                gap: 12px !important;
+                align-items: stretch !important;
+            }
+            
+            .controls-top > div {
+                flex-direction: column;
+                gap: 8px;
+            }
+            
+            .controls-right {
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            
+            /* 검색 입력 모바일 최적화 */
+            #search-input {
+                width: 100% !important;
+                min-width: unset !important;
+            }
+            
+            /* 버튼들 터치 친화적 크기 */
+            button {
+                min-height: 44px;
+                min-width: 44px;
+            }
+            
+            /* 게시글 목록 모바일 최적화 */
+            .post-list-item {
+                padding: 12px !important;
+            }
+            
+            .post-list-item .post-header {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 8px;
+            }
+            
+            .post-list-item .post-stats {
+                justify-content: flex-start !important;
+                gap: 16px;
+            }
+            
+            /* 모달 모바일 최적화 */
+            #post-modal .modal-content {
+                max-width: 95vw !important;
+                max-height: 95vh !important;
+                margin: 0 !important;
+            }
+            
+            #post-modal .p-6 {
+                padding: 1rem !important;
+            }
+            
+            /* 텍스트 크기 조정 */
+            .post-title {
+                font-size: 1.1rem !important;
+                line-height: 1.4 !important;
+            }
+            
+            .post-preview {
+                font-size: 0.9rem !important;
+                line-height: 1.4 !important;
+            }
+            
+            /* 간격 조정 */
+            .space-x-3 > * + * {
+                margin-left: 8px !important;
+            }
+            
+            .space-y-3 > * + * {
+                margin-top: 8px !important;
+            }
+        }
+        
+        /* 가로 스크롤 힌트 */
+        @media (max-width: 767px) {
+            #category-filter::after {
+                content: '';
+                position: absolute;
+                right: 0;
+                top: 0;
+                bottom: 8px;
+                width: 20px;
+                background: linear-gradient(to right, transparent, white);
+                pointer-events: none;
             }
         }
         
@@ -192,7 +316,7 @@
                 <div class="bg-white rounded-lg border border-gray-200 mb-3">
                     <div class="compact-spacing">
                         <!-- Top Controls -->
-                        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-3">
+                        <div class="controls-top flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-3">
                             <div class="flex items-center space-x-2">
                                 <button id="new-post-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center">
                                     <i data-lucide="plus" class="w-4 h-4 mr-1"></i>
@@ -204,21 +328,21 @@
                                 </button>
                             </div>
                             
-                            <div class="flex items-center space-x-2">
+                            <div class="controls-right flex items-center space-x-2">
                                 <!-- Search -->
-                                <div class="relative">
+                                <div class="relative flex-1 md:flex-none">
                                     <input type="text" id="search-input" placeholder="검색..." 
-                                        class="w-48 pl-8 pr-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                        class="w-full md:w-48 pl-8 pr-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                                     <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-2.5 top-1/2 transform -translate-y-1/2"></i>
                                 </div>
                                 
                                 <!-- Concept Posts Toggle -->
-                                <button id="concept-posts-btn" class="concept-btn px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium transition-colors hover:bg-gray-50">
+                                <button id="concept-posts-btn" class="concept-btn px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium transition-colors hover:bg-gray-50 whitespace-nowrap">
                                     개념글
                                 </button>
                                 
                                 <!-- Sort -->
-                                <select id="sort-select" class="border border-gray-300 rounded-md px-2 py-1.5 text-sm">
+                                <select id="sort-select" class="border border-gray-300 rounded-md px-2 py-1.5 text-sm min-w-0">
                                     <option value="latest">최신순</option>
                                     <option value="popular">인기순</option>
                                     <option value="discussed">댓글순</option>
@@ -228,10 +352,7 @@
                         </div>
                         
                         <!-- Category Filter -->
-                        <div id="category-filter" class="flex flex-wrap gap-2">
-                            <button class="category-btn active" data-category="all">
-                                💬 전체
-                            </button>
+                        <div id="category-filter" class="relative flex flex-wrap gap-2">
                             <!-- Categories will be loaded dynamically -->
                         </div>
                     </div>

@@ -107,20 +107,22 @@ async function loadCategories() {
     }
 }
 
-// 기본 카테고리 데이터 (API 실패시 사용) - 기존 8개 카테고리 준용
+// 기본 카테고리 데이터 (API 실패시 사용) - 일반 카테고리 추가
 function loadFallbackCategories() {
     console.log('🔄 Fallback 카테고리 데이터 로드 중...');
     
-    // 데이터베이스 스키마와 일치하는 카테고리 ID 사용 (실제 DB 삽입 순서와 일치)
+    // 데이터베이스 스키마와 일치하는 카테고리 ID 사용
     categories = [
         // '전체'는 필터용이므로 실제 카테고리가 아님
-        {id: 2, name: '정치', description: '정치 관련 예측 및 토론', icon: '🏛️', color: '#DC2626', display_order: 1},
-        {id: 3, name: '경제', description: '경제 동향 및 시장 분석', icon: '📈', color: '#059669', display_order: 2},
-        {id: 4, name: '스포츠', description: '스포츠 경기 예측 및 분석', icon: '⚽', color: '#EA580C', display_order: 3},
-        {id: 5, name: '기술', description: 'IT 및 기술 트렌드', icon: '💻', color: '#7C3AED', display_order: 4},
-        {id: 6, name: '연예', description: '연예계 및 엔터테인먼트', icon: '🎭', color: '#EC4899', display_order: 5},
-        {id: 7, name: '사회', description: '사회 이슈 및 트렌드', icon: '🏘️', color: '#0891B2', display_order: 6},
-        {id: 8, name: '기타', description: '기타 주제', icon: '🔗', color: '#6B7280', display_order: 99}
+        {id: 1, name: '일반', description: '일반적인 주제의 자유로운 토론', icon: '💬', color: '#6B7280', display_order: 1},
+        {id: 2, name: '정치', description: '선거, 정책, 정치적 이벤트', icon: '🏛️', color: '#DC2626', display_order: 2},
+        {id: 3, name: '스포츠', description: '경기 결과, 시즌 성과', icon: '⚽', color: '#0891B2', display_order: 3},
+        {id: 4, name: '경제', description: '주식, 환율, 경제 지표', icon: '📈', color: '#059669', display_order: 4},
+        {id: 5, name: '코인', description: '암호화폐 가격, 트렌드', icon: '₿', color: '#F59E0B', display_order: 5},
+        {id: 6, name: '테크', description: '기술 트렌드, 제품 출시', icon: '💻', color: '#7C3AED', display_order: 6},
+        {id: 7, name: '엔터', description: '연예계, 문화 콘텐츠', icon: '🎭', color: '#EC4899', display_order: 7},
+        {id: 8, name: '날씨', description: '기상 예보, 계절 예측', icon: '🌤️', color: '#3B82F6', display_order: 8},
+        {id: 9, name: '해외', description: '국제 정치, 글로벌 이벤트', icon: '🌍', color: '#4F46E5', display_order: 9}
     ];
     
     console.log('✅ Fallback 카테고리 로드 완료:', categories.length, '개');
@@ -1030,6 +1032,11 @@ async function handlePostSubmit(e) {
     if (!postData.category_id) {
         alert('카테고리를 선택해주세요.');
         console.error('카테고리 선택 안됨. 사용 가능한 카테고리:', categories);
+        return;
+    }
+    // '전체' 카테고리는 필터용이므로 글 작성 금지
+    if (postData.category_id === 'all' || postData.category_id === '0') {
+        alert('전체 카테고리에는 글을 작성할 수 없습니다. 다른 카테고리를 선택해주세요.');
         return;
     }
     

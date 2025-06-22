@@ -78,17 +78,17 @@ CREATE INDEX IF NOT EXISTS idx_post_likes_user ON discussion_post_likes(user_id)
 CREATE INDEX IF NOT EXISTS idx_comment_likes_comment ON discussion_comment_likes(comment_id);
 CREATE INDEX IF NOT EXISTS idx_comment_likes_user ON discussion_comment_likes(user_id);
 
--- 7. 기존 8개 카테고리 데이터 삽입 (기존 예겜 시스템 준용)
+-- 7. 카테고리 데이터 삽입 ('전체'는 필터용이므로 제외, '일반' 카테고리 추가)
 INSERT INTO discussion_categories (name, description, icon, color, display_order) VALUES
-('전체', '모든 주제의 토론', '💬', '#6B7280', 0),
-('정치', '선거, 정책, 정치적 이벤트', '🏛️', '#DC2626', 1),
-('스포츠', '경기 결과, 시즌 성과', '⚽', '#0891B2', 2),
-('경제', '주식, 환율, 경제 지표', '📈', '#059669', 3),
-('코인', '암호화폐 가격, 트렌드', '₿', '#F59E0B', 4),
-('테크', '기술 트렌드, 제품 출시', '💻', '#7C3AED', 5),
-('엔터', '연예계, 문화 콘텐츠', '🎭', '#EC4899', 6),
-('날씨', '기상 예보, 계절 예측', '🌤️', '#3B82F6', 7),
-('해외', '국제 정치, 글로벌 이벤트', '🌍', '#4F46E5', 8)
+('일반', '일반적인 주제의 자유로운 토론', '💬', '#6B7280', 1),
+('정치', '선거, 정책, 정치적 이벤트', '🏛️', '#DC2626', 2),
+('스포츠', '경기 결과, 시즌 성과', '⚽', '#0891B2', 3),
+('경제', '주식, 환율, 경제 지표', '📈', '#059669', 4),
+('코인', '암호화폐 가격, 트렌드', '₿', '#F59E0B', 5),
+('테크', '기술 트렌드, 제품 출시', '💻', '#7C3AED', 6),
+('엔터', '연예계, 문화 콘텐츠', '🎭', '#EC4899', 7),
+('날씨', '기상 예보, 계절 예측', '🌤️', '#3B82F6', 8),
+('해외', '국제 정치, 글로벌 이벤트', '🌍', '#4F46E5', 9)
 ON CONFLICT (name) DO NOTHING;
 
 -- 8. 트리거: 댓글 수 자동 업데이트

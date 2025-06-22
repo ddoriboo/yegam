@@ -11,6 +11,121 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <style>
+        /* 모바일 UI 최적화 */
+        @media (max-width: 767px) {
+            /* 게시글 헤더 모바일 최적화 */
+            .post-meta {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 8px !important;
+            }
+            
+            .post-info {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 8px !important;
+            }
+            
+            .post-stats {
+                justify-content: flex-start !important;
+                gap: 16px !important;
+            }
+            
+            /* 액션 버튼 모바일 최적화 */
+            #post-actions {
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 8px !important;
+            }
+            
+            #post-actions button {
+                width: 100% !important;
+                justify-content: center !important;
+            }
+            
+            /* 댓글 섹션 모바일 최적화 */
+            .comment {
+                padding: 12px !important;
+            }
+            
+            .comment-header {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                gap: 8px !important;
+            }
+            
+            .comment-actions {
+                flex-wrap: wrap !important;
+                gap: 8px !important;
+            }
+            
+            /* 댓글 폼 모바일 최적화 */
+            #comment-content {
+                min-height: 100px !important;
+            }
+            
+            .reply-form textarea {
+                min-height: 80px !important;
+            }
+            
+            /* 텍스트 크기 및 간격 조정 */
+            .text-2xl {
+                font-size: 1.5rem !important;
+            }
+            
+            .text-3xl {
+                font-size: 1.75rem !important;
+            }
+            
+            .prose {
+                font-size: 0.95rem !important;
+                line-height: 1.6 !important;
+            }
+            
+            /* 터치 친화적 버튼 크기 */
+            button {
+                min-height: 44px !important;
+                min-width: 44px !important;
+            }
+            
+            /* 이미지 및 미디어 반응형 */
+            .media-item img,
+            .media-item video,
+            .media-item iframe {
+                max-width: 100% !important;
+                height: auto !important;
+            }
+            
+            /* 브레드크럼 모바일 최적화 */
+            .breadcrumb {
+                font-size: 0.875rem !important;
+                flex-wrap: wrap !important;
+            }
+            
+            /* 패딩 조정 */
+            .p-6 {
+                padding: 1rem !important;
+            }
+            
+            .p-8 {
+                padding: 1.25rem !important;
+            }
+            
+            /* 간격 조정 */
+            .space-x-4 > * + * {
+                margin-left: 12px !important;
+            }
+            
+            .space-x-3 > * + * {
+                margin-left: 8px !important;
+            }
+            
+            .space-y-4 > * + * {
+                margin-top: 12px !important;
+            }
+        }
+    </style>
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans">
 
@@ -74,7 +189,7 @@
             <!-- Breadcrumb -->
             <section class="bg-white border-b border-gray-200">
                 <div class="container mx-auto px-4 lg:px-8 py-3">
-                    <nav class="flex items-center space-x-2 text-sm text-gray-600">
+                    <nav class="breadcrumb flex items-center space-x-2 text-sm text-gray-600">
                         <a href="discussions.html" class="hover:text-gray-900 transition-colors">주제별 분석방</a>
                         <i data-lucide="chevron-right" class="w-4 h-4"></i>
                         <span id="breadcrumb-category" class="text-gray-900">로딩중...</span>
@@ -96,7 +211,7 @@
                     <div class="bg-white rounded-lg border border-gray-200 mb-6">
                         <div class="p-6 md:p-8">
                             <!-- Post Meta -->
-                            <div class="flex items-center space-x-3 mb-4">
+                            <div class="post-meta flex items-center space-x-3 mb-4">
                                 <span id="post-notice-badge" class="hidden bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-xs font-medium">공지</span>
                                 <span id="post-pinned-badge" class="hidden bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-xs font-medium">고정</span>
                                 <span id="post-category" class="text-sm font-medium px-3 py-1 rounded-full">카테고리</span>
@@ -106,7 +221,7 @@
                             <h1 id="post-title" class="text-2xl md:text-3xl font-bold text-gray-900 mb-4">게시글 제목</h1>
                             
                             <!-- Post Info -->
-                            <div class="flex items-center justify-between text-sm text-gray-600 mb-6">
+                            <div class="post-info flex items-center justify-between text-sm text-gray-600 mb-6">
                                 <div class="flex items-center space-x-4">
                                     <span class="flex items-center">
                                         <i data-lucide="user" class="w-4 h-4 mr-2"></i>
@@ -118,7 +233,7 @@
                                     </span>
                                 </div>
                                 
-                                <div class="flex items-center space-x-4">
+                                <div class="post-stats flex items-center space-x-4">
                                     <span class="flex items-center">
                                         <i data-lucide="eye" class="w-4 h-4 mr-1"></i>
                                         <span id="post-views">0</span>

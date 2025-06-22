@@ -351,4 +351,53 @@ router.get('/verify', async (req, res) => {
     }
 });
 
+// 관리자 권한 확인
+router.get('/check-admin', async (req, res) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
+        
+        if (!token) {
+            return res.status(401).json({ 
+                success: false, 
+                message: '토큰이 없습니다.' 
+            });
+        }
+        
+        const decoded = jwt.verify(token, JWT_SECRET);
+        
+        // 사용자 존재 확인
+        const userResult = await query('SELECT id FROM users WHERE id = $1', [decoded.id]);
+        if (userResult.rows.length === 0) {
+            return res.status(401).json({ 
+                success: false, 
+                message: '유효하지 않은 토큰입니다.' 
+            });
+        }
+        
+        // 관리자 권한 확인 (legacy admin system)
+        let isAdmin = false;
+        try {
+            const adminResult = await query(
+                'SELECT id FROM admins WHERE user_id = $1',
+                [decoded.id]
+            );
+            isAdmin = adminResult.rows.length > 0;
+        } catch (error) {
+            console.log('관리자 확인 중 오류 (무시됨):', error.message);
+        }
+        
+        res.json({
+            success: true,
+            isAdmin: isAdmin
+        });
+        
+    } catch (error) {
+        console.error('관리자 확인 오류:', error);
+        res.status(401).json({ 
+            success: false, 
+            message: '유효하지 않은 토큰입니다.' 
+        });
+    }
+});
+
 module.exports = router;

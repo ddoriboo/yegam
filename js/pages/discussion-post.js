@@ -158,12 +158,27 @@ function renderPost(post) {
         bodyElement.innerHTML = content;
     }
     
-    // 작성자 액션 버튼 표시 (null 체크 추가)
-    if (currentUser && currentUser.id === post.author_id) {
-        const actionsElement = document.getElementById('post-actions');
-        if (actionsElement) {
-            actionsElement.classList.remove('hidden');
-        }
+    // 작성자 또는 관리자 액션 버튼 표시
+    if (currentUser) {
+        const isAuthor = currentUser.id === post.author_id;
+        // 관리자인지 확인 (비동기)
+        auth.isAdmin().then(isAdminUser => {
+            if (isAuthor || isAdminUser) {
+                const actionsElement = document.getElementById('post-actions');
+                if (actionsElement) {
+                    actionsElement.classList.remove('hidden');
+                }
+            }
+        }).catch(error => {
+            console.error('관리자 확인 오류:', error);
+            // 오류 시 작성자만 표시
+            if (isAuthor) {
+                const actionsElement = document.getElementById('post-actions');
+                if (actionsElement) {
+                    actionsElement.classList.remove('hidden');
+                }
+            }
+        });
     }
     
     // 댓글 수 업데이트
@@ -507,6 +522,12 @@ function setupEventListeners() {
     const commentForm = document.getElementById('comment-form');
     commentForm?.addEventListener('submit', handleCommentSubmit);
     
+    // 게시글 수정/삭제 버튼
+    const editBtn = document.getElementById('edit-post-btn');
+    const deleteBtn = document.getElementById('delete-post-btn');
+    editBtn?.addEventListener('click', handlePostEdit);
+    deleteBtn?.addEventListener('click', handlePostDelete);
+    
     // 로그인 상태에 따라 댓글 폼 표시/숨기기
     const commentFormSection = document.getElementById('comment-form-section');
     if (!currentUser) {
@@ -801,6 +822,171 @@ function detectMediaType(url) {
     }
     
     return { type: 'unknown', url };
+}
+
+// 게시글 수정 처리
+async function handlePostEdit(e) {
+    e.preventDefault();
+    
+    if (!currentUser || !currentPost) {
+        alert('수정 권한이 없습니다.');
+        return;
+    }
+    
+    // 작성자이거나 관리자인지 확인
+    const isAuthor = currentUser.id === currentPost.author_id;
+    const isAdminUser = await auth.isAdmin().catch(() => false);
+    
+    if (!isAuthor && !isAdminUser) {
+        alert('수정 권한이 없습니다.');
+        return;
+    }
+    
+    // 간단한 수정 폼 모달 생성
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+    modal.innerHTML = `
+        <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold">게시글 수정</h2>
+                    <button class="close-modal text-gray-400 hover:text-gray-600">
+                        <i data-lucide="x" class="w-6 h-6"></i>
+                    </button>
+                </div>
+                
+                <form class="edit-post-form space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">제목</label>
+                        <input type="text" name="title" value="${currentPost.title}" required
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">내용</label>
+                        <textarea name="content" rows="8" required
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent">${currentPost.content}</textarea>
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button type="button" class="cancel-edit px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+                            취소
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+                            수정
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // 모달 이벤트 설정
+    const closeModal = () => modal.remove();
+    modal.querySelector('.close-modal').addEventListener('click', closeModal);
+    modal.querySelector('.cancel-edit').addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+    
+    // 폼 제출 처리
+    modal.querySelector('.edit-post-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData(e.target);
+        const updateData = {
+            title: formData.get('title'),
+            content: formData.get('content')
+        };
+        
+        try {
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '수정 중...';
+            
+            const response = await fetch(`/api/discussions/posts/${postId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${auth.getToken()}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(updateData)
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                alert('게시글이 수정되었습니다.');
+                closeModal();
+                // 페이지 새로고침
+                window.location.reload();
+            } else {
+                alert(data.message || '수정 중 오류가 발생했습니다.');
+            }
+            
+        } catch (error) {
+            console.error('게시글 수정 오류:', error);
+            alert('수정 중 오류가 발생했습니다.');
+        }
+    });
+    
+    // 아이콘 초기화
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
+}
+
+// 게시글 삭제 처리
+async function handlePostDelete(e) {
+    e.preventDefault();
+    
+    if (!currentUser || !currentPost) {
+        alert('삭제 권한이 없습니다.');
+        return;
+    }
+    
+    // 작성자이거나 관리자인지 확인
+    const isAuthor = currentUser.id === currentPost.author_id;
+    const isAdminUser = await auth.isAdmin().catch(() => false);
+    
+    if (!isAuthor && !isAdminUser) {
+        alert('삭제 권한이 없습니다.');
+        return;
+    }
+    
+    if (!confirm('정말로 이 게시글을 삭제하시겠습니까? 삭제된 게시글은 복구할 수 없습니다.')) {
+        return;
+    }
+    
+    try {
+        e.target.disabled = true;
+        e.target.textContent = '삭제 중...';
+        
+        const response = await fetch(`/api/discussions/posts/${postId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${auth.getToken()}`
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            alert('게시글이 삭제되었습니다.');
+            // 목록 페이지로 이동
+            window.location.href = 'discussions.html';
+        } else {
+            alert(data.message || '삭제 중 오류가 발생했습니다.');
+            e.target.disabled = false;
+            e.target.textContent = '삭제';
+        }
+        
+    } catch (error) {
+        console.error('게시글 삭제 오류:', error);
+        alert('삭제 중 오류가 발생했습니다.');
+        e.target.disabled = false;
+        e.target.textContent = '삭제';
+    }
 }
 
 // 페이지 로드시 초기화

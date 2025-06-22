@@ -103,6 +103,25 @@ export function getToken() {
     return storage.getItem(TOKEN_KEY);
 }
 
+// 관리자 권한 확인
+export async function isAdmin() {
+    if (!isLoggedIn()) return false;
+    
+    try {
+        const response = await fetch('/api/auth/check-admin', {
+            headers: {
+                'Authorization': `Bearer ${getToken()}`
+            }
+        });
+        
+        const data = await response.json();
+        return data.success && data.isAdmin;
+    } catch (error) {
+        console.error('관리자 확인 오류:', error);
+        return false;
+    }
+}
+
 export function updateCurrentUser(updatedUser) {
     if (isLoggedIn()) {
         storage.setItem(USER_KEY, JSON.stringify(updatedUser));

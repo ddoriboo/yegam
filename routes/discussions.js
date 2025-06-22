@@ -343,7 +343,20 @@ router.put('/posts/:id', authMiddleware, async (req, res) => {
             });
         }
         
-        if (postResult.rows[0].author_id !== userId) {
+        // 관리자 권한 확인 (legacy admin system)
+        let isAdmin = false;
+        try {
+            const adminResult = await query(
+                'SELECT id FROM admins WHERE user_id = $1',
+                [userId]
+            );
+            isAdmin = adminResult.rows.length > 0;
+        } catch (error) {
+            console.log('관리자 확인 중 오류 (무시됨):', error.message);
+        }
+        
+        // 작성자이거나 관리자인 경우에만 수정 가능
+        if (postResult.rows[0].author_id !== userId && !isAdmin) {
             return res.status(403).json({
                 success: false,
                 message: '게시글을 수정할 권한이 없습니다.'
@@ -390,7 +403,20 @@ router.delete('/posts/:id', authMiddleware, async (req, res) => {
             });
         }
         
-        if (postResult.rows[0].author_id !== userId) {
+        // 관리자 권한 확인 (legacy admin system)
+        let isAdmin = false;
+        try {
+            const adminResult = await query(
+                'SELECT id FROM admins WHERE user_id = $1',
+                [userId]
+            );
+            isAdmin = adminResult.rows.length > 0;
+        } catch (error) {
+            console.log('관리자 확인 중 오류 (무시됨):', error.message);
+        }
+        
+        // 작성자이거나 관리자인 경우에만 삭제 가능
+        if (postResult.rows[0].author_id !== userId && !isAdmin) {
             return res.status(403).json({
                 success: false,
                 message: '게시글을 삭제할 권한이 없습니다.'
