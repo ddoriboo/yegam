@@ -118,17 +118,8 @@ function renderCategoryFilter() {
         console.log(`카테고리 버튼 생성 중: ${category.name} (ID: ${category.id})`);
         
         const btn = document.createElement('button');
-        btn.className = 'category-btn px-2.5 py-1 rounded-full text-xs font-medium border transition-colors';
+        btn.className = 'category-btn';
         btn.dataset.category = category.id;
-        
-        // 기본 스타일 적용
-        btn.style.borderColor = category.color || '#6B7280';
-        btn.style.color = category.color || '#6B7280';
-        btn.style.backgroundColor = 'transparent';
-        
-        // 호버 효과를 위한 클래스 추가
-        btn.classList.add('hover:bg-opacity-10');
-        btn.style.setProperty('--hover-bg-color', category.color + '1a');
         
         btn.innerHTML = `${category.icon || '📝'} ${category.name}`;
         
@@ -139,6 +130,15 @@ function renderCategoryFilter() {
         
         filterContainer.appendChild(btn);
     });
+    
+    // '전체' 버튼에도 이벤트 리스너 추가
+    const allBtn = filterContainer.querySelector('[data-category="all"]');
+    if (allBtn) {
+        allBtn.addEventListener('click', () => {
+            console.log('전체 카테고리 선택');
+            selectCategory('all');
+        });
+    }
     
     console.log('카테고리 버튼 생성 완료. 총 버튼 수:', filterContainer.children.length);
     console.log('생성된 버튼들:', Array.from(filterContainer.children).map(btn => btn.textContent));
@@ -186,31 +186,18 @@ function selectCategory(categoryId) {
     
     console.log('카테고리 선택:', categoryId);
     
-    // 버튼 스타일 업데이트
+    // 모든 버튼에서 active 제거
     document.querySelectorAll('.category-btn').forEach(btn => {
         btn.classList.remove('active');
-        btn.classList.remove('border-blue-500', 'text-blue-600', 'bg-blue-50');
-        
-        if (btn.dataset.category === 'all') {
-            btn.classList.add('border-gray-300', 'text-gray-600', 'hover:border-gray-400');
-        } else {
-            // 개별 카테고리는 원래 색상 유지
-            const category = categories.find(c => c.id == btn.dataset.category);
-            if (category) {
-                btn.style.borderColor = category.color;
-                btn.style.color = category.color;
-            }
-        }
     });
     
+    // 선택된 버튼에 active 추가
     const selectedBtn = document.querySelector(`[data-category="${categoryId}"]`);
     if (selectedBtn) {
         selectedBtn.classList.add('active');
-        selectedBtn.classList.add('border-blue-500', 'text-blue-600', 'bg-blue-50');
-        selectedBtn.style.borderColor = '#3b82f6';
-        selectedBtn.style.color = '#2563eb';
     }
     
+    // 게시글 로드
     loadPosts();
 }
 
@@ -255,11 +242,15 @@ async function loadPosts() {
         showLoading();
         
         const params = new URLSearchParams({
-            category_id: currentCategory,
             page: currentPage,
             limit: 20,
             sort: currentSort
         });
+        
+        // 카테고리 필터 (전체가 아닌 경우만)
+        if (currentCategory && currentCategory !== 'all') {
+            params.append('category_id', currentCategory);
+        }
         
         if (currentSearch.trim()) {
             params.append('search', currentSearch.trim());
@@ -270,8 +261,12 @@ async function loadPosts() {
             params.append('min_likes', '10'); // 최소 10개 이상의 좋아요
         }
         
+        console.log('게시글 로드 API 호출:', `/api/discussions/posts?${params}`);
+        
         const response = await fetch(`/api/discussions/posts?${params}`);
         const data = await response.json();
+        
+        console.log('게시글 API 응답:', data);
         
         if (data.success) {
             renderPosts(data.data.posts);
@@ -631,12 +626,12 @@ function setupModalEventListeners() {
     closeBtn?.addEventListener('click', closeModal);
     cancelBtn?.addEventListener('click', closeModal);
     
-    // 모달 외부 클릭시 닫기
-    modal?.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            closeModal();
-        }
-    });
+    // 모달 외부 클릭 방지 (사용자가 실수로 닫지 않도록)
+    // modal?.addEventListener('click', (e) => {
+    //     if (e.target === modal) {
+    //         closeModal();
+    //     }
+    // });
     
     // 폼 제출
     form?.addEventListener('submit', handlePostSubmit);

@@ -12,18 +12,88 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <style>
+        /* 분석방 카테고리 버튼 - 홈페이지와 동일한 스타일 */
         .category-btn {
-            transition: all 0.2s ease;
-        }
-        .category-btn:hover {
-            background-color: rgba(59, 130, 246, 0.1);
-            transform: translateY(-1px);
-        }
-        .category-btn.active {
-            background-color: rgb(59, 130, 246);
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            border: 2px solid transparent;
+            font-weight: 600;
+            font-size: 0.75rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             color: white !important;
-            border-color: rgb(59, 130, 246) !important;
         }
+        
+        .category-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        }
+        
+        .category-btn.active {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* 카테고리별 스타일 - 홈페이지와 동일 */
+        .category-btn[data-category="all"] {
+            background: linear-gradient(135deg, #6366F1, #8B5CF6);
+        }
+        .category-btn[data-category="all"].active {
+            background: linear-gradient(135deg, #4F46E5, #7C3AED);
+        }
+        .category-btn[data-category="2"] {
+            background: linear-gradient(135deg, #EF4444, #F87171);
+        }
+        .category-btn[data-category="2"].active {
+            background: linear-gradient(135deg, #DC2626, #EF4444);
+        }
+        .category-btn[data-category="3"] {
+            background: linear-gradient(135deg, #06B6D4, #67E8F9);
+        }
+        .category-btn[data-category="3"].active {
+            background: linear-gradient(135deg, #0891B2, #06B6D4);
+        }
+        .category-btn[data-category="4"] {
+            background: linear-gradient(135deg, #10B981, #34D399);
+        }
+        .category-btn[data-category="4"].active {
+            background: linear-gradient(135deg, #059669, #10B981);
+        }
+        .category-btn[data-category="5"] {
+            background: linear-gradient(135deg, #F59E0B, #FBBF24);
+        }
+        .category-btn[data-category="5"].active {
+            background: linear-gradient(135deg, #D97706, #F59E0B);
+        }
+        .category-btn[data-category="6"] {
+            background: linear-gradient(135deg, #8B5CF6, #A78BFA);
+        }
+        .category-btn[data-category="6"].active {
+            background: linear-gradient(135deg, #7C3AED, #8B5CF6);
+        }
+        .category-btn[data-category="7"] {
+            background: linear-gradient(135deg, #EC4899, #F472B6);
+        }
+        .category-btn[data-category="7"].active {
+            background: linear-gradient(135deg, #DB2777, #EC4899);
+        }
+        .category-btn[data-category="8"] {
+            background: linear-gradient(135deg, #3B82F6, #60A5FA);
+        }
+        .category-btn[data-category="8"].active {
+            background: linear-gradient(135deg, #2563EB, #3B82F6);
+        }
+        .category-btn[data-category="9"] {
+            background: linear-gradient(135deg, #6366F1, #8B5CF6);
+        }
+        .category-btn[data-category="9"].active {
+            background: linear-gradient(135deg, #4F46E5, #6366F1);
+        }
+        
         .post-list-item:hover {
             background-color: rgb(249, 250, 251);
         }
@@ -34,6 +104,11 @@
             .compact-spacing {
                 padding: 1rem;
             }
+        }
+        
+        /* 모달 외부 클릭 방지 */
+        .modal-content {
+            pointer-events: auto;
         }
     </style>
 </head>
@@ -96,15 +171,15 @@
 
         <!-- Main Content -->
         <main class="flex-grow">
-            <!-- Hero Section -->
+            <!-- Hero Section - Compact -->
             <section class="bg-gradient-to-br from-blue-50 to-indigo-100 border-b border-gray-200">
-                <div class="container mx-auto px-4 lg:px-8 py-8 md:py-12">
+                <div class="container mx-auto px-4 lg:px-8 py-4 md:py-6">
                     <div class="text-center">
-                        <div class="flex items-center justify-center mb-4">
-                            <i data-lucide="message-circle" class="w-8 h-8 text-blue-600 mr-3"></i>
-                            <h1 class="text-2xl md:text-4xl font-bold text-gray-900">분석방</h1>
+                        <div class="flex items-center justify-center mb-2">
+                            <i data-lucide="message-circle" class="w-6 h-6 text-blue-600 mr-2"></i>
+                            <h1 class="text-xl md:text-2xl font-bold text-gray-900">분석방</h1>
                         </div>
-                        <p class="text-lg text-gray-600 max-w-2xl mx-auto">
+                        <p class="text-sm md:text-base text-gray-600">
                             다양한 주제에 대해 심도있는 토론을 나누고, 서로의 관점을 공유해보세요
                         </p>
                     </div>
@@ -153,8 +228,8 @@
                         </div>
                         
                         <!-- Category Filter -->
-                        <div id="category-filter" class="flex flex-wrap gap-1.5">
-                            <button class="category-btn active px-2.5 py-1 rounded-full text-xs font-medium border transition-colors border-blue-500 text-blue-600 bg-blue-50" data-category="all">
+                        <div id="category-filter" class="flex flex-wrap gap-2">
+                            <button class="category-btn active" data-category="all">
                                 💬 전체
                             </button>
                             <!-- Categories will be loaded dynamically -->
@@ -216,9 +291,9 @@
 
     </div>
 
-    <!-- Post Write Modal -->
-    <div id="post-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <!-- Post Write Modal - Larger Size -->
+    <div id="post-modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-2">
+        <div class="modal-content bg-white rounded-lg max-w-4xl w-full max-h-[95vh] overflow-y-auto">
             <div class="p-6">
                 <div class="flex items-center justify-between mb-6">
                     <h2 id="modal-title" class="text-xl font-bold text-gray-900">새 글 작성</h2>

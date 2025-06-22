@@ -69,23 +69,25 @@ function renderPost(post) {
         breadcrumbCategory.textContent = post.category_name || '미분류';
     }
     
-    // 공지/고정 배지
+    // 공지/고정 배지 (null 체크 추가)
     const noticeBadge = document.getElementById('post-notice-badge');
     const pinnedBadge = document.getElementById('post-pinned-badge');
     
-    if (post.is_notice) {
-        noticeBadge?.classList.remove('hidden');
+    if (post.is_notice && noticeBadge) {
+        noticeBadge.classList.remove('hidden');
     }
-    if (post.is_pinned) {
-        pinnedBadge?.classList.remove('hidden');
+    if (post.is_pinned && pinnedBadge) {
+        pinnedBadge.classList.remove('hidden');
     }
     
-    // 카테고리 배지
+    // 카테고리 배지 (null 체크 강화)
     const categoryElement = document.getElementById('post-category');
     if (categoryElement && post.category_name) {
         categoryElement.textContent = `${post.category_icon || ''} ${post.category_name}`;
-        categoryElement.style.backgroundColor = `${post.category_color}20`;
-        categoryElement.style.color = post.category_color;
+        if (post.category_color) {
+            categoryElement.style.backgroundColor = `${post.category_color}20`;
+            categoryElement.style.color = post.category_color;
+        }
     }
     
     // 제목
@@ -122,16 +124,18 @@ function renderPost(post) {
     if (commentsElement) commentsElement.textContent = post.comment_count || 0;
     if (likesElement) likesElement.textContent = post.like_count || 0;
     
-    // 좋아요 버튼 상태
+    // 좋아요 버튼 상태 (null 체크 강화)
     const likeBtn = document.getElementById('like-btn');
     if (likeBtn) {
         const heartIcon = likeBtn.querySelector('i');
-        if (post.user_liked) {
-            heartIcon.classList.add('text-red-500');
-            likeBtn.classList.add('text-red-500');
-        } else {
-            heartIcon.classList.remove('text-red-500');
-            likeBtn.classList.remove('text-red-500');
+        if (heartIcon) {
+            if (post.user_liked) {
+                heartIcon.classList.add('text-red-500');
+                likeBtn.classList.add('text-red-500');
+            } else {
+                heartIcon.classList.remove('text-red-500');
+                likeBtn.classList.remove('text-red-500');
+            }
         }
     }
     
@@ -154,7 +158,7 @@ function renderPost(post) {
         bodyElement.innerHTML = content;
     }
     
-    // 작성자 액션 버튼 표시
+    // 작성자 액션 버튼 표시 (null 체크 추가)
     if (currentUser && currentUser.id === post.author_id) {
         const actionsElement = document.getElementById('post-actions');
         if (actionsElement) {
