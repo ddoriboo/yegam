@@ -169,7 +169,7 @@ router.post('/login', async (req, res) => {
             });
         }
         
-        const userResult = await query('SELECT id, username, email, password_hash, gam_balance FROM users WHERE email = $1', [validEmail]);
+        const userResult = await query('SELECT id, username, email, password_hash, gam_balance, created_at FROM users WHERE email = $1', [validEmail]);
         const user = userResult.rows[0];
         
         if (!user) {
@@ -268,7 +268,7 @@ router.post('/login', async (req, res) => {
         let updatedUser = user;
         if (dailyRewardInfo) {
             try {
-                const updatedResult = await query('SELECT id, username, email, gam_balance FROM users WHERE id = $1', [user.id]);
+                const updatedResult = await query('SELECT id, username, email, gam_balance, created_at FROM users WHERE id = $1', [user.id]);
                 updatedUser = updatedResult.rows[0];
                 console.log(`[출석보상] 사용자 ${user.id} 업데이트된 GAM 잔액: ${updatedUser.gam_balance}`);
             } catch (error) {
@@ -276,6 +276,9 @@ router.post('/login', async (req, res) => {
             }
         }
 
+        // 디버깅을 위한 로그 추가
+        console.log(`[Login] User ${updatedUser.id} - Raw GAM balance from DB: ${updatedUser.gam_balance}`);
+        
         // 응답에 일일 보상 정보 포함
         const response = {
             success: true,
@@ -284,7 +287,8 @@ router.post('/login', async (req, res) => {
                 id: updatedUser.id,
                 username: updatedUser.username,
                 email: updatedUser.email,
-                gam_balance: updatedUser.gam_balance ?? 10000
+                gam_balance: updatedUser.gam_balance ?? 10000,
+                created_at: updatedUser.created_at
             }
         };
         
@@ -315,7 +319,7 @@ router.get('/verify', async (req, res) => {
         
         const decoded = jwt.verify(token, JWT_SECRET);
         
-        const userResult = await query('SELECT id, username, email, gam_balance FROM users WHERE id = $1', [decoded.id]);
+        const userResult = await query('SELECT id, username, email, gam_balance, created_at FROM users WHERE id = $1', [decoded.id]);
         const user = userResult.rows[0];
         
         if (!user) {
@@ -325,13 +329,17 @@ router.get('/verify', async (req, res) => {
             });
         }
         
+        // 디버깅을 위한 로그 추가
+        console.log(`[Auth Verify] User ${user.id} - Raw GAM balance from DB: ${user.gam_balance}`);
+        
         res.json({
             success: true,
             user: {
                 id: user.id,
                 username: user.username,
                 email: user.email,
-                gam_balance: user.gam_balance ?? 10000
+                gam_balance: user.gam_balance ?? 10000,
+                created_at: user.created_at
             }
         });
     } catch (error) {

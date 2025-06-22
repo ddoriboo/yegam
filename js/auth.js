@@ -195,12 +195,15 @@ export async function checkAuth() {
                     const userNameEl = document.getElementById('user-name');
                     if (userNameEl) userNameEl.textContent = user.username;
                     
-                    // GAM 정보 업데이트
+                    // GAM 정보 업데이트 (서버와 동일한 기본값 사용)
                     const userCoinsEl = document.getElementById('user-coins');
-                    if (userCoinsEl) userCoinsEl.textContent = `${user.gam_balance?.toLocaleString() || '0'} GAM`;
+                    if (userCoinsEl) {
+                        const gamBalance = user.gam_balance ?? 10000;
+                        userCoinsEl.textContent = `${gamBalance.toLocaleString()} GAM`;
+                    }
                     
-                    // 티어 정보 업데이트
-                    const userGam = user.gam_balance || 0;
+                    // 티어 정보 업데이트 (서버와 동일한 기본값 사용)
+                    const userGam = user.gam_balance ?? 10000;
                     updateUserTierDisplay(userGam, 'user-tier-display');
                 }
                 

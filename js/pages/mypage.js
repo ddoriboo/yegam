@@ -88,9 +88,10 @@ function updateUserProfile(user) {
     if (userNameEl) userNameEl.textContent = user.username;
     if (userEmailEl) userEmailEl.textContent = user.email;
     if (userCoinsEl) {
-        const gamBalance = user.gam_balance ?? 0;
+        // Use same default as server (10000) to ensure consistency
+        const gamBalance = user.gam_balance ?? 10000;
         userCoinsEl.textContent = gamBalance.toLocaleString();
-        console.log('GAM Balance updated:', gamBalance);
+        console.log('GAM Balance updated:', gamBalance, 'Raw value:', user.gam_balance);
     }
     
     if (userJoinedDaysEl && user.created_at) {
@@ -103,7 +104,8 @@ function updateUserProfile(user) {
 }
 
 function updateTierInfo(user) {
-    const userGam = user.gam_balance || 0;
+    // Use nullish coalescing with same default as server
+    const userGam = user.gam_balance ?? 10000;
     const currentTier = getUserTier(userGam);
     const nextTierInfo = getNextTierInfo(userGam);
     
