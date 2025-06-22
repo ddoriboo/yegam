@@ -22,6 +22,7 @@ const testNotificationRoutes = require('./routes/test-notifications');
 const gamRoutes = require('./routes/gam');
 const debugGamRoutes = require('./routes/debug-gam');
 const userInfoRoutes = require('./routes/user-info');
+const discussionsRoutes = require('./routes/discussions');
 const { initDatabase } = require('./database/database');
 const issueScheduler = require('./services/scheduler');
 const { errorHandler } = require('./middleware/errorHandler');
@@ -99,6 +100,7 @@ app.use('/api/test-notifications', testNotificationRoutes);
 app.use('/api/gam', gamRoutes);
 app.use('/api/debug/gam', debugGamRoutes);
 app.use('/api/user', userInfoRoutes);
+app.use('/api/discussions', discussionsRoutes);
 app.use('/api/admin/comments', adminCommentRoutes);
 app.use('/api/admin-auth', secureAdminAuthRoutes); // 보안 관리자 인증 API
 app.use('/api/admin', adminRoutes);
@@ -322,6 +324,14 @@ app.get('/mypage', (req, res) => {
 
 app.get('/tier_guide', (req, res) => {
     res.sendFile(path.join(__dirname, 'tier_guide.html'));
+});
+
+app.get('/discussions', (req, res) => {
+    res.sendFile(path.join(__dirname, 'discussions.html'));
+});
+
+app.get('/discussion-post', (req, res) => {
+    res.sendFile(path.join(__dirname, 'discussion-post.html'));
 });
 
 // API 엔드포인트 테스트
