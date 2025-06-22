@@ -105,13 +105,15 @@
                             
                             <!-- Essential Stats Grid -->
                             <div class="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
-                                <!-- GAM Balance -->
+                                <!-- GAM Balance (Real-time) -->
                                 <div class="bg-white rounded-lg border border-gray-200 p-3 md:p-4 text-center">
                                     <div class="flex items-center justify-center mb-2">
                                         <i data-lucide="coins" class="w-4 h-4 md:w-5 md:h-5 text-yellow-500 mr-2"></i>
                                         <span class="text-sm text-gray-600 font-medium">보유 GAM</span>
                                     </div>
-                                    <span class="text-lg md:text-xl font-bold text-gray-900" id="user-coins">0</span>
+                                    <div id="realtime-gam-display">
+                                        <span class="text-lg md:text-xl font-bold text-gray-900">로딩중...</span>
+                                    </div>
                                 </div>
                                 
                                 <!-- Member Since -->

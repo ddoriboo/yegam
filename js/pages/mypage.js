@@ -76,6 +76,9 @@ export async function renderMyPage() {
     // 사용자 기본 정보 표시
     updateUserProfile(freshUserData);
     
+    // 실시간 GAM 표시 시작
+    startRealtimeGamDisplay();
+    
     // 티어 정보 표시
     updateTierInfo(freshUserData);
     
@@ -98,10 +101,11 @@ export async function renderMyPage() {
     // Lucide 아이콘 초기화
     initializeLucideIcons();
     
-    // 추가 검증: 3초 후 GAM 잔액 재확인
-    setTimeout(async () => {
-        await performGamBalanceValidation();
-    }, 3000);
+    // 5초 후 실시간 GAM 재조회 (추가 검증)
+    setTimeout(() => {
+        console.log('🔄 5초 후 실시간 GAM 재조회 시작...');
+        startRealtimeGamDisplay();
+    }, 5000);
 }
 
 // Lucide 아이콘 초기화 함수 (header.js와 동일한 로직)
@@ -737,52 +741,157 @@ function updateHeaderGamBalance(gamBalance) {
     }
 }
 
-// GAM 잔액 검증 및 자동 수정
-async function performGamBalanceValidation() {
+// 🚀 실시간 GAM 표시 시스템 (완전히 새로운 접근 방식)
+async function startRealtimeGamDisplay() {
+    const gamDisplayEl = document.getElementById('realtime-gam-display');
+    if (!gamDisplayEl) {
+        console.error('실시간 GAM 표시 요소를 찾을 수 없습니다.');
+        return;
+    }
+    
+    console.log('🚀 실시간 GAM 표시 시작...');
+    
+    // 로딩 상태 표시
+    gamDisplayEl.innerHTML = `
+        <div class="flex items-center justify-center">
+            <i data-lucide="loader" class="w-4 h-4 animate-spin mr-2 text-blue-500"></i>
+            <span class="text-sm text-blue-600">GAM 조회중...</span>
+        </div>
+    `;
+    
+    // Lucide 아이콘 초기화
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+    
     try {
-        console.log('🔍 GAM 잔액 검증 시작...');
-        
-        const mypageGamEl = document.getElementById('user-coins');
-        const currentDisplayedGam = mypageGamEl ? parseInt(mypageGamEl.textContent.replace(/,/g, '')) : 0;
-        
-        console.log('현재 마이페이지에 표시된 GAM:', currentDisplayedGam);
-        
-        // 0이거나 NaN이면 문제가 있는 것
-        if (currentDisplayedGam === 0 || isNaN(currentDisplayedGam)) {
-            console.warn('⚠️ GAM 잔액 표시 문제 발견! 서버에서 실제 잔액 확인 중...');
-            
-            const freshData = await fetchFreshUserData();
-            if (freshData && freshData.gam_balance > 0) {
-                console.log('✅ 서버에서 올바른 GAM 잔액 확인:', freshData.gam_balance);
-                
-                // 마이페이지 GAM 표시 강제 업데이트
-                if (mypageGamEl) {
-                    mypageGamEl.textContent = freshData.gam_balance.toLocaleString();
-                    console.log('마이페이지 GAM 강제 업데이트:', freshData.gam_balance.toLocaleString());
-                }
-                
-                // 티어 정보도 재계산
-                updateTierInfo(freshData);
-                
-                // localStorage도 업데이트
-                auth.updateCurrentUser(freshData);
-                
-                // 성공 메시지 표시
-                showTemporaryMessage(`GAM 잔액이 올바르게 수정되었습니다: ${freshData.gam_balance.toLocaleString()} GAM`, 'success');
-                
-            } else {
-                console.error('❌ 서버에서도 GAM 잔액이 0이거나 조회할 수 없습니다.');
-                // 자동 수정 시도
-                tryAutoFixGamBalance();
+        // 직접 서버 API 호출 (캐시 완전 무시)
+        const response = await fetch('/api/user/realtime-gam', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${auth.getToken()}`,
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
             }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            const gamBalance = result.data.gam_balance;
+            
+            console.log('✅ 실시간 GAM 조회 성공:', {
+                balance: gamBalance,
+                formatted: result.data.formatted_balance,
+                timestamp: result.data.timestamp,
+                source: result.data.source
+            });
+            
+            // GAM 표시 업데이트
+            gamDisplayEl.innerHTML = `
+                <div class="flex flex-col items-center">
+                    <span class="text-lg md:text-xl font-bold text-gray-900">${result.data.formatted_balance}</span>
+                    <span class="text-xs text-green-600 mt-1">실시간 조회</span>
+                </div>
+            `;
+            
+            // 티어 정보도 실시간 데이터로 업데이트
+            await updateTierInfoWithRealtimeGam(gamBalance);
+            
+            // 성공 메시지
+            showTemporaryMessage(`실시간 GAM 잔액: ${result.data.formatted_balance}`, 'success');
+            
         } else {
-            console.log('✅ GAM 잔액이 정상적으로 표시되고 있습니다:', currentDisplayedGam);
+            throw new Error(result.message || '실시간 GAM 조회 실패');
         }
         
     } catch (error) {
-        console.error('GAM 잔액 검증 오류:', error);
+        console.error('❌ 실시간 GAM 조회 실패:', error);
+        
+        // 에러 상태 표시
+        gamDisplayEl.innerHTML = `
+            <div class="flex flex-col items-center">
+                <span class="text-lg font-bold text-red-600">조회 실패</span>
+                <button onclick="startRealtimeGamDisplay()" class="text-xs text-blue-600 hover:text-blue-800 mt-1">
+                    다시 시도
+                </button>
+            </div>
+        `;
+        
+        // 에러 메시지
+        showTemporaryMessage('GAM 잔액 조회에 실패했습니다. 다시 시도해주세요.', 'error');
     }
 }
+
+// 실시간 GAM으로 티어 정보 업데이트
+async function updateTierInfoWithRealtimeGam(gamBalance) {
+    try {
+        console.log('🎯 실시간 GAM으로 티어 정보 업데이트:', gamBalance);
+        
+        const currentTier = getUserTier(gamBalance);
+        const nextTierInfo = getNextTierInfo(gamBalance);
+        
+        console.log('실시간 티어 계산:', {
+            gam: gamBalance,
+            currentTier: currentTier,
+            nextTierInfo: nextTierInfo
+        });
+        
+        // 인라인 티어 진행률 업데이트
+        const inlineTierProgressEl = document.getElementById('inline-tier-progress');
+        if (inlineTierProgressEl) {
+            if (nextTierInfo) {
+                const progressPercent = Math.min(nextTierInfo.progress, 100);
+                inlineTierProgressEl.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <div class="flex-1">
+                            <div class="flex justify-between items-center mb-1">
+                                <span class="text-sm font-medium text-gray-700">다음 등급: ${nextTierInfo.nextTier.name} Lv.${nextTierInfo.nextTier.level}</span>
+                                <span class="text-sm font-bold text-purple-600">${Math.round(progressPercent)}%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div class="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-500" 
+                                     style="width: ${progressPercent}%"></div>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">${formatNumber(nextTierInfo.requiredGam)} GAM 더 필요</p>
+                        </div>
+                        <div class="text-2xl">${nextTierInfo.nextTier.icon}</div>
+                    </div>
+                `;
+            } else {
+                inlineTierProgressEl.innerHTML = `
+                    <div class="flex items-center justify-center space-x-2">
+                        <span class="text-2xl">🏆</span>
+                        <span class="text-sm font-bold text-gray-900">최고 등급 달성!</span>
+                    </div>
+                `;
+            }
+        }
+        
+        // 현재 등급명도 업데이트
+        const currentTierNameEl = document.getElementById('current-tier-name');
+        const currentTierNameMobileEl = document.getElementById('current-tier-name-mobile');
+        
+        if (currentTierNameEl) {
+            currentTierNameEl.textContent = `${currentTier.name} Lv.${currentTier.level}`;
+        }
+        if (currentTierNameMobileEl) {
+            currentTierNameMobileEl.textContent = `${currentTier.name} Lv.${currentTier.level}`;
+        }
+        
+        console.log('✅ 실시간 티어 정보 업데이트 완료');
+        
+    } catch (error) {
+        console.error('실시간 티어 정보 업데이트 오류:', error);
+    }
+}
+
+// 전역으로 접근 가능하게 만들기
+window.startRealtimeGamDisplay = startRealtimeGamDisplay;
 
 // 알림 관련 기능들
 let currentNotificationPage = 1;
