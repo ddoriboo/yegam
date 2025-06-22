@@ -104,12 +104,19 @@ function renderCategoryFilter() {
         return;
     }
     
-    // 전체 버튼은 유지
+    // 기존 이벤트 리스너 제거를 위해 컨테이너 전체를 다시 생성
     const allBtn = filterContainer.querySelector('[data-category="all"]');
+    const isAllActive = allBtn?.classList.contains('active');
     
-    // 기존 카테고리 버튼들 제거
-    const existingBtns = filterContainer.querySelectorAll('.category-btn:not([data-category="all"])');
-    existingBtns.forEach(btn => btn.remove());
+    // 모든 버튼 제거
+    filterContainer.innerHTML = '';
+    
+    // '전체' 버튼 다시 생성
+    const newAllBtn = document.createElement('button');
+    newAllBtn.className = `category-btn ${isAllActive ? 'active' : ''}`;
+    newAllBtn.dataset.category = 'all';
+    newAllBtn.innerHTML = '💬 전체';
+    filterContainer.appendChild(newAllBtn);
     
     // 새 카테고리 버튼들 추가 (전체 제외)
     categories.forEach((category, index) => {
@@ -120,28 +127,39 @@ function renderCategoryFilter() {
         const btn = document.createElement('button');
         btn.className = 'category-btn';
         btn.dataset.category = category.id;
-        
         btn.innerHTML = `${category.icon || '📝'} ${category.name}`;
-        
-        btn.addEventListener('click', () => {
-            console.log('카테고리 선택됨:', category.name, category.id);
-            selectCategory(category.id);
-        });
         
         filterContainer.appendChild(btn);
     });
     
-    // '전체' 버튼에도 이벤트 리스너 추가
-    const allBtn = filterContainer.querySelector('[data-category="all"]');
-    if (allBtn) {
-        allBtn.addEventListener('click', () => {
-            console.log('전체 카테고리 선택');
-            selectCategory('all');
-        });
-    }
+    // 이벤트 위임으로 모든 카테고리 버튼 처리
+    setupCategoryEventListeners();
     
     console.log('카테고리 버튼 생성 완료. 총 버튼 수:', filterContainer.children.length);
     console.log('생성된 버튼들:', Array.from(filterContainer.children).map(btn => btn.textContent));
+}
+
+// 카테고리 이벤트 리스너 설정 (이벤트 위임 방식)
+function setupCategoryEventListeners() {
+    const filterContainer = document.getElementById('category-filter');
+    if (!filterContainer) return;
+    
+    // 기존 이벤트 리스너 제거
+    filterContainer.removeEventListener('click', handleCategoryClick);
+    
+    // 새로운 이벤트 리스너 추가 (이벤트 위임)
+    filterContainer.addEventListener('click', handleCategoryClick);
+}
+
+// 카테고리 클릭 핸들러
+function handleCategoryClick(event) {
+    const clickedBtn = event.target.closest('.category-btn');
+    if (!clickedBtn) return;
+    
+    const categoryId = clickedBtn.dataset.category;
+    console.log('카테고리 클릭됨:', categoryId);
+    
+    selectCategory(categoryId);
 }
 
 // 카테고리 옵션 렌더링 (모달용)
@@ -557,6 +575,9 @@ window.goToPost = function(postId) {
 
 // 이벤트 리스너 설정
 function setupEventListeners() {
+    // 카테고리 이벤트 리스너 설정
+    setupCategoryEventListeners();
+    
     // 새 글 작성 버튼
     const newPostBtn = document.getElementById('new-post-btn');
     newPostBtn?.addEventListener('click', () => {
