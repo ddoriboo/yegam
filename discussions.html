@@ -151,34 +151,98 @@
                 display: none;
             }
             
-            /* 컨트롤 영역 모바일 최적화 */
+            /* 컨트롤 영역 모바일 최적화 - 가로 한줄 배치 */
             .controls-top {
-                flex-direction: column;
-                gap: 12px !important;
-                align-items: stretch !important;
+                flex-direction: row !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                gap: 8px !important;
+                flex-wrap: nowrap !important;
+                margin-bottom: 12px !important;
             }
             
-            .controls-top > div {
-                flex-direction: column;
-                gap: 8px;
+            .controls-top > div:first-child {
+                flex-shrink: 0;
             }
             
             .controls-right {
-                flex-direction: row;
-                flex-wrap: wrap;
-                gap: 8px;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                flex-wrap: nowrap;
+                min-width: 0;
+                flex: 1;
+                justify-content: flex-end;
             }
             
             /* 검색 입력 모바일 최적화 */
             #search-input {
-                width: 100% !important;
-                min-width: unset !important;
+                width: 100px !important;
+                min-width: 80px !important;
+                font-size: 0.875rem !important;
+                padding: 6px 8px 6px 26px !important;
+            }
+            
+            .controls-right .relative {
+                flex: 1;
+                max-width: 120px;
+            }
+            
+            /* 검색 아이콘 위치 조정 */
+            .controls-right .relative i[data-lucide="search"] {
+                left: 8px !important;
+                width: 14px !important;
+                height: 14px !important;
+            }
+            
+            /* 개념글 버튼 모바일 최적화 */
+            #concept-posts-btn {
+                padding: 6px 10px !important;
+                font-size: 0.75rem !important;
+                white-space: nowrap;
+                min-width: fit-content;
+            }
+            
+            /* 정렬 선택 모바일 최적화 */
+            #sort-select {
+                padding: 6px 8px !important;
+                font-size: 0.75rem !important;
+                min-width: 60px !important;
+                max-width: 80px;
+            }
+            
+            /* 새글 버튼 모바일 최적화 */
+            #new-post-btn {
+                padding: 6px 12px !important;
+                font-size: 0.875rem !important;
+                white-space: nowrap;
+            }
+            
+            #new-post-btn i[data-lucide="plus"] {
+                width: 14px !important;
+                height: 14px !important;
+                margin-right: 4px !important;
+            }
+            
+            /* 카테고리 라벨 간격 조정 */
+            .md\\:hidden .flex.items-center.gap-2.mb-2 {
+                margin-bottom: 8px !important;
+            }
+            
+            /* 카테고리 라벨 텍스트 크기 조정 */
+            .md\\:hidden .text-sm.font-medium.text-gray-700 {
+                font-size: 0.75rem !important;
+            }
+            
+            /* 카테고리 컨테이너 패딩 조정 */
+            .compact-spacing {
+                padding: 8px !important;
             }
             
             /* 버튼들 터치 친화적 크기 */
             button {
-                min-height: 44px;
-                min-width: 44px;
+                min-height: 36px;
+                min-width: 36px;
             }
             
             /* 게시글 목록 모바일 최적화 */
