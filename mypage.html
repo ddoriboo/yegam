@@ -71,112 +71,92 @@
             <section class="bg-gradient-to-br from-gray-50 to-white border-b border-gray-200">
                 <div class="container mx-auto px-4 lg:px-8 py-4 md:py-8">
                     <div class="flex flex-col md:flex-row items-center md:items-start space-y-3 md:space-y-0 md:space-x-8">
-                        <!-- Tier Icon -->
-                        <div class="flex-shrink-0">
-                            <div id="user-tier-icon" class="w-12 h-12 md:w-20 md:h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg">
+                        <!-- Tier Icon with Name -->
+                        <div class="flex-shrink-0 text-center">
+                            <div id="user-tier-icon" class="w-12 h-12 md:w-20 md:h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg mx-auto">
                                 <i data-lucide="user" class="w-6 h-6 md:w-10 md:h-10 text-white"></i>
+                            </div>
+                            <div class="mt-2 hidden md:block">
+                                <span class="text-xs md:text-sm font-semibold text-gray-900" id="current-tier-name">브론즈 Lv.1</span>
                             </div>
                         </div>
                         
                         <!-- User Info -->
                         <div class="flex-1 text-center md:text-left">
-                            <!-- Name and Basic Info -->
+                            <!-- Name and Tier Info -->
                             <div class="mb-3 md:mb-4">
-                                <h1 class="text-xl md:text-3xl font-bold text-gray-900 mb-1" id="user-name">로그인이 필요합니다</h1>
-                                <p class="text-gray-600 text-xs md:text-base" id="user-email">이메일 주소</p>
+                                <div class="flex flex-col md:flex-row md:items-center md:space-x-4">
+                                    <div class="mb-2 md:mb-0">
+                                        <h1 class="text-xl md:text-3xl font-bold text-gray-900 mb-1" id="user-name">로그인이 필요합니다</h1>
+                                        <p class="text-gray-600 text-xs md:text-base" id="user-email">이메일 주소</p>
+                                    </div>
+                                    
+                                    <!-- Inline Tier Progress -->
+                                    <div class="flex-1 hidden md:block" id="inline-tier-progress">
+                                        <!-- 인라인 티어 진행률이 여기에 표시됩니다 -->
+                                    </div>
+                                </div>
+                                
+                                <!-- Tier Name under Icon -->
+                                <div class="text-center md:hidden mt-2">
+                                    <span class="text-sm font-semibold text-gray-900" id="current-tier-name-mobile">브론즈 Lv.1</span>
+                                </div>
                             </div>
                             
-                            <!-- Comprehensive Info Cards -->
-                            <div class="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-4 mb-3 md:mb-4">
+                            <!-- Essential Stats Grid -->
+                            <div class="grid grid-cols-2 md:grid-cols-5 gap-3 md:gap-4">
                                 <!-- GAM Balance -->
-                                <div class="bg-white rounded-lg border border-gray-200 p-2 md:p-3 text-center">
-                                    <div class="flex items-center justify-center mb-1">
-                                        <i data-lucide="coins" class="w-3 h-3 md:w-4 md:h-4 text-yellow-500 mr-1"></i>
-                                        <span class="text-xs text-gray-600 font-medium">보유 GAM</span>
+                                <div class="bg-white rounded-lg border border-gray-200 p-3 md:p-4 text-center">
+                                    <div class="flex items-center justify-center mb-2">
+                                        <i data-lucide="coins" class="w-4 h-4 md:w-5 md:h-5 text-yellow-500 mr-2"></i>
+                                        <span class="text-sm text-gray-600 font-medium">보유 GAM</span>
                                     </div>
-                                    <span class="text-sm md:text-xl font-bold text-gray-900" id="user-coins">0</span>
+                                    <span class="text-lg md:text-xl font-bold text-gray-900" id="user-coins">0</span>
                                 </div>
                                 
                                 <!-- Member Since -->
-                                <div class="bg-white rounded-lg border border-gray-200 p-2 md:p-3 text-center">
-                                    <div class="flex items-center justify-center mb-1">
-                                        <i data-lucide="calendar" class="w-3 h-3 md:w-4 md:h-4 text-gray-500 mr-1"></i>
-                                        <span class="text-xs text-gray-600 font-medium">가입</span>
+                                <div class="bg-white rounded-lg border border-gray-200 p-3 md:p-4 text-center">
+                                    <div class="flex items-center justify-center mb-2">
+                                        <i data-lucide="calendar" class="w-4 h-4 md:w-5 md:h-5 text-gray-500 mr-2"></i>
+                                        <span class="text-sm text-gray-600 font-medium">가입</span>
                                     </div>
-                                    <span class="text-xs md:text-base font-semibold text-gray-900" id="user-joined-days">0일째</span>
+                                    <span class="text-lg md:text-xl font-semibold text-gray-900" id="user-joined-days">0일째</span>
                                 </div>
                                 
-                                <!-- Current Tier -->
-                                <div class="bg-white rounded-lg border border-gray-200 p-2 md:p-3 text-center">
-                                    <div class="flex items-center justify-center mb-1">
-                                        <i data-lucide="star" class="w-3 h-3 md:w-4 md:h-4 text-purple-500 mr-1"></i>
-                                        <span class="text-xs text-gray-600 font-medium">현재 등급</span>
+                                <!-- Total Bets -->
+                                <div class="bg-white rounded-lg border border-gray-200 p-3 md:p-4 text-center">
+                                    <div class="flex items-center justify-center mb-2">
+                                        <i data-lucide="target" class="w-4 h-4 md:w-5 md:h-5 text-blue-600 mr-2"></i>
+                                        <span class="text-sm text-gray-600 font-medium">예측 수</span>
                                     </div>
-                                    <span class="text-xs md:text-base font-semibold text-gray-900" id="current-tier-name">브론즈</span>
+                                    <span class="text-lg md:text-xl font-bold text-gray-900" id="total-bets">0</span>
                                 </div>
-                                
-                                <!-- Next Tier Progress -->
-                                <div class="bg-white rounded-lg border border-gray-200 p-2 md:p-3 text-center">
-                                    <div class="flex items-center justify-center mb-1">
-                                        <i data-lucide="trending-up" class="w-3 h-3 md:w-4 md:h-4 text-green-500 mr-1"></i>
-                                        <span class="text-xs text-gray-600 font-medium">다음 등급</span>
+
+                                <!-- Win Rate -->
+                                <div class="bg-white rounded-lg border border-gray-200 p-3 md:p-4 text-center">
+                                    <div class="flex items-center justify-center mb-2">
+                                        <i data-lucide="trending-up" class="w-4 h-4 md:w-5 md:h-5 text-green-600 mr-2"></i>
+                                        <span class="text-sm text-gray-600 font-medium">승률</span>
                                     </div>
-                                    <span class="text-xs md:text-base font-semibold text-gray-900" id="next-tier-progress">0%</span>
+                                    <span class="text-lg md:text-xl font-bold text-gray-900" id="win-rate">0%</span>
                                 </div>
-                            </div>
-                            
-                            <!-- Tier Progress Bar -->
-                            <div id="tier-progress-section" class="bg-white rounded-lg border border-gray-200 p-3 md:p-4">
-                                <!-- 티어 진행률이 여기에 표시됩니다 -->
+
+                                <!-- Total Volume -->
+                                <div class="bg-white rounded-lg border border-gray-200 p-3 md:p-4 text-center">
+                                    <div class="flex items-center justify-center mb-2">
+                                        <i data-lucide="pie-chart" class="w-4 h-4 md:w-5 md:h-5 text-purple-600 mr-2"></i>
+                                        <span class="text-sm text-gray-600 font-medium">참여금액</span>
+                                    </div>
+                                    <span class="text-sm md:text-lg font-bold text-gray-900" id="total-volume">0 GAM</span>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <!-- Stats Section -->
+            <!-- Content Section -->
             <section class="container mx-auto px-4 lg:px-8 py-6 md:py-8">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-6 md:mb-8">
-                    <!-- Total Bets -->
-                    <div class="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
-                        <div class="flex items-center">
-                            <div class="p-2 md:p-3 bg-blue-100 rounded-lg">
-                                <i data-lucide="target" class="w-5 h-5 md:w-6 md:h-6 text-blue-600"></i>
-                            </div>
-                            <div class="ml-3 md:ml-4">
-                                <p class="text-xs md:text-sm text-gray-600">총 예측 수</p>
-                                <p class="text-lg md:text-2xl font-bold text-gray-900" id="total-bets">0</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Win Rate -->
-                    <div class="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
-                        <div class="flex items-center">
-                            <div class="p-2 md:p-3 bg-green-100 rounded-lg">
-                                <i data-lucide="trending-up" class="w-5 h-5 md:w-6 md:h-6 text-green-600"></i>
-                            </div>
-                            <div class="ml-3 md:ml-4">
-                                <p class="text-xs md:text-sm text-gray-600">승률</p>
-                                <p class="text-lg md:text-2xl font-bold text-gray-900" id="win-rate">0%</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Total Volume -->
-                    <div class="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
-                        <div class="flex items-center">
-                            <div class="p-2 md:p-3 bg-purple-100 rounded-lg">
-                                <i data-lucide="pie-chart" class="w-5 h-5 md:w-6 md:h-6 text-purple-600"></i>
-                            </div>
-                            <div class="ml-3 md:ml-4">
-                                <p class="text-xs md:text-sm text-gray-600">총 참여 금액</p>
-                                <p class="text-lg md:text-2xl font-bold text-gray-900" id="total-volume">0 GAM</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- My Predictions -->
                 <div class="bg-white rounded-lg border border-gray-200">
                     <div class="px-4 md:px-6 py-3 md:py-4 border-b border-gray-200">

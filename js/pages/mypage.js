@@ -27,7 +27,14 @@ export async function renderMyPage() {
         return;
     }
 
-    console.log('Rendering mypage for user:', user.username, 'GAM Balance:', user.gam_balance);
+    console.log('=== GAM 디버깅 ===');
+    console.log('사용자:', user.username);
+    console.log('Raw GAM value:', user.gam_balance);
+    console.log('GAM type:', typeof user.gam_balance);
+    console.log('GAM is null?', user.gam_balance === null);
+    console.log('GAM is undefined?', user.gam_balance === undefined);
+    console.log('Full user object:', user);
+    console.log('==================');
 
     // 사용자 기본 정보 표시
     updateUserProfile(user);
@@ -92,6 +99,17 @@ function updateUserProfile(user) {
         const gamBalance = user.gam_balance ?? 10000;
         userCoinsEl.textContent = gamBalance.toLocaleString();
         console.log('GAM Balance updated:', gamBalance, 'Raw value:', user.gam_balance);
+        
+        // GAM이 0이거나 null인 경우 경고 표시 및 자동 수정 시도
+        if (user.gam_balance === 0 || user.gam_balance === null || user.gam_balance === undefined) {
+            console.warn('⚠️ GAM 잔액이 0 또는 null입니다. 자동 수정을 시도합니다...');
+            
+            // 사용자에게 알림 표시
+            showGamBalanceWarning();
+            
+            // 백그라운드에서 자동 수정 시도
+            tryAutoFixGamBalance();
+        }
     }
     
     if (userJoinedDaysEl && user.created_at) {
@@ -109,6 +127,8 @@ function updateTierInfo(user) {
     const currentTier = getUserTier(userGam);
     const nextTierInfo = getNextTierInfo(userGam);
     
+    console.log('Tier Info - GAM:', userGam, 'Current Tier:', currentTier, 'Next Tier Info:', nextTierInfo);
+    
     // 왼쪽 프로필 아이콘을 티어에 맞게 업데이트
     const tierIconEl = document.getElementById('user-tier-icon');
     if (tierIconEl) {
@@ -116,58 +136,49 @@ function updateTierInfo(user) {
         const tierColor = currentTier.color || '#6b7280';
         
         tierIconEl.innerHTML = `
-            <div class="text-3xl md:text-4xl">${tierIcon}</div>
+            <div class="text-2xl md:text-4xl">${tierIcon}</div>
         `;
         tierIconEl.style.background = `linear-gradient(135deg, ${tierColor}, ${tierColor}dd)`;
     }
     
-    // 현재 등급명 표시
+    // 현재 등급명 표시 (아이콘 아래 - 데스크톱)
     const currentTierNameEl = document.getElementById('current-tier-name');
     if (currentTierNameEl) {
         currentTierNameEl.textContent = `${currentTier.name} Lv.${currentTier.level}`;
     }
     
-    // 다음 등급 진행률 표시
-    const nextTierProgressEl = document.getElementById('next-tier-progress');
-    if (nextTierProgressEl) {
-        if (nextTierInfo) {
-            const progressPercent = Math.min(nextTierInfo.progress, 100);
-            nextTierProgressEl.textContent = `${Math.round(progressPercent)}%`;
-        } else {
-            nextTierProgressEl.textContent = '최고등급';
-        }
+    // 모바일용 현재 등급명 표시
+    const currentTierNameMobileEl = document.getElementById('current-tier-name-mobile');
+    if (currentTierNameMobileEl) {
+        currentTierNameMobileEl.textContent = `${currentTier.name} Lv.${currentTier.level}`;
     }
     
-    // 상세 티어 진행률 섹션 표시 (간소화)
-    const tierProgressEl = document.getElementById('tier-progress-section');
-    if (tierProgressEl) {
+    // 인라인 티어 진행률 표시 (닉네임 오른쪽 - 데스크톱)
+    const inlineTierProgressEl = document.getElementById('inline-tier-progress');
+    if (inlineTierProgressEl) {
         if (nextTierInfo) {
             const progressPercent = Math.min(nextTierInfo.progress, 100);
-            tierProgressEl.innerHTML = `
-                <div class="flex items-center justify-between mb-3">
-                    <div class="flex items-center space-x-2">
-                        <span class="text-2xl">${nextTierInfo.nextTier.icon}</span>
-                        <div>
-                            <p class="text-sm font-medium text-gray-900">${nextTierInfo.nextTier.name} Lv.${nextTierInfo.nextTier.level}</p>
-                            <p class="text-xs text-gray-600">다음 등급</p>
+            inlineTierProgressEl.innerHTML = `
+                <div class="flex items-center space-x-3">
+                    <div class="flex-1">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-sm font-medium text-gray-700">다음 등급: ${nextTierInfo.nextTier.name} Lv.${nextTierInfo.nextTier.level}</span>
+                            <span class="text-sm font-bold text-purple-600">${Math.round(progressPercent)}%</span>
                         </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-500" 
+                                 style="width: ${progressPercent}%"></div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">${formatNumber(nextTierInfo.requiredGam)} GAM 더 필요</p>
                     </div>
-                    <div class="text-right">
-                        <p class="text-lg font-bold text-purple-600">${Math.round(progressPercent)}%</p>
-                        <p class="text-xs text-gray-600">${formatNumber(nextTierInfo.requiredGam)} GAM 더 필요</p>
-                    </div>
-                </div>
-                <div class="w-full bg-gray-200 rounded-full h-2">
-                    <div class="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full transition-all duration-500" 
-                         style="width: ${progressPercent}%"></div>
+                    <div class="text-2xl">${nextTierInfo.nextTier.icon}</div>
                 </div>
             `;
         } else {
-            tierProgressEl.innerHTML = `
-                <div class="text-center py-4">
-                    <div class="text-3xl mb-2">🏆</div>
-                    <p class="font-bold text-gray-900">최고 등급 달성!</p>
-                    <p class="text-sm text-gray-600 mt-1">당신은 예측의 신입니다</p>
+            inlineTierProgressEl.innerHTML = `
+                <div class="flex items-center justify-center space-x-2">
+                    <span class="text-2xl">🏆</span>
+                    <span class="text-sm font-bold text-gray-900">최고 등급 달성!</span>
                 </div>
             `;
         }
@@ -553,6 +564,86 @@ function addMypageStyles() {
 document.addEventListener('DOMContentLoaded', () => {
     addMypageStyles();
 });
+
+// GAM 잔액 경고 표시
+function showGamBalanceWarning() {
+    // 이미 경고가 표시되어 있으면 중복 표시 방지
+    if (document.getElementById('gam-balance-warning')) {
+        return;
+    }
+    
+    const warningDiv = document.createElement('div');
+    warningDiv.id = 'gam-balance-warning';
+    warningDiv.className = 'fixed top-4 right-4 z-50 bg-yellow-100 border border-yellow-300 rounded-lg p-4 shadow-lg max-w-sm';
+    warningDiv.innerHTML = `
+        <div class="flex items-start">
+            <i data-lucide="alert-triangle" class="w-5 h-5 text-yellow-600 mr-3 mt-0.5"></i>
+            <div class="flex-1">
+                <h4 class="text-sm font-medium text-yellow-800 mb-1">GAM 잔액 오류</h4>
+                <p class="text-xs text-yellow-700 mb-3">GAM 잔액이 올바르게 표시되지 않고 있습니다. 자동 수정을 시도 중입니다...</p>
+                <div class="flex space-x-2">
+                    <button onclick="window.location.href='/debug-gam-balance.html'" 
+                            class="text-xs bg-yellow-600 text-white px-3 py-1 rounded hover:bg-yellow-700">
+                        수동 수정
+                    </button>
+                    <button onclick="this.closest('#gam-balance-warning').remove()" 
+                            class="text-xs text-yellow-600 hover:text-yellow-800">
+                        닫기
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(warningDiv);
+    
+    // Lucide 아이콘 초기화
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+    
+    // 10초 후 자동 제거
+    setTimeout(() => {
+        if (warningDiv.parentNode) {
+            warningDiv.remove();
+        }
+    }, 10000);
+}
+
+// GAM 잔액 자동 수정 시도
+async function tryAutoFixGamBalance() {
+    try {
+        const token = localStorage.getItem('yegame-token');
+        if (!token) return;
+        
+        console.log('GAM 잔액 자동 수정 시도 중...');
+        
+        const response = await fetch('/api/debug/gam/fix-balance', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            console.log('✅ GAM 잔액이 자동으로 수정되었습니다:', result.data.new_balance);
+            
+            // 성공 알림 표시
+            showTemporaryMessage(`GAM 잔액이 ${result.data.new_balance.toLocaleString()}으로 수정되었습니다!`, 'success');
+            
+            // 2초 후 페이지 새로고침
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            console.error('GAM 잔액 자동 수정 실패:', result.message);
+        }
+    } catch (error) {
+        console.error('GAM 잔액 자동 수정 오류:', error);
+    }
+}
 
 // 알림 관련 기능들
 let currentNotificationPage = 1;
