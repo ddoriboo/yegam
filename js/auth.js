@@ -48,6 +48,9 @@ export async function signup(username, email, password) {
         const data = await response.json();
         
         if (data.success) {
+            // 회원가입 성공 시 토큰과 사용자 정보 저장
+            storage.setItem(USER_KEY, JSON.stringify(data.user));
+            storage.setItem(TOKEN_KEY, data.token);
             return { success: true, message: data.message, user: data.user };
         } else {
             return { success: false, message: data.message };

@@ -334,5 +334,9 @@
     <script src="js/ui/issue-request-modal.js"></script>
     <script src="js/ui/premium-notifications.js"></script>
     <script type="module" src="js/app.js"></script>
+    <script type="module">
+        import { setupLoginPage } from './js/pages/login-page.js';
+        document.addEventListener('DOMContentLoaded', setupLoginPage);
+    </script>
 </body>
 </html>

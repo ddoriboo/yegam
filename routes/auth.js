@@ -87,7 +87,8 @@ router.post('/signup', async (req, res) => {
         
         try {
             // 중복 사용자 확인
-            const existingUser = await get('SELECT id FROM users WHERE email = $1 OR username = $2', [validEmail, validUsername]);
+            const existingUserResult = await query('SELECT id FROM users WHERE email = $1 OR username = $2', [validEmail, validUsername]);
+            const existingUser = existingUserResult.rows[0];
             
             if (existingUser) {
                 return res.status(400).json({ 
