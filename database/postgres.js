@@ -258,6 +258,81 @@ const createTables = async () => {
             )
         `);
         
+        // === 주제별 분석방 Discussion 테이블들 ===
+        console.log('💬 분석방 Discussion 테이블 생성 중...');
+        
+        // 1. 토론 카테고리 테이블
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS discussion_categories (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(50) NOT NULL UNIQUE,
+                description TEXT,
+                icon VARCHAR(20),
+                color VARCHAR(20) DEFAULT '#3B82F6',
+                display_order INTEGER DEFAULT 0,
+                is_active BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        
+        // 2. 토론 게시글 테이블
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS discussion_posts (
+                id SERIAL PRIMARY KEY,
+                title VARCHAR(200) NOT NULL,
+                content TEXT NOT NULL,
+                category_id INTEGER REFERENCES discussion_categories(id) ON DELETE SET NULL,
+                author_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                is_notice BOOLEAN DEFAULT FALSE,
+                is_pinned BOOLEAN DEFAULT FALSE,
+                view_count INTEGER DEFAULT 0,
+                like_count INTEGER DEFAULT 0,
+                comment_count INTEGER DEFAULT 0,
+                media_urls TEXT[],
+                media_types TEXT[],
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        
+        // 3. 토론 댑글 테이블
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS discussion_comments (
+                id SERIAL PRIMARY KEY,
+                post_id INTEGER REFERENCES discussion_posts(id) ON DELETE CASCADE,
+                author_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                content TEXT NOT NULL,
+                parent_id INTEGER REFERENCES discussion_comments(id) ON DELETE CASCADE,
+                like_count INTEGER DEFAULT 0,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            )
+        `);
+        
+        // 4. 토론 게시글 좋아요 테이블
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS discussion_post_likes (
+                id SERIAL PRIMARY KEY,
+                post_id INTEGER REFERENCES discussion_posts(id) ON DELETE CASCADE,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(post_id, user_id)
+            )
+        `);
+        
+        // 5. 토론 댑글 좋아요 테이블
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS discussion_comment_likes (
+                id SERIAL PRIMARY KEY,
+                comment_id INTEGER REFERENCES discussion_comments(id) ON DELETE CASCADE,
+                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(comment_id, user_id)
+            )
+        `);
+        
+        console.log('✅ 분석방 Discussion 테이블 생성 완료');
+        
         // 성능 최적화를 위한 인덱스 생성
         console.log('🔧 데이터베이스 인덱스 생성 중...');
         await client.query('CREATE INDEX IF NOT EXISTS idx_issues_status ON issues(status)');
@@ -273,6 +348,21 @@ const createTables = async () => {
         await client.query('CREATE INDEX IF NOT EXISTS idx_gam_transactions_user_id ON gam_transactions(user_id)');
         await client.query('CREATE INDEX IF NOT EXISTS idx_gam_transactions_type ON gam_transactions(type)');
         await client.query('CREATE INDEX IF NOT EXISTS idx_gam_transactions_created_at ON gam_transactions(created_at)');
+        
+        // Discussion 테이블 인덱스
+        await client.query('CREATE INDEX IF NOT EXISTS idx_discussion_posts_category ON discussion_posts(category_id)');
+        await client.query('CREATE INDEX IF NOT EXISTS idx_discussion_posts_author ON discussion_posts(author_id)');
+        await client.query('CREATE INDEX IF NOT EXISTS idx_discussion_posts_created ON discussion_posts(created_at DESC)');
+        await client.query('CREATE INDEX IF NOT EXISTS idx_discussion_posts_likes ON discussion_posts(like_count DESC)');
+        await client.query('CREATE INDEX IF NOT EXISTS idx_discussion_posts_notice ON discussion_posts(is_notice, is_pinned)');
+        await client.query('CREATE INDEX IF NOT EXISTS idx_discussion_comments_post ON discussion_comments(post_id, created_at)');
+        await client.query('CREATE INDEX IF NOT EXISTS idx_discussion_comments_author ON discussion_comments(author_id)');
+        await client.query('CREATE INDEX IF NOT EXISTS idx_discussion_comments_parent ON discussion_comments(parent_id)');
+        await client.query('CREATE INDEX IF NOT EXISTS idx_post_likes_post ON discussion_post_likes(post_id)');
+        await client.query('CREATE INDEX IF NOT EXISTS idx_post_likes_user ON discussion_post_likes(user_id)');
+        await client.query('CREATE INDEX IF NOT EXISTS idx_comment_likes_comment ON discussion_comment_likes(comment_id)');
+        await client.query('CREATE INDEX IF NOT EXISTS idx_comment_likes_user ON discussion_comment_likes(user_id)');
+        
         console.log('✅ 데이터베이스 인덱스 생성 완료');
         
         await client.query('COMMIT');
@@ -280,6 +370,9 @@ const createTables = async () => {
         
         // 초기 데이터 삽입
         await insertInitialData();
+        
+        // Discussion 카테골4리 초기 데이터
+        await insertDiscussionCategories();
         
     } catch (error) {
         await client.query('ROLLBACK');
@@ -367,6 +460,151 @@ const insertInitialData = async () => {
     }
 };
 
+// Discussion 카테고리 초기 데이터 삽입
+const insertDiscussionCategories = async () => {
+    const client = await pool.connect();
+    
+    try {
+        // 기존 카테고리 데이터 확인
+        const result = await client.query('SELECT COUNT(*) as count FROM discussion_categories');
+        const count = parseInt(result.rows[0].count);
+        
+        if (count > 0) {
+            console.log('✅ 기존 Discussion 카테고리 데이터 보존 - 초기 데이터 삽입 건너뜌');
+            return;
+        }
+        
+        console.log('💬 기존 8개 카테고리 시스템 데이터 삽입 중...');
+        
+        // 기존 8개 카테고리 데이터 삽입
+        const categories = [
+            {name: '전체', description: '모든 주제의 토론', icon: '💬', color: '#6B7280', display_order: 0},
+            {name: '정치', description: '선거, 정책, 정치적 이벤트', icon: '🏛️', color: '#DC2626', display_order: 1},
+            {name: '스포츠', description: '경기 결과, 시즌 성과', icon: '⚽', color: '#0891B2', display_order: 2},
+            {name: '경제', description: '주식, 환율, 경제 지표', icon: '📈', color: '#059669', display_order: 3},
+            {name: '코인', description: '암호화폐 가격, 트렌드', icon: '₿', color: '#F59E0B', display_order: 4},
+            {name: '테크', description: '기술 트렌드, 제품 출시', icon: '💻', color: '#7C3AED', display_order: 5},
+            {name: '엔터', description: '연예계, 문화 콘텐츠', icon: '🎭', color: '#EC4899', display_order: 6},
+            {name: '날씨', description: '기상 예보, 계절 예측', icon: '🌤️', color: '#3B82F6', display_order: 7},
+            {name: '해외', description: '국제 정치, 글로벌 이벤트', icon: '🌍', color: '#4F46E5', display_order: 8}
+        ];
+        
+        for (const category of categories) {
+            await client.query(`
+                INSERT INTO discussion_categories (name, description, icon, color, display_order)
+                VALUES ($1, $2, $3, $4, $5)
+                ON CONFLICT (name) DO NOTHING
+            `, [category.name, category.description, category.icon, category.color, category.display_order]);
+        }
+        
+        // 트리거 생성
+        await createDiscussionTriggers(client);
+        
+        console.log('✅ Discussion 카테고리 초기 데이터 삽입 완료 (9개)');
+        
+    } catch (error) {
+        console.error('❌ Discussion 카테고리 데이터 삽입 실패:', error);
+        throw error;
+    } finally {
+        client.release();
+    }
+};
+
+// Discussion 트리거 생성
+const createDiscussionTriggers = async (client) => {
+    try {
+        // 댑글 수 자동 업데이트 트리거
+        await client.query(`
+            CREATE OR REPLACE FUNCTION update_discussion_post_comment_count()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                IF TG_OP = 'INSERT' THEN
+                    UPDATE discussion_posts 
+                    SET comment_count = comment_count + 1 
+                    WHERE id = NEW.post_id;
+                    RETURN NEW;
+                ELSIF TG_OP = 'DELETE' THEN
+                    UPDATE discussion_posts 
+                    SET comment_count = comment_count - 1 
+                    WHERE id = OLD.post_id;
+                    RETURN OLD;
+                END IF;
+                RETURN NULL;
+            END;
+            $$ LANGUAGE plpgsql;
+        `);
+        
+        await client.query(`
+            DROP TRIGGER IF EXISTS trigger_update_comment_count ON discussion_comments;
+            CREATE TRIGGER trigger_update_comment_count
+                AFTER INSERT OR DELETE ON discussion_comments
+                FOR EACH ROW EXECUTE FUNCTION update_discussion_post_comment_count();
+        `);
+        
+        // 게시글 좋아요 수 자동 업데이트 트리거
+        await client.query(`
+            CREATE OR REPLACE FUNCTION update_discussion_post_like_count()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                IF TG_OP = 'INSERT' THEN
+                    UPDATE discussion_posts 
+                    SET like_count = like_count + 1 
+                    WHERE id = NEW.post_id;
+                    RETURN NEW;
+                ELSIF TG_OP = 'DELETE' THEN
+                    UPDATE discussion_posts 
+                    SET like_count = like_count - 1 
+                    WHERE id = OLD.post_id;
+                    RETURN OLD;
+                END IF;
+                RETURN NULL;
+            END;
+            $$ LANGUAGE plpgsql;
+        `);
+        
+        await client.query(`
+            DROP TRIGGER IF EXISTS trigger_update_post_like_count ON discussion_post_likes;
+            CREATE TRIGGER trigger_update_post_like_count
+                AFTER INSERT OR DELETE ON discussion_post_likes
+                FOR EACH ROW EXECUTE FUNCTION update_discussion_post_like_count();
+        `);
+        
+        // 댑글 좋아요 수 자동 업데이트 트리거
+        await client.query(`
+            CREATE OR REPLACE FUNCTION update_discussion_comment_like_count()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                IF TG_OP = 'INSERT' THEN
+                    UPDATE discussion_comments 
+                    SET like_count = like_count + 1 
+                    WHERE id = NEW.comment_id;
+                    RETURN NEW;
+                ELSIF TG_OP = 'DELETE' THEN
+                    UPDATE discussion_comments 
+                    SET like_count = like_count - 1 
+                    WHERE id = OLD.comment_id;
+                    RETURN OLD;
+                END IF;
+                RETURN NULL;
+            END;
+            $$ LANGUAGE plpgsql;
+        `);
+        
+        await client.query(`
+            DROP TRIGGER IF EXISTS trigger_update_comment_like_count ON discussion_comment_likes;
+            CREATE TRIGGER trigger_update_comment_like_count
+                AFTER INSERT OR DELETE ON discussion_comment_likes
+                FOR EACH ROW EXECUTE FUNCTION update_discussion_comment_like_count();
+        `);
+        
+        console.log('✅ Discussion 트리거 생성 완료');
+        
+    } catch (error) {
+        console.error('❌ Discussion 트리거 생성 실패:', error);
+        throw error;
+    }
+};
+
 const getPool = () => {
     if (!pool) {
         throw new Error('PostgreSQL pool not initialized');
@@ -393,5 +631,6 @@ module.exports = {
     initPostgreSQL,
     getPool,
     query,
-    getClient
+    getClient,
+    insertDiscussionCategories
 };
