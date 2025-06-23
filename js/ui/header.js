@@ -20,7 +20,7 @@ export function updateHeader() {
                     </button>
                     
                     <!-- 알림 드롭다운 -->
-                    <div id="notification-dropdown" class="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-lg shadow-xl border border-gray-200 hidden" style="z-index: 10050; transform: translateX(0); max-width: calc(100vw - 2rem);">
+                    <div id="notification-dropdown" class="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-lg shadow-xl border border-gray-200 hidden" style="z-index: 50001; transform: translateX(0); max-width: calc(100vw - 2rem);">
                         <div class="p-4 border-b border-gray-200">
                             <div class="flex items-center justify-between">
                                 <h3 class="text-lg font-semibold text-gray-900">알림</h3>
