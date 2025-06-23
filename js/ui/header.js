@@ -7,16 +7,16 @@ export function updateHeader() {
     if (auth.isLoggedIn()) {
         const user = auth.getCurrentUser();
         userActionsContainer.innerHTML = `
-            <!-- 알림 아이콘 - 닉네임 바로 옆에 배치 -->
-            <div class="flex items-center space-x-3">
+            <!-- 모바일 최적화된 사용자 액션 -->
+            <div class="flex items-center space-x-1 sm:space-x-2">
                 <!-- 사용자명 (PC에서만 표시) -->
                 <span class="text-sm font-medium text-gray-600 hidden lg:block">${user.username}</span>
                 
                 <!-- 알림 아이콘 -->
                 <div class="relative">
-                    <button id="notification-button" class="relative p-2 text-gray-600 hover:text-gray-900 transition-colors rounded-lg hover:bg-gray-100 touch-manipulation">
+                    <button id="notification-button" class="relative p-2.5 text-gray-600 hover:text-gray-900 transition-colors rounded-lg hover:bg-gray-100 touch-manipulation">
                         <i data-lucide="bell" class="w-5 h-5"></i>
-                        <span id="notification-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[20px] h-5 px-1 flex items-center justify-center hidden">0</span>
+                        <span id="notification-badge" class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full min-w-[18px] h-[18px] px-1 flex items-center justify-center hidden">0</span>
                     </button>
                     
                     <!-- 알림 드롭다운 -->
@@ -39,14 +39,17 @@ export function updateHeader() {
                     </div>
                 </div>
                 
-                <!-- GAM 잔액 -->
-                <div id="user-wallet" class="flex items-center space-x-2 bg-white px-3 py-1.5 rounded-md border border-gray-200 shadow-sm">
-                    <i data-lucide="coins" class="w-4 h-4 text-yellow-500"></i>
-                    <span id="user-coins" class="text-sm font-semibold text-gray-900">${(user.gam_balance || 0).toLocaleString()}</span>
+                <!-- GAM 잔액 - 모바일 최적화 -->
+                <div id="user-wallet" class="flex items-center space-x-1 sm:space-x-2 bg-white px-2 sm:px-3 py-1.5 rounded-md border border-gray-200 shadow-sm">
+                    <i data-lucide="coins" class="w-4 h-4 text-yellow-500 flex-shrink-0"></i>
+                    <span id="user-coins" class="text-xs sm:text-sm font-semibold text-gray-900 truncate">${(user.gam_balance || 0).toLocaleString()}</span>
                 </div>
                 
-                <!-- 로그아웃 버튼 -->
-                <button id="logout-button" class="text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium px-2 py-1 rounded hover:bg-gray-100">로그아웃</button>
+                <!-- 로그아웃 버튼 - 모바일 최적화 -->
+                <button id="logout-button" class="text-gray-600 hover:text-gray-900 transition-colors text-xs sm:text-sm font-medium px-2 py-1.5 rounded hover:bg-gray-100 touch-manipulation">
+                    <span class="hidden sm:inline">로그아웃</span>
+                    <i data-lucide="log-out" class="w-4 h-4 sm:hidden"></i>
+                </button>
             </div>
         `;
         
