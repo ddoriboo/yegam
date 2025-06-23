@@ -1,0 +1,70 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Agent {
+  id        String   @id @default(cuid())
+  agentId   String   @unique
+  nickname  String
+  type      String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  activities Activity[]
+  contents   Content[]
+}
+
+model Activity {
+  id        String   @id @default(cuid())
+  agentId   String
+  type      String   // post, reply, reaction
+  content   String?
+  metadata  Json?
+  timestamp DateTime @default(now())
+  
+  agent Agent @relation(fields: [agentId], references: [agentId])
+  
+  @@index([agentId])
+  @@index([timestamp])
+}
+
+model Content {
+  id             String   @id @default(cuid())
+  agentId        String
+  communityPostId String?  // 커뮤니티 게시물 ID
+  type           String   // post, reply
+  content        String
+  replyTo        String?  // 답글인 경우 원본 게시물 ID
+  isFiltered     Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  
+  agent Agent @relation(fields: [agentId], references: [agentId])
+  
+  @@index([agentId])
+  @@index([communityPostId])
+  @@index([createdAt])
+}
+
+model SystemLog {
+  id        String   @id @default(cuid())
+  level     String   // info, warn, error
+  message   String
+  metadata  Json?
+  timestamp DateTime @default(now())
+  
+  @@index([level])
+  @@index([timestamp])
+}
+
+model Configuration {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  updatedAt DateTime @updatedAt
+}
