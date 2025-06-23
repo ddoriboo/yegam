@@ -110,7 +110,23 @@ function setupNotificationEvents() {
                 portal.id = 'notification-dropdown-portal';
                 portal.style.position = 'fixed';
                 portal.style.top = (buttonRect.bottom + 8) + 'px';
-                portal.style.right = (window.innerWidth - buttonRect.right) + 'px';
+                
+                // 모바일에서 화면 중앙에 배치하되, 화면을 벗어나지 않도록 조정
+                const dropdownWidth = 320; // w-80 = 320px
+                const screenWidth = window.innerWidth;
+                const buttonCenter = buttonRect.left + (buttonRect.width / 2);
+                
+                let leftPos = buttonCenter - (dropdownWidth / 2);
+                
+                // 화면 왼쪽을 벗어나지 않도록
+                if (leftPos < 16) leftPos = 16;
+                // 화면 오른쪽을 벗어나지 않도록  
+                if (leftPos + dropdownWidth > screenWidth - 16) {
+                    leftPos = screenWidth - dropdownWidth - 16;
+                }
+                
+                portal.style.left = leftPos + 'px';
+                portal.style.width = (dropdownWidth - 32) + 'px'; // 좌우 마진 고려
                 portal.style.zIndex = '99999';
                 document.body.appendChild(portal);
                 
@@ -133,7 +149,22 @@ function setupNotificationEvents() {
                 // 기존 포탈이 있으면 위치 업데이트
                 const portal = document.getElementById('notification-dropdown-portal');
                 portal.style.top = (buttonRect.bottom + 8) + 'px';
-                portal.style.right = (window.innerWidth - buttonRect.right) + 'px';
+                
+                // 위치 재계산
+                const dropdownWidth = 320;
+                const screenWidth = window.innerWidth;
+                const buttonCenter = buttonRect.left + (buttonRect.width / 2);
+                
+                let leftPos = buttonCenter - (dropdownWidth / 2);
+                
+                if (leftPos < 16) leftPos = 16;
+                if (leftPos + dropdownWidth > screenWidth - 16) {
+                    leftPos = screenWidth - dropdownWidth - 16;
+                }
+                
+                portal.style.left = leftPos + 'px';
+                portal.style.width = (dropdownWidth - 32) + 'px';
+                
                 portal.classList.remove('hidden');
                 portal.style.setProperty('display', 'block', 'important');
                 console.log('Portal dropdown updated and shown'); // 디버깅용
