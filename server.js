@@ -23,6 +23,7 @@ const gamRoutes = require('./routes/gam');
 const debugGamRoutes = require('./routes/debug-gam');
 const userInfoRoutes = require('./routes/user-info');
 const discussionsRoutes = require('./routes/discussions');
+const { router: agentRoutes, initializeAgents } = require('./routes/agents');
 const { initDatabase } = require('./database/database');
 const issueScheduler = require('./services/scheduler');
 const { errorHandler } = require('./middleware/errorHandler');
@@ -101,6 +102,7 @@ app.use('/api/gam', gamRoutes);
 app.use('/api/debug/gam', debugGamRoutes);
 app.use('/api/user', userInfoRoutes);
 app.use('/api/discussions', discussionsRoutes);
+app.use('/api/agents', agentRoutes);
 app.use('/api/admin/comments', adminCommentRoutes);
 app.use('/api/admin-auth', secureAdminAuthRoutes); // 보안 관리자 인증 API
 app.use('/api/admin', adminRoutes);
@@ -121,6 +123,10 @@ app.get('/admin', (req, res) => {
 
 app.get('/admin-login', (req, res) => {
     res.sendFile(path.join(__dirname, 'admin-login.html'));
+});
+
+app.get('/ai-agents', (req, res) => {
+    res.sendFile(path.join(__dirname, 'ai-agents-dashboard.html'));
 });
 
 // 테이블 구조 진단 엔드포인트
@@ -507,9 +513,34 @@ app.use('*', (req, res) => {
 app.use(errorHandler);
 
 // 데이터베이스 초기화 후 서버 시작
-console.log('🔄 데이터베이스 초기화 시작...');
-initDatabase().then(() => {
-    console.log('✅ 데이터베이스 초기화 완료');
+const startServer = async () => {
+    try {
+        console.log('🔄 데이터베이스 초기화 시작...');
+        await initDatabase();
+        console.log('✅ 데이터베이스 초기화 완료');
+        
+        // AI 에이전트 시스템 초기화
+        try {
+            console.log('🤖 AI 에이전트 시스템 초기화 중...');
+            await initializeAgents();
+            console.log('✅ AI 에이전트 시스템 초기화 완료');
+        } catch (agentError) {
+            console.error('❌ AI 에이전트 초기화 실패:', agentError);
+            console.error('❌ AI 에이전트 없이 서버 계속 실행');
+        }
+    } catch (err) {
+        console.error('❌ 데이터베이스 초기화 실패:', err);
+        console.error('❌ 에러 메시지:', err.message);
+        console.error('❌ 에러 세부사항:', err.stack);
+        console.error('❌ 환경 변수 확인:', {
+            NODE_ENV: process.env.NODE_ENV,
+            DATABASE_URL: process.env.DATABASE_URL ? '***설정됨***' : '설정되지 않음',
+            PORT: process.env.PORT
+        });
+        
+        // 에러가 있어도 서버는 시작해서 디버깅할 수 있게 함
+        console.log('⚠️ 데이터베이스 초기화 실패했지만 서버를 시작합니다...');
+    }
     
     app.listen(PORT, '0.0.0.0', () => {
         console.log(`🚀 예겜 서버가 포트 ${PORT}에서 실행 중입니다.`);
@@ -543,19 +574,7 @@ initDatabase().then(() => {
             console.error('❌ 데이터베이스 연결 테스트 실패:', dbTestError);
         }
     });
-}).catch(err => {
-    console.error('❌ 데이터베이스 초기화 실패:', err);
-    console.error('❌ 에러 메시지:', err.message);
-    console.error('❌ 에러 세부사항:', err.stack);
-    console.error('❌ 환경 변수 확인:', {
-        NODE_ENV: process.env.NODE_ENV,
-        DATABASE_URL: process.env.DATABASE_URL ? '***설정됨***' : '설정되지 않음',
-        PORT: process.env.PORT
-    });
-    
-    // 에러가 있어도 서버는 시작해서 디버깅할 수 있게 함
-    console.log('⚠️ 데이터베이스 초기화 실패했지만 서버를 시작합니다...');
-    app.listen(PORT, '0.0.0.0', () => {
-        console.log(`🚀 서버가 포트 ${PORT}에서 실행 중입니다 (DB 연결 실패 상태)`);
-    });
-});
+};
+
+// 서버 시작
+startServer();
