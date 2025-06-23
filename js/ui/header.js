@@ -20,7 +20,7 @@ export function updateHeader() {
                     </button>
                     
                     <!-- 알림 드롭다운 -->
-                    <div id="notification-dropdown" class="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-lg shadow-xl border border-gray-200 hidden" style="z-index: 50001; transform: translateX(0); max-width: calc(100vw - 2rem);">
+                    <div id="notification-dropdown" class="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-lg shadow-xl border border-gray-200 hidden" style="z-index: 50001 !important; transform: translateX(0); max-width: calc(100vw - 2rem); position: absolute !important; display: none !important;">
                         <div class="p-4 border-b border-gray-200">
                             <div class="flex items-center justify-between">
                                 <h3 class="text-lg font-semibold text-gray-900">알림</h3>
@@ -82,25 +82,100 @@ function setupNotificationEvents() {
     const notificationDropdown = document.getElementById('notification-dropdown');
     const markAllReadButton = document.getElementById('mark-all-read');
     
-    if (!notificationButton || !notificationDropdown) return;
+    console.log('Setting up notification events'); // 디버깅용
+    console.log('Button found:', !!notificationButton); // 디버깅용
+    console.log('Dropdown found:', !!notificationDropdown); // 디버깅용
     
-    // 알림 버튼 클릭 시 드롭다운 토글
-    notificationButton.addEventListener('click', (e) => {
+    if (!notificationButton || !notificationDropdown) {
+        console.log('Missing notification elements!'); // 디버깅용
+        return;
+    }
+    
+    // 드롭다운 토글 함수
+    const toggleDropdown = (e) => {
         e.stopPropagation();
+        e.preventDefault();
+        console.log('Notification button triggered'); // 디버깅용
         const isHidden = notificationDropdown.classList.contains('hidden');
+        console.log('Is hidden:', isHidden); // 디버깅용
         
         if (isHidden) {
-            notificationDropdown.classList.remove('hidden');
-            loadNotifications();
+            // 버튼의 위치 계산
+            const buttonRect = notificationButton.getBoundingClientRect();
+            console.log('Button rect:', buttonRect); // 디버깅용
+            
+            // 드롭다운을 body에 추가 (포탈 방식)
+            if (!document.getElementById('notification-dropdown-portal')) {
+                const portal = notificationDropdown.cloneNode(true);
+                portal.id = 'notification-dropdown-portal';
+                portal.style.position = 'fixed';
+                portal.style.top = (buttonRect.bottom + 8) + 'px';
+                portal.style.right = (window.innerWidth - buttonRect.right) + 'px';
+                portal.style.zIndex = '99999';
+                document.body.appendChild(portal);
+                
+                // 기존 드롭다운 숨기기
+                notificationDropdown.style.display = 'none';
+                
+                // 포탈 드롭다운 표시
+                portal.classList.remove('hidden');
+                portal.style.setProperty('display', 'block', 'important');
+                portal.style.setProperty('visibility', 'visible', 'important');
+                portal.style.setProperty('opacity', '1', 'important');
+                portal.style.setProperty('pointer-events', 'auto', 'important');
+                
+                console.log('Portal dropdown created and shown'); // 디버깅용
+                console.log('Portal styles:', portal.style.cssText); // 디버깅용
+                
+                // 포탈에서 알림 로드
+                loadNotificationsInPortal(portal);
+            } else {
+                // 기존 포탈이 있으면 위치 업데이트
+                const portal = document.getElementById('notification-dropdown-portal');
+                portal.style.top = (buttonRect.bottom + 8) + 'px';
+                portal.style.right = (window.innerWidth - buttonRect.right) + 'px';
+                portal.classList.remove('hidden');
+                portal.style.setProperty('display', 'block', 'important');
+                console.log('Portal dropdown updated and shown'); // 디버깅용
+            }
         } else {
+            // 포탈 드롭다운 숨기기
+            const portal = document.getElementById('notification-dropdown-portal');
+            if (portal) {
+                portal.classList.add('hidden');
+                portal.style.setProperty('display', 'none', 'important');
+                console.log('Portal dropdown hidden'); // 디버깅용
+            }
+            
+            // 기존 방식도 적용
             notificationDropdown.classList.add('hidden');
+            notificationDropdown.style.setProperty('display', 'none', 'important');
+            notificationDropdown.style.setProperty('visibility', 'hidden', 'important');
+            notificationDropdown.style.setProperty('opacity', '0', 'important');
+            console.log('Hiding dropdown'); // 디버깅용
         }
-    });
+    };
+    
+    // 알림 버튼 클릭/터치 이벤트
+    notificationButton.addEventListener('click', toggleDropdown);
+    notificationButton.addEventListener('touchend', toggleDropdown);
     
     // 드롭다운 외부 클릭 시 닫기
     document.addEventListener('click', (e) => {
-        if (!notificationDropdown.contains(e.target) && !notificationButton.contains(e.target)) {
-            notificationDropdown.classList.add('hidden');
+        const portal = document.getElementById('notification-dropdown-portal');
+        
+        // 포탈 드롭다운이 있으면 포탈 기준으로 체크
+        if (portal && !portal.classList.contains('hidden')) {
+            if (!portal.contains(e.target) && !notificationButton.contains(e.target)) {
+                portal.classList.add('hidden');
+                portal.style.setProperty('display', 'none', 'important');
+                console.log('Portal closed by outside click'); // 디버깅용
+            }
+        } else {
+            // 기존 드롭다운 닫기
+            if (!notificationDropdown.contains(e.target) && !notificationButton.contains(e.target)) {
+                notificationDropdown.classList.add('hidden');
+            }
         }
     });
     
@@ -142,6 +217,85 @@ async function updateNotificationCount() {
         }
     } catch (error) {
         console.error('알림 개수 조회 실패:', error);
+    }
+}
+
+// 포탈에서 알림 목록 로드
+async function loadNotificationsInPortal(portalElement) {
+    const notificationList = portalElement.querySelector('#notification-list');
+    if (!notificationList || !auth.isLoggedIn()) return;
+    
+    notificationList.innerHTML = '<div class="p-4 text-center text-gray-500">알림을 불러오는 중...</div>';
+    
+    try {
+        const token = localStorage.getItem('yegame-token');
+        const response = await fetch('/api/notifications?limit=10', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            const notifications = data.data.notifications;
+            
+            if (notifications.length === 0) {
+                notificationList.innerHTML = '<div class="p-4 text-center text-gray-500">새로운 알림이 없습니다.</div>';
+                return;
+            }
+            
+            notificationList.innerHTML = notifications.map(notification => `
+                <div class="notification-item p-3 border-b border-gray-100 hover:bg-gray-50 cursor-pointer ${!notification.is_read ? 'bg-blue-50' : ''}" 
+                     data-notification-id="${notification.id}" data-is-read="${notification.is_read}">
+                    <div class="flex items-start space-x-3">
+                        <div class="flex-shrink-0">
+                            ${getNotificationIcon(notification.type)}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h4 class="text-sm font-medium text-gray-900 truncate">${notification.title}</h4>
+                            <p class="text-sm text-gray-600 mt-1 line-clamp-2">${notification.message}</p>
+                            <p class="text-xs text-gray-400 mt-1">${formatNotificationTime(notification.created_at)}</p>
+                        </div>
+                        ${!notification.is_read ? '<div class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>' : ''}
+                    </div>
+                </div>
+            `).join('');
+            
+            // Lucide 아이콘 초기화
+            initializeLucideIcons();
+            
+            // 포탈 알림 아이템 클릭 이벤트
+            notificationList.querySelectorAll('.notification-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    const notificationId = item.dataset.notificationId;
+                    const isRead = item.dataset.isRead === 'true';
+                    
+                    if (!isRead) {
+                        markNotificationAsRead(notificationId);
+                    }
+                    
+                    // 포탈 드롭다운 닫기
+                    const portal = document.getElementById('notification-dropdown-portal');
+                    if (portal) {
+                        portal.classList.add('hidden');
+                        portal.style.setProperty('display', 'none', 'important');
+                    }
+                });
+            });
+            
+            // 포탈의 "모두 읽기" 버튼 이벤트
+            const markAllReadBtn = portalElement.querySelector('#mark-all-read');
+            if (markAllReadBtn) {
+                markAllReadBtn.addEventListener('click', markAllNotificationsAsRead);
+            }
+            
+        } else {
+            notificationList.innerHTML = '<div class="p-4 text-center text-red-500">알림을 불러올 수 없습니다.</div>';
+        }
+        
+    } catch (error) {
+        console.error('포탈 알림 로드 실패:', error);
+        notificationList.innerHTML = '<div class="p-4 text-center text-red-500">알림을 불러올 수 없습니다.</div>';
     }
 }
 
