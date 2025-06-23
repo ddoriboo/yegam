@@ -25,6 +25,7 @@ const userInfoRoutes = require('./routes/user-info');
 const discussionsRoutes = require('./routes/discussions');
 const { router: agentRoutes, initializeAgents } = require('./routes/agents');
 const { initDatabase } = require('./database/database');
+const { initAIAgentsDatabase } = require('./database/init-ai-agents');
 const issueScheduler = require('./services/scheduler');
 const { errorHandler } = require('./middleware/errorHandler');
 const HealthCheck = require('./utils/health-check');
@@ -517,7 +518,21 @@ const startServer = async () => {
     try {
         console.log('🔄 데이터베이스 초기화 시작...');
         await initDatabase();
-        console.log('✅ 데이터베이스 초기화 완료');
+        console.log('✅ 기본 데이터베이스 초기화 완료');
+        
+        // AI 에이전트 데이터베이스 스키마 초기화
+        try {
+            console.log('🤖 AI 에이전트 데이터베이스 초기화 중...');
+            const aiDbSuccess = await initAIAgentsDatabase();
+            if (aiDbSuccess) {
+                console.log('✅ AI 에이전트 DB 스키마 초기화 완료');
+            } else {
+                console.log('⚠️ AI 에이전트 DB 초기화 실패 - 계속 진행');
+            }
+        } catch (aiDbError) {
+            console.error('❌ AI 에이전트 DB 초기화 오류:', aiDbError);
+            console.error('❌ AI 에이전트 DB 없이 서버 계속 실행');
+        }
         
         // AI 에이전트 시스템 초기화
         try {
