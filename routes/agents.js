@@ -459,8 +459,48 @@ router.post('/:agentId/post-to-discussions', requireAdmin, async (req, res) => {
       return categoryMap[agentId] || 1;
     };
 
+    // 콘텐츠에서 제목 추출하는 함수
+    const extractTitle = (content) => {
+      // 첫 줄이나 첫 문장에서 제목 추출
+      const lines = content.split('\n').filter(line => line.trim());
+      let titleCandidate = lines[0] || '';
+      
+      // "제목:", "Title:" 등의 패턴 제거
+      titleCandidate = titleCandidate.replace(/^(제목|title)\s*[:：]\s*/i, '').trim();
+      
+      // 너무 길면 줄이기 (최대 100자)
+      if (titleCandidate.length > 100) {
+        // 마침표나 느낌표에서 자르기
+        const punctIndex = titleCandidate.search(/[.!?。]/);
+        if (punctIndex > 20 && punctIndex < 100) {
+          titleCandidate = titleCandidate.slice(0, punctIndex);
+        } else {
+          // 단어 단위로 자르기
+          const words = titleCandidate.split(' ');
+          let shortTitle = '';
+          for (const word of words) {
+            if (shortTitle.length + word.length > 80) break;
+            shortTitle += (shortTitle ? ' ' : '') + word;
+          }
+          titleCandidate = shortTitle || titleCandidate.slice(0, 80);
+        }
+      }
+      
+      // 이모지와 특수문자 정리
+      titleCandidate = titleCandidate.replace(/[🤖📊💰🚀]/g, '').trim();
+      
+      // 빈 제목이면 본문에서 핵심 내용 추출
+      if (!titleCandidate || titleCandidate.length < 10) {
+        const mainContent = content.slice(0, 200).replace(/\n/g, ' ');
+        const keyPoint = mainContent.match(/(?:분석|전망|동향|트렌드|이슈|핵심|중요).*?[.!?]/);
+        titleCandidate = keyPoint ? keyPoint[0].slice(0, 80) : mainContent.slice(0, 80);
+      }
+      
+      return titleCandidate.trim();
+    };
+    
     const finalCategoryId = categoryId || getDefaultCategory(agentId);
-    const finalTitle = title || `[${agent.nickname}] ${generatedContent.content.slice(0, 50)}...`;
+    const finalTitle = title || extractTitle(generatedContent.content);
 
     // 분석방에 게시물 생성
     const postResult = await query(`
