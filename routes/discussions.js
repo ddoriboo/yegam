@@ -157,11 +157,58 @@ router.get('/posts/:id', async (req, res) => {
             [postId]
         );
         
-        // 게시글 정보 조회
+        // 게시글 정보 조회 (YEGAM 티어 정보 포함)
         const postResult = await query(`
             SELECT 
                 p.*,
                 u.username as author_name,
+                u.gam_balance,
+                CASE 
+                  WHEN u.gam_balance >= 150000000 THEN 'Lv.20 모든 것을 보는 눈 👁️‍🗨️'
+                  WHEN u.gam_balance >= 100000000 THEN 'Lv.19 은하의 지배자 🌌'
+                  WHEN u.gam_balance >= 65000000 THEN 'Lv.18 찬란한 성좌 🌟'
+                  WHEN u.gam_balance >= 40000000 THEN 'Lv.17 혜성의 인도자 ☄️'
+                  WHEN u.gam_balance >= 25000000 THEN 'Lv.16 별의 조각 ✨'
+                  WHEN u.gam_balance >= 16000000 THEN 'Lv.15 아카식 레코드 📔'
+                  WHEN u.gam_balance >= 10000000 THEN 'Lv.14 시간의 모래시계 ⏳'
+                  WHEN u.gam_balance >= 6500000 THEN 'Lv.13 세계수의 의지 🌳'
+                  WHEN u.gam_balance >= 4000000 THEN 'Lv.12 용기의 문장 🐉'
+                  WHEN u.gam_balance >= 2500000 THEN 'Lv.11 룬석 예언가 📜'
+                  WHEN u.gam_balance >= 1500000 THEN 'Lv.10 황금 왕관 👑'
+                  WHEN u.gam_balance >= 1000000 THEN 'Lv.9 플래티넘 챔피언 🏆'
+                  WHEN u.gam_balance >= 650000 THEN 'Lv.8 골드 윙 🥇'
+                  WHEN u.gam_balance >= 400000 THEN 'Lv.7 실버 윙 🥈'
+                  WHEN u.gam_balance >= 250000 THEN 'Lv.6 브론즈 윙 🥉'
+                  WHEN u.gam_balance >= 150000 THEN 'Lv.5 스틸 소드 ⚔️'
+                  WHEN u.gam_balance >= 90000 THEN 'Lv.4 아이언 실드 🛡️'
+                  WHEN u.gam_balance >= 50000 THEN 'Lv.3 강철 연마가 ⛓️'
+                  WHEN u.gam_balance >= 25000 THEN 'Lv.2 원석 채굴자 ⛏️'
+                  WHEN u.gam_balance >= 10000 THEN 'Lv.1 조약돌 🪨'
+                  ELSE 'Lv.0 티끌 ⚪'
+                END as yegam_tier,
+                CASE 
+                  WHEN u.gam_balance >= 150000000 THEN '👁️‍🗨️'
+                  WHEN u.gam_balance >= 100000000 THEN '🌌'
+                  WHEN u.gam_balance >= 65000000 THEN '🌟'
+                  WHEN u.gam_balance >= 40000000 THEN '☄️'
+                  WHEN u.gam_balance >= 25000000 THEN '✨'
+                  WHEN u.gam_balance >= 16000000 THEN '📔'
+                  WHEN u.gam_balance >= 10000000 THEN '⏳'
+                  WHEN u.gam_balance >= 6500000 THEN '🌳'
+                  WHEN u.gam_balance >= 4000000 THEN '🐉'
+                  WHEN u.gam_balance >= 2500000 THEN '📜'
+                  WHEN u.gam_balance >= 1500000 THEN '👑'
+                  WHEN u.gam_balance >= 1000000 THEN '🏆'
+                  WHEN u.gam_balance >= 650000 THEN '🥇'
+                  WHEN u.gam_balance >= 400000 THEN '🥈'
+                  WHEN u.gam_balance >= 250000 THEN '🥉'
+                  WHEN u.gam_balance >= 150000 THEN '⚔️'
+                  WHEN u.gam_balance >= 90000 THEN '🛡️'
+                  WHEN u.gam_balance >= 50000 THEN '⛓️'
+                  WHEN u.gam_balance >= 25000 THEN '⛏️'
+                  WHEN u.gam_balance >= 10000 THEN '🪨'
+                  ELSE '⚪'
+                END as tier_icon,
                 c.name as category_name,
                 c.color as category_color,
                 c.icon as category_icon
@@ -503,7 +550,55 @@ router.get('/posts/:id/comments', async (req, res) => {
                 c.like_count,
                 c.created_at,
                 c.updated_at,
-                u.username as author_name
+                c.author_id,
+                u.username as author_name,
+                u.gam_balance,
+                CASE 
+                  WHEN u.gam_balance >= 150000000 THEN 'Lv.20 모든 것을 보는 눈 👁️‍🗨️'
+                  WHEN u.gam_balance >= 100000000 THEN 'Lv.19 은하의 지배자 🌌'
+                  WHEN u.gam_balance >= 65000000 THEN 'Lv.18 찬란한 성좌 🌟'
+                  WHEN u.gam_balance >= 40000000 THEN 'Lv.17 혜성의 인도자 ☄️'
+                  WHEN u.gam_balance >= 25000000 THEN 'Lv.16 별의 조각 ✨'
+                  WHEN u.gam_balance >= 16000000 THEN 'Lv.15 아카식 레코드 📔'
+                  WHEN u.gam_balance >= 10000000 THEN 'Lv.14 시간의 모래시계 ⏳'
+                  WHEN u.gam_balance >= 6500000 THEN 'Lv.13 세계수의 의지 🌳'
+                  WHEN u.gam_balance >= 4000000 THEN 'Lv.12 용기의 문장 🐉'
+                  WHEN u.gam_balance >= 2500000 THEN 'Lv.11 룬석 예언가 📜'
+                  WHEN u.gam_balance >= 1500000 THEN 'Lv.10 황금 왕관 👑'
+                  WHEN u.gam_balance >= 1000000 THEN 'Lv.9 플래티넘 챔피언 🏆'
+                  WHEN u.gam_balance >= 650000 THEN 'Lv.8 골드 윙 🥇'
+                  WHEN u.gam_balance >= 400000 THEN 'Lv.7 실버 윙 🥈'
+                  WHEN u.gam_balance >= 250000 THEN 'Lv.6 브론즈 윙 🥉'
+                  WHEN u.gam_balance >= 150000 THEN 'Lv.5 스틸 소드 ⚔️'
+                  WHEN u.gam_balance >= 90000 THEN 'Lv.4 아이언 실드 🛡️'
+                  WHEN u.gam_balance >= 50000 THEN 'Lv.3 강철 연마가 ⛓️'
+                  WHEN u.gam_balance >= 25000 THEN 'Lv.2 원석 채굴자 ⛏️'
+                  WHEN u.gam_balance >= 10000 THEN 'Lv.1 조약돌 🪨'
+                  ELSE 'Lv.0 티끌 ⚪'
+                END as yegam_tier,
+                CASE 
+                  WHEN u.gam_balance >= 150000000 THEN '👁️‍🗨️'
+                  WHEN u.gam_balance >= 100000000 THEN '🌌'
+                  WHEN u.gam_balance >= 65000000 THEN '🌟'
+                  WHEN u.gam_balance >= 40000000 THEN '☄️'
+                  WHEN u.gam_balance >= 25000000 THEN '✨'
+                  WHEN u.gam_balance >= 16000000 THEN '📔'
+                  WHEN u.gam_balance >= 10000000 THEN '⏳'
+                  WHEN u.gam_balance >= 6500000 THEN '🌳'
+                  WHEN u.gam_balance >= 4000000 THEN '🐉'
+                  WHEN u.gam_balance >= 2500000 THEN '📜'
+                  WHEN u.gam_balance >= 1500000 THEN '👑'
+                  WHEN u.gam_balance >= 1000000 THEN '🏆'
+                  WHEN u.gam_balance >= 650000 THEN '🥇'
+                  WHEN u.gam_balance >= 400000 THEN '🥈'
+                  WHEN u.gam_balance >= 250000 THEN '🥉'
+                  WHEN u.gam_balance >= 150000 THEN '⚔️'
+                  WHEN u.gam_balance >= 90000 THEN '🛡️'
+                  WHEN u.gam_balance >= 50000 THEN '⛓️'
+                  WHEN u.gam_balance >= 25000 THEN '⛏️'
+                  WHEN u.gam_balance >= 10000 THEN '🪨'
+                  ELSE '⚪'
+                END as tier_icon
             FROM discussion_comments c
             LEFT JOIN users u ON c.author_id = u.id
             WHERE c.post_id = $1

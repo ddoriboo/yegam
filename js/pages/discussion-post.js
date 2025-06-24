@@ -96,10 +96,12 @@ function renderPost(post) {
         titleElement.textContent = post.title;
     }
     
-    // 작성자 정보
+    // 작성자 정보 (티어 아이콘 포함)
     const authorElement = document.getElementById('post-author');
     if (authorElement) {
-        authorElement.textContent = post.author_name || '익명';
+        const tierIcon = post.tier_icon || '⚪';
+        const authorName = post.author_name || '익명';
+        authorElement.textContent = `${tierIcon} ${authorName}`;
     }
     
     // 작성일
@@ -233,7 +235,7 @@ function renderComments(comments) {
                         <!-- Comment Header -->
                         <div class="flex items-center justify-between mb-3">
                             <div class="flex items-center space-x-3">
-                                <span class="font-medium text-gray-900">${comment.author_name || '익명'}</span>
+                                <span class="font-medium text-gray-900">${(comment.tier_icon || '⚪')} ${comment.author_name || '익명'}</span>
                                 <span class="text-sm text-gray-500">
                                     ${new Date(comment.created_at).toLocaleDateString('ko-KR', {
                                         month: 'short',
