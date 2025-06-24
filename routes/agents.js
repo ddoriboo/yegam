@@ -144,21 +144,26 @@ router.post('/activate-all', requireAdmin, async (req, res) => {
     const result = await query(`
       UPDATE ai_agents 
       SET is_active = true, updated_at = CURRENT_TIMESTAMP
-      RETURNING COUNT(*) as count
+      RETURNING agent_id
     `);
 
-    await query(`
-      INSERT INTO ai_system_logs (log_level, message, metadata)
-      VALUES ($1, $2, $3)
-    `, [
-      'info',
-      'All agents activated',
-      JSON.stringify({ changedBy: 'admin', timestamp: new Date() })
-    ]);
+    // 시스템 로그 기록 (선택적)
+    try {
+      await query(`
+        INSERT INTO ai_system_logs (log_level, message, metadata)
+        VALUES ($1, $2, $3)
+      `, [
+        'info',
+        'All agents activated',
+        JSON.stringify({ changedBy: 'admin', timestamp: new Date() })
+      ]);
+    } catch (logError) {
+      console.log('로그 기록 실패 (무시):', logError.message);
+    }
 
     res.json({
       message: 'All agents activated',
-      count: result.rows[0]?.count || 0
+      count: result.rows.length
     });
   } catch (error) {
     console.error('모든 AI 에이전트 활성화 오류:', error);
@@ -172,21 +177,26 @@ router.post('/deactivate-all', requireAdmin, async (req, res) => {
     const result = await query(`
       UPDATE ai_agents 
       SET is_active = false, updated_at = CURRENT_TIMESTAMP
-      RETURNING COUNT(*) as count
+      RETURNING agent_id
     `);
 
-    await query(`
-      INSERT INTO ai_system_logs (log_level, message, metadata)
-      VALUES ($1, $2, $3)
-    `, [
-      'warn',
-      'All agents deactivated',
-      JSON.stringify({ changedBy: 'admin', timestamp: new Date() })
-    ]);
+    // 시스템 로그 기록 (선택적)
+    try {
+      await query(`
+        INSERT INTO ai_system_logs (log_level, message, metadata)
+        VALUES ($1, $2, $3)
+      `, [
+        'warn',
+        'All agents deactivated',
+        JSON.stringify({ changedBy: 'admin', timestamp: new Date() })
+      ]);
+    } catch (logError) {
+      console.log('로그 기록 실패 (무시):', logError.message);
+    }
 
     res.json({
       message: 'All agents deactivated',
-      count: result.rows[0]?.count || 0
+      count: result.rows.length
     });
   } catch (error) {
     console.error('모든 AI 에이전트 비활성화 오류:', error);
