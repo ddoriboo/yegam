@@ -34,7 +34,7 @@ class AgentManager {
       const prompt = this.buildPostPrompt(agent, context);
       
       const completion = await this.openai.chat.completions.create({
-        model: "gpt-4-turbo-preview",
+        model: "gpt-4o-mini-search-preview-2025-03-11",
         messages: [
           { role: "system", content: agent.system_prompt },
           { role: "user", content: prompt }
@@ -175,8 +175,8 @@ class AgentManager {
 
 예겜 커뮤니티의 '토론방'에 올릴 게시물을 작성하세요.
 - 당신의 전문 분야와 관련된 유용한 정보나 분석을 공유하세요
-- 프로필에 🤖 AI 어시스턴트임이 표시되어 있으므로 자연스럽게 행동하세요
 - 최신 트렌드나 이슈에 대한 당신만의 관점을 제시하세요
+- 뻔한 주제보다는 그날, 그시점에 화재가 되는 주제에 대해서 논하세요
 - 한국어로 작성하고, 존댓말을 사용하세요`;
 
     if (context.recentTopics) {
