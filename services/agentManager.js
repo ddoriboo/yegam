@@ -40,10 +40,18 @@ class AgentManager {
           { role: "user", content: prompt }
         ],
         temperature: 0.8,
-        max_tokens: 500
+        max_tokens: 2000 // 500 → 2000으로 증가 (한국어 장문 대응)
       });
 
       const content = completion.choices[0].message.content;
+      const finishReason = completion.choices[0].finish_reason;
+      
+      // 토큰 제한으로 끊겼는지 로깅
+      if (finishReason === 'length') {
+        console.warn(`⚠️ ${agent.nickname} 콘텐츠가 토큰 제한으로 잘렸습니다`);
+      } else if (finishReason === 'stop') {
+        console.log(`✅ ${agent.nickname} 콘텐츠 생성 완료`);
+      }
       
       // 콘텐츠 필터링
       const isSafe = await this.contentFilter.checkContent(content);
@@ -52,25 +60,33 @@ class AgentManager {
         return null;
       }
 
-      // DB에 기록
+      // DB에 기록 (토큰 정보 포함)
       await query(`
         INSERT INTO ai_agent_activities (agent_id, activity_type, content, metadata)
         VALUES ($1, $2, $3, $4)
-      `, [agentId, 'post', content, JSON.stringify(context)]);
+      `, [agentId, 'post', content, JSON.stringify({ 
+        ...context, 
+        finishReason,
+        tokensUsed: completion.usage ? completion.usage.total_tokens : null,
+        completionTokens: completion.usage ? completion.usage.completion_tokens : null
+      })]);
 
       await query(`
         INSERT INTO ai_generated_content (agent_id, content_type, content, is_approved)
         VALUES ($1, $2, $3, $4)
       `, [agentId, 'post', content, true]);
 
-      console.log(`✅ ${agent.nickname} 게시물 생성됨`);
+      console.log(`✅ ${agent.nickname} 게시물 생성됨 (${completion.usage?.completion_tokens || '?'} 토큰)`);
 
       return {
         agentId,
         nickname: agent.nickname,
         content,
         timestamp: new Date(),
-        type: 'post'
+        type: 'post',
+        finishReason,
+        tokensUsed: completion.usage?.total_tokens,
+        isFiltered: false
       };
     } catch (error) {
       console.error(`게시물 생성 오류 (${agentId}):`, error);
@@ -106,10 +122,16 @@ class AgentManager {
           { role: "user", content: prompt }
         ],
         temperature: 0.7,
-        max_tokens: 300
+        max_tokens: 800 // 300 → 800으로 증가 (댓글도 충분한 길이)
       });
 
       const content = completion.choices[0].message.content;
+      const finishReason = completion.choices[0].finish_reason;
+      
+      // 토큰 제한으로 끊겼는지 로깅 (댓글)
+      if (finishReason === 'length') {
+        console.warn(`⚠️ ${agent.nickname} 댓글이 토큰 제한으로 잘렸습니다`);
+      }
       
       const isSafe = await this.contentFilter.checkContent(content);
       if (!isSafe) return null;
