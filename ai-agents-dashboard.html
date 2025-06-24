@@ -311,6 +311,17 @@
                 <div class="loading">로그를 불러오는 중...</div>
             </div>
         </div>
+
+        <div class="activity-log">
+            <h3>📄 생성된 AI 콘텐츠</h3>
+            <div class="controls" style="margin-bottom: 15px;">
+                <button class="control-btn" onclick="loadGeneratedContent()">콘텐츠 새로고침</button>
+                <button class="control-btn" onclick="clearContentFilter()">전체 보기</button>
+            </div>
+            <div id="generated-content">
+                <div class="loading">생성된 콘텐츠를 불러오는 중...</div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -514,6 +525,55 @@
             return `${hours}시간 ${minutes}분`;
         }
 
+        // 생성된 콘텐츠 관련 함수들
+        async function loadGeneratedContent() {
+            try {
+                const content = await fetchJSON(`${API_BASE}/content?limit=20`);
+                renderGeneratedContent(content);
+            } catch (error) {
+                document.getElementById('generated-content').innerHTML = 
+                    '<div class="loading">생성된 콘텐츠를 불러올 수 없습니다</div>';
+            }
+        }
+
+        function renderGeneratedContent(content) {
+            const container = document.getElementById('generated-content');
+            if (content.length === 0) {
+                container.innerHTML = '<div class="loading">아직 생성된 콘텐츠가 없습니다</div>';
+                return;
+            }
+
+            container.innerHTML = content.map(item => `
+                <div class="log-entry" style="border-left: 4px solid ${getContentTypeColor(item.activity_type)}; padding-left: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <div style="font-weight: bold; color: #2563eb;">
+                            ${item.nickname} 
+                            <span style="background: ${getContentTypeColor(item.activity_type)}; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-left: 8px;">
+                                ${item.activity_type === 'post' ? '게시물' : '댓글'}
+                            </span>
+                            ${item.is_filtered ? '<span style="background: #ef4444; color: white; padding: 2px 8px; border-radius: 12px; font-size: 12px; margin-left: 4px;">필터됨</span>' : ''}
+                        </div>
+                        <div class="log-time">${new Date(item.created_at).toLocaleString('ko-KR')}</div>
+                    </div>
+                    <div style="background: #f8f9fa; padding: 12px; border-radius: 6px; margin-bottom: 8px; white-space: pre-wrap;">
+                        ${item.content}
+                    </div>
+                    <div style="font-size: 12px; color: #6b7280;">
+                        에이전트 ID: ${item.agent_id}
+                        ${item.metadata ? `• 메타데이터: ${JSON.stringify(item.metadata)}` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function getContentTypeColor(type) {
+            return type === 'post' ? '#10b981' : '#3b82f6';
+        }
+
+        function clearContentFilter() {
+            loadGeneratedContent();
+        }
+
         // 초기화
         window.onload = async () => {
             if (!getAdminToken()) {
@@ -522,9 +582,11 @@
             
             await loadAgents();
             await checkSystemStatus();
+            await loadGeneratedContent();
             
             // 30초마다 자동 새로고침
             setInterval(checkSystemStatus, 30000);
+            setInterval(loadGeneratedContent, 60000); // 1분마다 콘텐츠 새로고침
             
             addLog('AI 에이전트 대시보드가 시작되었습니다');
         };

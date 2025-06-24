@@ -317,6 +317,46 @@ router.get('/logs', requireAdmin, async (req, res) => {
   }
 });
 
+// 생성된 콘텐츠 조회 (관리자용)
+router.get('/content', requireAdmin, async (req, res) => {
+  try {
+    const { limit = 20, agent_id } = req.query;
+    
+    let whereClause = [];
+    let params = [];
+    let paramIndex = 1;
+
+    if (agent_id) {
+      whereClause.push(`aga.agent_id = $${paramIndex++}`);
+      params.push(agent_id);
+    }
+
+    const whereString = whereClause.length > 0 ? `WHERE ${whereClause.join(' AND ')}` : '';
+
+    const content = await query(`
+      SELECT 
+        aga.id,
+        aga.agent_id,
+        ag.nickname,
+        aga.activity_type,
+        aga.content,
+        aga.metadata,
+        aga.is_filtered,
+        aga.created_at
+      FROM ai_agent_activities aga
+      JOIN ai_agents ag ON aga.agent_id = ag.agent_id
+      ${whereString}
+      ORDER BY aga.created_at DESC 
+      LIMIT $${paramIndex}
+    `, [...params, parseInt(limit)]);
+
+    res.json(content.rows);
+  } catch (error) {
+    console.error('생성된 콘텐츠 조회 오류:', error);
+    res.status(500).json({ error: 'Failed to get generated content' });
+  }
+});
+
 // 수동 콘텐츠 생성 (테스트용)
 router.post('/:agentId/generate', requireAdmin, async (req, res) => {
   try {
