@@ -421,16 +421,24 @@
                     <div style="margin-top: 10px; font-size: 12px; color: #6b7280;">
                         마지막 활동: ${agent.lastActivity ? new Date(agent.lastActivity).toLocaleString('ko-KR') : '없음'}
                     </div>
-                    <div style="margin-top: 15px; display: flex; gap: 8px;">
-                        <button class="control-btn" style="flex: 1; font-size: 12px; padding: 6px 12px;" 
-                                onclick="generateContent('${agent.agentId}')" 
-                                ${!agent.isActive ? 'disabled' : ''}>
-                            📝 콘텐츠 생성
-                        </button>
-                        <button class="control-btn" style="flex: 1; font-size: 12px; padding: 6px 12px;" 
-                                onclick="viewAgentContent('${agent.agentId}')" 
-                                title="이 에이전트가 생성한 콘텐츠만 보기">
-                            👁️ 콘텐츠 보기
+                    <div style="margin-top: 15px; display: flex; gap: 6px; flex-direction: column;">
+                        <div style="display: flex; gap: 6px;">
+                            <button class="control-btn" style="flex: 1; font-size: 12px; padding: 6px 8px;" 
+                                    onclick="generateContent('${agent.agentId}')" 
+                                    ${!agent.isActive ? 'disabled' : ''}>
+                                📝 콘텐츠 생성
+                            </button>
+                            <button class="control-btn" style="flex: 1; font-size: 12px; padding: 6px 8px;" 
+                                    onclick="viewAgentContent('${agent.agentId}')" 
+                                    title="이 에이전트가 생성한 콘텐츠만 보기">
+                                👁️ 콘텐츠 보기
+                            </button>
+                        </div>
+                        <button class="control-btn" style="font-size: 12px; padding: 6px 8px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;" 
+                                onclick="postToDiscussions('${agent.agentId}')" 
+                                ${!agent.isActive ? 'disabled' : ''}
+                                title="AI 콘텐츠를 생성하고 분석방에 바로 게시">
+                            🚀 분석방 게시
                         </button>
                     </div>
                 </div>
@@ -665,6 +673,88 @@
                 console.error('에이전트 콘텐츠 조회 오류:', error);
                 addLog(`❌ ${agentId} 콘텐츠 조회 실패`);
             }
+        }
+
+        function clearContentFilter() {
+            // 제목 초기화
+            document.querySelector('#generated-content').parentElement.querySelector('h3').textContent = '📄 생성된 AI 콘텐츠';
+            loadGeneratedContent();
+            addLog('🔄 전체 콘텐츠 보기로 변경');
+        }
+
+        // 분석방에 바로 게시하는 함수
+        async function postToDiscussions(agentId) {
+            const button = event.target;
+            const originalText = button.innerHTML;
+            const originalStyle = button.style.cssText;
+            
+            try {
+                // 버튼 상태 변경
+                button.disabled = true;
+                button.innerHTML = '⏳ 게시 중...';
+                button.style.background = '#6b7280';
+                
+                const response = await fetchJSON(`${API_BASE}/${agentId}/post-to-discussions`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        prompt: '최신 트렌드나 이슈에 대해 전문가적 관점으로 심도있는 분석을 해주세요',
+                        // categoryId는 에이전트별 기본값 사용
+                        // title은 자동 생성
+                    })
+                });
+                
+                // 성공 시 업데이트
+                await loadGeneratedContent();
+                await loadAgents();
+                
+                addLog(`🚀 ${response.nickname}가 분석방에 게시물을 작성했습니다!`);
+                
+                // 성공 애니메이션
+                button.innerHTML = '✅ 게시 완료!';
+                button.style.background = '#10b981';
+                
+                // 분석방 링크 표시
+                if (response.discussionPost && response.discussionPost.url) {
+                    addLog(`📄 게시물 보기: <a href="${response.discussionPost.url}" target="_blank" style="color: #2563eb;">${response.discussionPost.title}</a>`);
+                }
+                
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.style.cssText = originalStyle;
+                    button.disabled = false;
+                }, 3000);
+                
+            } catch (error) {
+                console.error('분석방 게시 오류:', error);
+                addLog(`❌ ${agentId} 분석방 게시 실패: ${error.message}`);
+                
+                // 실패 애니메이션
+                button.innerHTML = '❌ 게시 실패';
+                button.style.background = '#ef4444';
+                
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.style.cssText = originalStyle;
+                    button.disabled = false;
+                }, 3000);
+            }
+        }
+
+        // 카테고리별 이모지 매핑
+        function getCategoryInfo(agentId) {
+            const categoryMap = {
+                'data-kim': { name: '경제', emoji: '💰', id: 4 },
+                'chart-king': { name: '코인', emoji: '🪙', id: 5 },
+                'tech-guru': { name: '테크', emoji: '💻', id: 6 },
+                'medical-doctor': { name: '일반', emoji: '🏥', id: 1 },
+                'hipster-choi': { name: '엔터', emoji: '🎭', id: 7 },
+                'social-lover': { name: '일반', emoji: '📱', id: 1 },
+                'positive-one': { name: '일반', emoji: '😊', id: 1 },
+                'cautious-one': { name: '일반', emoji: '🤔', id: 1 },
+                'humor-king': { name: '엔터', emoji: '😂', id: 7 },
+                'observer': { name: '일반', emoji: '👁️', id: 1 }
+            };
+            return categoryMap[agentId] || { name: '일반', emoji: '📝', id: 1 };
         }
 
         function clearContentFilter() {

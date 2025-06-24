@@ -411,6 +411,110 @@ router.post('/:agentId/generate', requireAdmin, async (req, res) => {
   }
 });
 
+// AI 콘텐츠를 분석방에 바로 게시
+router.post('/:agentId/post-to-discussions', requireAdmin, async (req, res) => {
+  try {
+    if (!agentManager) {
+      return res.status(503).json({ error: 'Agent manager not initialized' });
+    }
+
+    const { agentId } = req.params;
+    const { prompt, categoryId, title } = req.body;
+
+    // 에이전트 확인
+    const agent = await get(`
+      SELECT * FROM ai_agents WHERE agent_id = $1 AND is_active = true
+    `, [agentId]);
+
+    if (!agent) {
+      return res.status(404).json({ error: 'Agent not found or inactive' });
+    }
+
+    // AI 콘텐츠 생성
+    const context = {
+      prompt: prompt || '오늘의 주제에 대해 전문가적 분석을 해주세요',
+      type: 'post'
+    };
+    
+    const generatedContent = await agentManager.generatePost(agentId, context);
+    
+    if (!generatedContent || generatedContent.isFiltered) {
+      return res.status(400).json({ error: 'Content generation failed or filtered' });
+    }
+
+    // 에이전트별 기본 카테고리 매핑
+    const getDefaultCategory = (agentId) => {
+      const categoryMap = {
+        'data-kim': 4,      // 경제
+        'chart-king': 5,    // 코인  
+        'tech-guru': 6,     // 테크
+        'medical-doctor': 1, // 일반
+        'hipster-choi': 7,  // 엔터
+        'social-lover': 1,  // 일반
+        'positive-one': 1,  // 일반
+        'cautious-one': 1,  // 일반
+        'humor-king': 7,    // 엔터
+        'observer': 1       // 일반
+      };
+      return categoryMap[agentId] || 1;
+    };
+
+    const finalCategoryId = categoryId || getDefaultCategory(agentId);
+    const finalTitle = title || `[${agent.nickname}] ${generatedContent.content.slice(0, 50)}...`;
+
+    // 분석방에 게시물 생성
+    const postResult = await query(`
+      INSERT INTO discussion_posts (title, content, category_id, author_id, created_at)
+      VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)
+      RETURNING id, title, created_at
+    `, [
+      finalTitle,
+      generatedContent.content,
+      finalCategoryId,
+      1 // AI 에이전트용 임시 사용자 ID (필요시 별도 AI 사용자 생성)
+    ]);
+
+    const discussionPost = postResult.rows[0];
+
+    // 활동 로그 기록
+    await query(`
+      INSERT INTO ai_agent_activities (agent_id, activity_type, content, metadata)
+      VALUES ($1, $2, $3, $4)
+    `, [
+      agentId,
+      'discussion_post',
+      generatedContent.content,
+      JSON.stringify({ 
+        manual: true, 
+        prompt, 
+        discussionId: discussionPost.id,
+        categoryId: finalCategoryId,
+        title: finalTitle
+      })
+    ]);
+
+    console.log(`📄 ${agent.nickname}이 분석방에 게시물을 작성했습니다: ${discussionPost.title}`);
+
+    res.json({
+      agentId,
+      nickname: agent.nickname,
+      content: generatedContent.content,
+      discussionPost: {
+        id: discussionPost.id,
+        title: discussionPost.title,
+        categoryId: finalCategoryId,
+        createdAt: discussionPost.created_at,
+        url: `/discussion-post.html?id=${discussionPost.id}`
+      },
+      timestamp: new Date()
+    });
+
+  } catch (error) {
+    console.error('분석방 게시 오류:', error);
+    res.status(500).json({ error: 'Failed to post to discussions' });
+  }
+});
+
 module.exports = {
   router,
   initializeAgents,
