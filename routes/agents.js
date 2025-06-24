@@ -513,6 +513,9 @@ router.post('/:agentId/post-to-discussions', requireAdmin, async (req, res) => {
     const finalCategoryId = categoryId || getDefaultCategory(agentId);
     const finalTitle = title || extractTitle(generatedContent.content);
 
+    // AI 에이전트의 고유 사용자 ID 가져오기
+    const authorId = await getAIAgentUserId(agentId);
+
     // 분석방에 게시물 생성
     const postResult = await query(`
       INSERT INTO discussion_posts (title, content, category_id, author_id, created_at)
@@ -522,7 +525,7 @@ router.post('/:agentId/post-to-discussions', requireAdmin, async (req, res) => {
       finalTitle,
       generatedContent.content,
       finalCategoryId,
-      1 // AI 에이전트용 임시 사용자 ID (필요시 별도 AI 사용자 생성)
+      authorId // AI 에이전트별 고유 사용자 ID 사용
     ]);
 
     const discussionPost = postResult.rows[0];
@@ -640,9 +643,411 @@ router.post('/update-system-prompts', requireAdmin, async (req, res) => {
   }
 });
 
+// 레벨/등급 시스템 설정
+router.post('/setup-level-system', requireAdmin, async (req, res) => {
+  try {
+    console.log('⭐ 사용자 레벨/등급 시스템 설정 중...');
+    
+    // 1. 테이블에 컬럼 추가
+    await query(`
+      ALTER TABLE users 
+      ADD COLUMN IF NOT EXISTS level INTEGER DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS experience INTEGER DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS rank VARCHAR(20) DEFAULT '티끌',
+      ADD COLUMN IF NOT EXISTS total_posts INTEGER DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS total_comments INTEGER DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS total_bets INTEGER DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS win_streak INTEGER DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS max_win_streak INTEGER DEFAULT 0
+    `);
+
+    // 2. 등급 계산 함수 생성
+    await query(`
+      CREATE OR REPLACE FUNCTION get_user_rank(user_level INTEGER) 
+      RETURNS VARCHAR(20) AS $$
+      BEGIN
+        CASE 
+          WHEN user_level >= 100 THEN RETURN '전설';
+          WHEN user_level >= 80 THEN RETURN '다이아';
+          WHEN user_level >= 60 THEN RETURN '플래티넘';
+          WHEN user_level >= 40 THEN RETURN '골드';
+          WHEN user_level >= 20 THEN RETURN '실버';
+          WHEN user_level >= 10 THEN RETURN '브론즈';
+          WHEN user_level >= 5 THEN RETURN '아이언';
+          WHEN user_level >= 1 THEN RETURN '새싹';
+          ELSE RETURN '티끌';
+        END CASE;
+      END;
+      $$ LANGUAGE plpgsql
+    `);
+
+    // 3. AI 에이전트들에게 특별한 레벨 부여
+    await query(`
+      UPDATE users 
+      SET 
+        level = 99,
+        experience = 9900,
+        rank = '다이아',
+        total_posts = 999,
+        total_comments = 999
+      WHERE username LIKE 'ai_%'
+    `);
+
+    // 4. 기존 일반 사용자들 기본값 설정
+    await query(`
+      UPDATE users 
+      SET 
+        level = COALESCE(level, 0),
+        experience = COALESCE(experience, 0),
+        rank = COALESCE(rank, '티끌'),
+        total_posts = COALESCE(total_posts, 0),
+        total_comments = COALESCE(total_comments, 0),
+        total_bets = COALESCE(total_bets, 0),
+        win_streak = COALESCE(win_streak, 0),
+        max_win_streak = COALESCE(max_win_streak, 0)
+      WHERE level IS NULL OR rank IS NULL
+    `);
+
+    // 5. 확인용 데이터 조회
+    const userLevels = await query(`
+      SELECT 
+        id, username, level, experience, rank, total_posts, total_comments,
+        CASE 
+          WHEN username LIKE 'ai_%' THEN '🤖 AI'
+          ELSE '👤 User'
+        END as user_type
+      FROM users
+      ORDER BY level DESC, experience DESC
+      LIMIT 20
+    `);
+
+    res.json({
+      message: '사용자 레벨/등급 시스템 설정 완료',
+      userLevels: userLevels.rows,
+      totalUsers: userLevels.rows.length
+    });
+
+  } catch (error) {
+    console.error('레벨 시스템 설정 실패:', error);
+    res.status(500).json({ error: 'Failed to setup level system', details: error.message });
+  }
+});
+
+// AI 에이전트용 사용자 계정 설정
+router.post('/setup-ai-users', requireAdmin, async (req, res) => {
+  try {
+    console.log('🤖 AI 에이전트용 사용자 계정 생성 중...');
+    
+    const aiUsers = [
+      { username: 'ai_data_kim', email: 'data.kim@yegam.ai', agentId: 'data-kim' },
+      { username: 'ai_chart_king', email: 'chart.king@yegam.ai', agentId: 'chart-king' },
+      { username: 'ai_tech_guru', email: 'tech.guru@yegam.ai', agentId: 'tech-guru' },
+      { username: 'ai_hipster_choi', email: 'hipster.choi@yegam.ai', agentId: 'hipster-choi' },
+      { username: 'ai_social_lover', email: 'social.lover@yegam.ai', agentId: 'social-lover' },
+      { username: 'ai_medical_doctor', email: 'medical.doctor@yegam.ai', agentId: 'medical-doctor' },
+      { username: 'ai_positive_one', email: 'positive.one@yegam.ai', agentId: 'positive-one' },
+      { username: 'ai_cautious_one', email: 'cautious.one@yegam.ai', agentId: 'cautious-one' },
+      { username: 'ai_humor_king', email: 'humor.king@yegam.ai', agentId: 'humor-king' },
+      { username: 'ai_observer', email: 'observer@yegam.ai', agentId: 'observer' }
+    ];
+
+    const results = [];
+    for (const user of aiUsers) {
+      try {
+        const result = await query(`
+          INSERT INTO users (username, email, password_hash, coins, gam_balance) 
+          VALUES ($1, $2, 'ai_agent_no_login', 999999, 999999)
+          ON CONFLICT (username) DO UPDATE SET
+            email = EXCLUDED.email,
+            coins = 999999,
+            gam_balance = 999999
+          RETURNING id, username
+        `, [user.username, user.email]);
+        
+        results.push({
+          agentId: user.agentId,
+          userId: result.rows[0].id,
+          username: result.rows[0].username,
+          status: 'success'
+        });
+        console.log(`✅ ${user.agentId} -> user_id: ${result.rows[0].id}`);
+      } catch (userError) {
+        results.push({
+          agentId: user.agentId,
+          status: 'error',
+          error: userError.message
+        });
+        console.error(`❌ ${user.agentId} 생성 실패:`, userError.message);
+      }
+    }
+
+    // 매핑 확인
+    const mapping = await query(`
+      SELECT 
+        aa.agent_id,
+        aa.nickname,
+        u.id as user_id,
+        u.username
+      FROM ai_agents aa
+      JOIN users u ON (
+        (aa.agent_id = 'data-kim' AND u.username = 'ai_data_kim') OR
+        (aa.agent_id = 'chart-king' AND u.username = 'ai_chart_king') OR
+        (aa.agent_id = 'tech-guru' AND u.username = 'ai_tech_guru') OR
+        (aa.agent_id = 'hipster-choi' AND u.username = 'ai_hipster_choi') OR
+        (aa.agent_id = 'social-lover' AND u.username = 'ai_social_lover') OR
+        (aa.agent_id = 'medical-doctor' AND u.username = 'ai_medical_doctor') OR
+        (aa.agent_id = 'positive-one' AND u.username = 'ai_positive_one') OR
+        (aa.agent_id = 'cautious-one' AND u.username = 'ai_cautious_one') OR
+        (aa.agent_id = 'humor-king' AND u.username = 'ai_humor_king') OR
+        (aa.agent_id = 'observer' AND u.username = 'ai_observer')
+      )
+      ORDER BY aa.agent_id
+    `);
+
+    res.json({
+      message: 'AI 에이전트 사용자 계정 설정 완료',
+      results: results,
+      mapping: mapping.rows,
+      successCount: results.filter(r => r.status === 'success').length,
+      errorCount: results.filter(r => r.status === 'error').length
+    });
+
+  } catch (error) {
+    console.error('AI 사용자 설정 실패:', error);
+    res.status(500).json({ error: 'Failed to setup AI users' });
+  }
+});
+
+// Superadmin 글/댓글 관리 기능
+router.get('/admin/discussions', requireAdmin, async (req, res) => {
+  try {
+    const { limit = 50, offset = 0, search = '' } = req.query;
+    
+    let whereClause = '';
+    let params = [];
+    let paramIndex = 1;
+    
+    if (search) {
+      whereClause = `WHERE (dp.title ILIKE $${paramIndex} OR dp.content ILIKE $${paramIndex} OR u.username ILIKE $${paramIndex})`;
+      params.push(`%${search}%`);
+      paramIndex++;
+    }
+    
+    // 게시물 조회
+    const posts = await query(`
+      SELECT 
+        dp.id,
+        dp.title,
+        dp.content,
+        dp.category_id,
+        dp.created_at,
+        u.id as author_id,
+        u.username as author_username,
+        u.level,
+        u.rank,
+        CASE WHEN u.username LIKE 'ai_%' THEN true ELSE false END as is_ai
+      FROM discussion_posts dp
+      JOIN users u ON dp.author_id = u.id
+      ${whereClause}
+      ORDER BY dp.created_at DESC
+      LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+    `, [...params, parseInt(limit), parseInt(offset)]);
+
+    // 댓글 조회 (최근 50개)
+    const comments = await query(`
+      SELECT 
+        dc.id,
+        dc.content,
+        dc.post_id,
+        dc.created_at,
+        u.id as author_id,
+        u.username as author_username,
+        u.level,
+        u.rank,
+        dp.title as post_title,
+        CASE WHEN u.username LIKE 'ai_%' THEN true ELSE false END as is_ai
+      FROM discussion_comments dc
+      JOIN users u ON dc.author_id = u.id
+      JOIN discussion_posts dp ON dc.post_id = dp.id
+      ORDER BY dc.created_at DESC
+      LIMIT 50
+    `);
+
+    res.json({
+      posts: posts.rows,
+      comments: comments.rows,
+      totalPosts: posts.rows.length,
+      totalComments: comments.rows.length
+    });
+
+  } catch (error) {
+    console.error('토론 관리 데이터 조회 실패:', error);
+    res.status(500).json({ error: 'Failed to get discussions data' });
+  }
+});
+
+// 게시물 삭제
+router.delete('/admin/discussions/posts/:postId', requireAdmin, async (req, res) => {
+  try {
+    const { postId } = req.params;
+    
+    // 게시물 정보 먼저 조회
+    const post = await get('SELECT * FROM discussion_posts WHERE id = $1', [postId]);
+    if (!post) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    // 관련 댓글부터 삭제
+    const deletedComments = await query('DELETE FROM discussion_comments WHERE post_id = $1 RETURNING id', [postId]);
+    
+    // 좋아요 삭제
+    await query('DELETE FROM discussion_post_likes WHERE post_id = $1', [postId]);
+    await query('DELETE FROM discussion_comment_likes WHERE comment_id IN (SELECT id FROM discussion_comments WHERE post_id = $1)', [postId]);
+    
+    // 게시물 삭제
+    await query('DELETE FROM discussion_posts WHERE id = $1', [postId]);
+
+    console.log(`🗑️ 관리자가 게시물 삭제: ID ${postId}, 댓글 ${deletedComments.rows.length}개도 함께 삭제`);
+
+    res.json({
+      message: '게시물이 삭제되었습니다',
+      deletedPost: post.id,
+      deletedComments: deletedComments.rows.length
+    });
+
+  } catch (error) {
+    console.error('게시물 삭제 실패:', error);
+    res.status(500).json({ error: 'Failed to delete post' });
+  }
+});
+
+// 댓글 삭제
+router.delete('/admin/discussions/comments/:commentId', requireAdmin, async (req, res) => {
+  try {
+    const { commentId } = req.params;
+    
+    // 댓글 정보 먼저 조회
+    const comment = await get('SELECT * FROM discussion_comments WHERE id = $1', [commentId]);
+    if (!comment) {
+      return res.status(404).json({ error: 'Comment not found' });
+    }
+
+    // 댓글 좋아요 삭제
+    await query('DELETE FROM discussion_comment_likes WHERE comment_id = $1', [commentId]);
+    
+    // 댓글 삭제
+    await query('DELETE FROM discussion_comments WHERE id = $1', [commentId]);
+
+    console.log(`🗑️ 관리자가 댓글 삭제: ID ${commentId}`);
+
+    res.json({
+      message: '댓글이 삭제되었습니다',
+      deletedComment: comment.id
+    });
+
+  } catch (error) {
+    console.error('댓글 삭제 실패:', error);
+    res.status(500).json({ error: 'Failed to delete comment' });
+  }
+});
+
+// 일괄 삭제 (AI 글 또는 특정 사용자 글)
+router.post('/admin/discussions/bulk-delete', requireAdmin, async (req, res) => {
+  try {
+    const { type, userId, confirm } = req.body;
+    
+    if (!confirm) {
+      return res.status(400).json({ error: 'Confirmation required' });
+    }
+
+    let deletedPosts = 0;
+    let deletedComments = 0;
+
+    if (type === 'ai_posts') {
+      // AI 게시물 모두 삭제
+      const aiPosts = await query(`
+        SELECT dp.id FROM discussion_posts dp
+        JOIN users u ON dp.author_id = u.id
+        WHERE u.username LIKE 'ai_%'
+      `);
+      
+      for (const post of aiPosts.rows) {
+        await query('DELETE FROM discussion_comments WHERE post_id = $1', [post.id]);
+        await query('DELETE FROM discussion_post_likes WHERE post_id = $1', [post.id]);
+      }
+      
+      const result = await query(`
+        DELETE FROM discussion_posts 
+        WHERE author_id IN (SELECT id FROM users WHERE username LIKE 'ai_%')
+        RETURNING id
+      `);
+      
+      deletedPosts = result.rows.length;
+      
+    } else if (type === 'user_content' && userId) {
+      // 특정 사용자의 모든 글/댓글 삭제
+      const userPosts = await query('SELECT id FROM discussion_posts WHERE author_id = $1', [userId]);
+      
+      for (const post of userPosts.rows) {
+        await query('DELETE FROM discussion_comments WHERE post_id = $1', [post.id]);
+        await query('DELETE FROM discussion_post_likes WHERE post_id = $1', [post.id]);
+      }
+      
+      const postsResult = await query('DELETE FROM discussion_posts WHERE author_id = $1 RETURNING id', [userId]);
+      const commentsResult = await query('DELETE FROM discussion_comments WHERE author_id = $1 RETURNING id', [userId]);
+      
+      deletedPosts = postsResult.rows.length;
+      deletedComments = commentsResult.rows.length;
+    }
+
+    console.log(`🗑️ 관리자 일괄 삭제: ${type}, 게시물 ${deletedPosts}개, 댓글 ${deletedComments}개`);
+
+    res.json({
+      message: '일괄 삭제가 완료되었습니다',
+      deletedPosts,
+      deletedComments,
+      type
+    });
+
+  } catch (error) {
+    console.error('일괄 삭제 실패:', error);
+    res.status(500).json({ error: 'Failed to bulk delete' });
+  }
+});
+
+// AI 에이전트 ID로 사용자 ID 가져오는 헬퍼 함수
+async function getAIAgentUserId(agentId) {
+  const mapping = {
+    'data-kim': 'ai_data_kim',
+    'chart-king': 'ai_chart_king', 
+    'tech-guru': 'ai_tech_guru',
+    'hipster-choi': 'ai_hipster_choi',
+    'social-lover': 'ai_social_lover',
+    'medical-doctor': 'ai_medical_doctor',
+    'positive-one': 'ai_positive_one',
+    'cautious-one': 'ai_cautious_one',
+    'humor-king': 'ai_humor_king',
+    'observer': 'ai_observer'
+  };
+
+  const username = mapping[agentId];
+  if (!username) {
+    throw new Error(`Unknown agent ID: ${agentId}`);
+  }
+
+  try {
+    const result = await get(`SELECT id FROM users WHERE username = $1`, [username]);
+    return result ? result.id : 1; // fallback to 1 if not found
+  } catch (error) {
+    console.error(`Failed to get user ID for agent ${agentId}:`, error);
+    return 1; // fallback to 1
+  }
+}
+
 module.exports = {
   router,
   initializeAgents,
   getAgentManager: () => agentManager,
-  getAgentScheduler: () => agentScheduler
+  getAgentScheduler: () => agentScheduler,
+  getAIAgentUserId
 };
