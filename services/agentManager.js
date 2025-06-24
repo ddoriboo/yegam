@@ -33,15 +33,44 @@ class AgentManager {
 
       const prompt = this.buildPostPrompt(agent, context);
       
-      const completion = await this.openai.chat.completions.create({
-        model: "gpt-4o-mini", // 안정적인 모델로 변경
-        messages: [
-          { role: "system", content: agent.system_prompt },
-          { role: "user", content: prompt }
-        ],
-        temperature: 0.8,
-        max_tokens: 2000 // 500 → 2000으로 증가 (한국어 장문 대응)
-      });
+      // 모델 fallback 시스템
+      const preferredModel = "gpt-4o-mini-search-preview-2025-03-11";
+      const fallbackModel = "gpt-4o-mini";
+      
+      let completion;
+      let modelUsed;
+      
+      try {
+        // 먼저 선호 모델로 시도
+        completion = await this.openai.chat.completions.create({
+          model: preferredModel,
+          messages: [
+            { role: "system", content: agent.system_prompt },
+            { role: "user", content: prompt }
+          ],
+          temperature: 0.8,
+          max_tokens: 2000
+        });
+        modelUsed = preferredModel;
+        console.log(`✅ ${agent.nickname} - ${preferredModel} 모델 사용 성공`);
+        
+      } catch (modelError) {
+        console.warn(`⚠️ ${preferredModel} 모델 사용 실패: ${modelError.message}`);
+        console.log(`🔄 ${fallbackModel} 모델로 재시도...`);
+        
+        // fallback 모델로 재시도
+        completion = await this.openai.chat.completions.create({
+          model: fallbackModel,
+          messages: [
+            { role: "system", content: agent.system_prompt },
+            { role: "user", content: prompt }
+          ],
+          temperature: 0.8,
+          max_tokens: 2000
+        });
+        modelUsed = fallbackModel;
+        console.log(`✅ ${agent.nickname} - ${fallbackModel} 모델 사용 (fallback)`);
+      }
 
       const content = completion.choices[0].message.content;
       const finishReason = completion.choices[0].finish_reason;
@@ -76,7 +105,7 @@ class AgentManager {
         VALUES ($1, $2, $3, $4)
       `, [agentId, 'post', content, true]);
 
-      console.log(`✅ ${agent.nickname} 게시물 생성됨 (${completion.usage?.completion_tokens || '?'} 토큰)`);
+      console.log(`✅ ${agent.nickname} 게시물 생성됨 (${modelUsed}, ${completion.usage?.completion_tokens || '?'} 토큰)`);
 
       return {
         agentId,
@@ -86,6 +115,7 @@ class AgentManager {
         type: 'post',
         finishReason,
         tokensUsed: completion.usage?.total_tokens,
+        modelUsed,
         isFiltered: false
       };
     } catch (error) {
@@ -115,15 +145,34 @@ class AgentManager {
 
       const prompt = this.buildReplyPrompt(agent, originalPost, existingReplies);
       
-      const completion = await this.openai.chat.completions.create({
-        model: "gpt-4o-mini", // 안정적인 모델로 통일
-        messages: [
-          { role: "system", content: agent.system_prompt },
-          { role: "user", content: prompt }
-        ],
-        temperature: 0.7,
-        max_tokens: 800 // 300 → 800으로 증가 (댓글도 충분한 길이)
-      });
+      // 모델 fallback 시스템 (댓글용)
+      const preferredModel = "gpt-4o-mini-search-preview-2025-03-11";
+      const fallbackModel = "gpt-4o-mini";
+      
+      let completion;
+      
+      try {
+        completion = await this.openai.chat.completions.create({
+          model: preferredModel,
+          messages: [
+            { role: "system", content: agent.system_prompt },
+            { role: "user", content: prompt }
+          ],
+          temperature: 0.7,
+          max_tokens: 800
+        });
+      } catch (modelError) {
+        console.warn(`⚠️ ${preferredModel} 모델 사용 실패 (댓글): ${modelError.message}`);
+        completion = await this.openai.chat.completions.create({
+          model: fallbackModel,
+          messages: [
+            { role: "system", content: agent.system_prompt },
+            { role: "user", content: prompt }
+          ],
+          temperature: 0.7,
+          max_tokens: 800
+        });
+      }
 
       const content = completion.choices[0].message.content;
       const finishReason = completion.choices[0].finish_reason;
