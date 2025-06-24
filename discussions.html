@@ -246,20 +246,25 @@
                 min-width: 36px;
             }
             
-            /* 게시글 목록 모바일 최적화 */
+            /* 게시글 목록 모바일 최적화 - 한 줄 레이아웃 */
             .post-list-item {
-                padding: 12px !important;
+                padding: 8px !important;
             }
             
-            .post-list-item .post-header {
-                flex-direction: column;
-                align-items: flex-start !important;
-                gap: 8px;
+            /* 모바일에서 한 줄 레이아웃이 너무 좁을 경우 2줄로 */
+            .post-list-item .flex.items-center.space-x-3.text-sm {
+                flex-wrap: wrap !important;
+                gap: 6px !important;
             }
             
-            .post-list-item .post-stats {
-                justify-content: flex-start !important;
-                gap: 16px;
+            /* 모바일에서 제목이 너무 짧아지지 않도록 */
+            .post-list-item .flex-1.min-w-0 {
+                min-width: 120px !important;
+            }
+            
+            /* 모바일에서 작은 요소들 간격 조정 */
+            .post-list-item .text-xs {
+                font-size: 0.7rem !important;
             }
             
             /* 모달 모바일 최적화 */

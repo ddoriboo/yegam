@@ -445,7 +445,7 @@ function showEmpty() {
     document.getElementById('posts-empty').classList.remove('hidden');
 }
 
-// 게시글 렌더링
+// 게시글 렌더링 (한 줄 레이아웃)
 function renderPosts(posts) {
     const container = document.getElementById('posts-list');
     if (!container) return;
@@ -457,76 +457,74 @@ function renderPosts(posts) {
     
     container.innerHTML = posts.map(post => {
         const category = categories.find(c => c.id === post.category_id);
-        const categoryDisplay = category ? `${category.icon || ''} ${category.name}` : '';
         const categoryColor = category?.color || '#6B7280';
         
-        // 미디어 미리보기 생성
-        const mediaPreview = createPostMediaPreview(post.media_urls, post.media_types, post.id);
+        // 날짜와 시간 분리
+        const date = new Date(post.created_at);
+        const postDate = date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+        const postTime = date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+        
+        // 티어 아이콘과 닉네임
+        const tierIcon = post.tier_icon || '⚪';
+        const authorName = post.author_name || '익명';
         
         return `
             <div class="border-b border-gray-200 last:border-b-0 hover:bg-gray-50 transition-colors cursor-pointer"
                  onclick="goToPost(${post.id})">
-                <div class="p-3 md:p-4">
-                    <div class="flex items-start space-x-3">
-                        <!-- Category Badge -->
-                        <div class="flex-shrink-0 mt-0.5">
-                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border" 
-                                  style="background-color: ${categoryColor}15; color: ${categoryColor}; border-color: ${categoryColor}40;">
+                <div class="p-2 md:p-3">
+                    <div class="flex items-center space-x-3 text-sm">
+                        <!-- Category -->
+                        <div class="flex-shrink-0">
+                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium" 
+                                  style="background-color: ${categoryColor}15; color: ${categoryColor};">
                                 ${category?.icon || '📝'} ${category?.name || '기타'}
                             </span>
                         </div>
                         
+                        <!-- Notice/Pinned Badges -->
+                        <div class="flex items-center space-x-1">
+                            ${post.is_notice ? `
+                                <span class="bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded text-xs font-medium">공지</span>
+                            ` : ''}
+                            ${post.is_pinned ? `
+                                <span class="bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded text-xs font-medium">고정</span>
+                            ` : ''}
+                        </div>
+                        
+                        <!-- Title -->
                         <div class="flex-1 min-w-0">
-                            <!-- Post Header -->
-                            <div class="flex items-center space-x-2 mb-2">
-                                ${post.is_notice ? `
-                                    <span class="bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded text-xs font-medium">공지</span>
-                                ` : ''}
-                                ${post.is_pinned ? `
-                                    <span class="bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded text-xs font-medium">고정</span>
-                                ` : ''}
-                                <span class="text-xs text-gray-500">
-                                    ${new Date(post.created_at).toLocaleDateString('ko-KR')}
-                                </span>
-                                <span class="text-xs text-gray-400">•</span>
-                                <span class="text-xs text-gray-500">
-                                    ${post.author_name || '익명'}
-                                </span>
-                            </div>
-                            
-                            <!-- Post Title -->
-                            <h3 class="text-base font-semibold text-gray-900 mb-1 hover:text-blue-600 transition-colors">
+                            <span class="font-medium text-gray-900 truncate hover:text-blue-600 transition-colors">
                                 ${post.title}
                                 ${post.media_urls && post.media_urls.length > 0 ? `
                                     <i data-lucide="paperclip" class="w-3 h-3 ml-1 text-blue-500 inline"></i>
                                 ` : ''}
-                            </h3>
-                            
-                            <!-- Post Preview -->
-                            ${post.content_preview ? `
-                                <p class="text-gray-600 text-sm mb-2 line-clamp-2">
-                                    ${post.content_preview}
-                                </p>
-                            ` : ''}
-                            
-                            <!-- Media Preview -->
-                            ${mediaPreview}
-                            
-                            <!-- Post Stats -->
-                            <div class="flex items-center space-x-3 text-xs text-gray-500">
-                                <span class="flex items-center">
-                                    <i data-lucide="eye" class="w-3 h-3 mr-1"></i>
-                                    ${post.view_count || 0}
-                                </span>
-                                <span class="flex items-center">
-                                    <i data-lucide="message-circle" class="w-3 h-3 mr-1"></i>
-                                    ${post.comment_count || 0}
-                                </span>
-                                <span class="flex items-center">
-                                    <i data-lucide="heart" class="w-3 h-3 mr-1"></i>
-                                    ${post.like_count || 0}
-                                </span>
-                            </div>
+                            </span>
+                        </div>
+                        
+                        <!-- Author with Tier -->
+                        <div class="flex-shrink-0">
+                            <span class="text-gray-600">
+                                ${tierIcon} ${authorName}
+                            </span>
+                        </div>
+                        
+                        <!-- Stats -->
+                        <div class="flex items-center space-x-3 text-xs text-gray-500 flex-shrink-0">
+                            <span class="flex items-center">
+                                <i data-lucide="eye" class="w-3 h-3 mr-1"></i>
+                                ${post.view_count || 0}
+                            </span>
+                            <span class="flex items-center">
+                                <i data-lucide="heart" class="w-3 h-3 mr-1"></i>
+                                ${post.like_count || 0}
+                            </span>
+                        </div>
+                        
+                        <!-- Date & Time -->
+                        <div class="flex items-center space-x-1 text-xs text-gray-500 flex-shrink-0">
+                            <span>${postDate}</span>
+                            <span class="text-gray-400">•</span>
+                            <span>${postTime}</span>
                         </div>
                     </div>
                 </div>
@@ -540,91 +538,6 @@ function renderPosts(posts) {
     }
 }
 
-// 게시글 목록용 미디어 미리보기 생성
-function createPostMediaPreview(mediaUrls, mediaTypes, postId) {
-    if (!mediaUrls || !Array.isArray(mediaUrls) || mediaUrls.length === 0) {
-        return '';
-    }
-    
-    // 첫 번째 미디어만 미리보기로 표시
-    const firstUrl = mediaUrls[0];
-    const firstType = mediaTypes?.[0] || 'unknown';
-    const remainingCount = mediaUrls.length - 1;
-    
-    const mediaInfo = detectMediaType(firstUrl);
-    
-    let previewHtml = '';
-    
-    switch (mediaInfo.type) {
-        case 'youtube':
-            previewHtml = `
-                <div class="mb-2">
-                    <div class="relative">
-                        <img src="${mediaInfo.thumbnailUrl}" alt="YouTube thumbnail" 
-                             class="w-full h-20 object-cover rounded"
-                             onerror="this.style.display='none'">
-                        <div class="absolute inset-0 bg-black bg-opacity-30 rounded flex items-center justify-center">
-                            <div class="bg-white bg-opacity-90 rounded-full p-1">
-                                <i data-lucide="play" class="w-4 h-4 text-red-600"></i>
-                            </div>
-                        </div>
-                        ${remainingCount > 0 ? `
-                            <div class="absolute top-1 right-1 bg-black bg-opacity-70 text-white text-xs px-1 py-0.5 rounded">
-                                +${remainingCount}
-                            </div>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-            break;
-        case 'image':
-            previewHtml = `
-                <div class="mb-3">
-                    <div class="relative">
-                        <img src="${firstUrl}" alt="이미지 미리보기" 
-                             class="w-full h-32 object-cover rounded-lg"
-                             onerror="this.style.display='none'">
-                        ${remainingCount > 0 ? `
-                            <div class="absolute top-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
-                                +${remainingCount}
-                            </div>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-            break;
-        case 'video':
-            previewHtml = `
-                <div class="mb-3">
-                    <div class="relative">
-                        <div class="w-full h-32 bg-gray-100 rounded-lg flex items-center justify-center">
-                            <i data-lucide="play-circle" class="w-8 h-8 text-gray-400"></i>
-                        </div>
-                        ${remainingCount > 0 ? `
-                            <div class="absolute top-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
-                                +${remainingCount}
-                            </div>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-            break;
-        default:
-            // 미디어가 있지만 미리보기가 불가능한 경우 작은 표시만
-            if (mediaUrls.length > 0) {
-                previewHtml = `
-                    <div class="mb-2">
-                        <div class="inline-flex items-center px-2 py-1 rounded text-xs bg-gray-100 text-gray-600">
-                            <i data-lucide="link" class="w-3 h-3 mr-1"></i>
-                            첨부파일 ${mediaUrls.length}개
-                        </div>
-                    </div>
-                `;
-            }
-    }
-    
-    return previewHtml;
-}
 
 // 페이지네이션 렌더링
 function renderPagination(pagination) {
