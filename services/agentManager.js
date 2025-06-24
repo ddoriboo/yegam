@@ -41,19 +41,19 @@ class AgentManager {
       let modelUsed;
       
       try {
-        // search-preview 모델은 temperature 파라미터를 지원하지 않음
+        // search-preview 모델은 model과 messages만 지원
         const requestParams = {
           model: preferredModel,
           messages: [
             { role: "system", content: agent.system_prompt },
             { role: "user", content: prompt }
-          ],
-          max_tokens: 2000
+          ]
         };
         
-        // search-preview 모델이 아닌 경우에만 temperature 추가
+        // search-preview 모델이 아닌 경우에만 추가 파라미터 사용
         if (!preferredModel.includes('search-preview')) {
           requestParams.temperature = 0.8;
+          requestParams.max_tokens = 2000;
         }
         
         completion = await this.openai.chat.completions.create(requestParams);
@@ -158,19 +158,19 @@ class AgentManager {
       let completion;
       
       try {
-        // search-preview 모델은 temperature 파라미터를 지원하지 않음
+        // search-preview 모델은 model과 messages만 지원
         const requestParams = {
           model: preferredModel,
           messages: [
             { role: "system", content: agent.system_prompt },
             { role: "user", content: prompt }
-          ],
-          max_tokens: 800
+          ]
         };
         
-        // search-preview 모델이 아닌 경우에만 temperature 추가
+        // search-preview 모델이 아닌 경우에만 추가 파라미터 사용
         if (!preferredModel.includes('search-preview')) {
           requestParams.temperature = 0.7;
+          requestParams.max_tokens = 800;
         }
         
         completion = await this.openai.chat.completions.create(requestParams);
@@ -235,20 +235,24 @@ class AgentManager {
     let prompt = `현재 시간: ${currentTime}
 당신의 관심사: ${interestsText}
 
-예겜 커뮤니티의 '분석방'에 올릴 게시물을 작성하세요.
+YEGAM 베팅 커뮤니티 '분석방'에 올릴 논쟁적인 게시물을 작성하세요.
 
-중요한 작성 규칙:
-- 자기소개 절대 금지 (AI라는 것, 이름, 전문분야 등을 언급하지 마세요)
-- 바로 본론부터 시작하세요
-- 첫 줄에 핵심 주제나 결론을 명확히 제시하세요
-- 인사말이나 서두 없이 바로 분석/정보를 제공하세요
+🎯 핵심 미션: 50:50으로 나뉠 수 있는 베팅 주제 만들기!
 
-내용 작성 가이드:
-- 당신의 전문 분야와 관련된 유용한 정보나 분석을 공유하세요
-- 최신 트렌드나 이슈에 대한 당신만의 관점을 제시하세요
-- 뻔한 주제보다는 그날, 그시점에 화제가 되는 주제에 대해서 논하세요
-- 한국어로 작성하고, 존댓말을 사용하세요
-- 글 마지막에만 간단히 "🤖 AI 어시스턴트 [닉네임]"으로 서명하세요`;
+필수 작성 규칙:
+- 디시 커뮤니티 스타일로 반말/존댓말 섞어서 자유롭게
+- ㅋㅋㅋ, ㅎㅎ, ^^;, ㅇㅇ, ㅇㅈ? 같은 표현 적극 활용
+- 바로 논쟁거리부터 시작 (인사말/자기소개 금지)
+- 최신 밈과 유행어 자연스럽게 섞기
+
+베팅 주제 가이드:
+- "A vs B 뭐가 이길까?" 형태의 대립 구조 만들기
+- 시의적절하고 화제성 있는 주제 선택
+- 사람들이 의견 나뉠 수밖에 없는 논쟁적 소재
+- 예측 가능한 미래 이벤트나 비교 대상 제시
+- 댓글로 토론 유발할 수 있는 떡밥 던지기
+
+글 마지막에만 🤖[닉네임]으로 서명`;
 
     if (context.recentTopics) {
       prompt += `\n\n최근 인기 주제: ${context.recentTopics.join(', ')}`;
