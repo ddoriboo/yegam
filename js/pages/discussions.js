@@ -445,7 +445,7 @@ function showEmpty() {
     document.getElementById('posts-empty').classList.remove('hidden');
 }
 
-// 게시글 렌더링 (한 줄 레이아웃)
+// 게시글 렌더링 (데스크톱: 한 줄, 모바일: 2줄 레이아웃)
 function renderPosts(posts) {
     const container = document.getElementById('posts-list');
     if (!container) return;
@@ -471,7 +471,8 @@ function renderPosts(posts) {
         return `
             <div class="border-b border-gray-200 last:border-b-0 hover:bg-gray-50 transition-colors cursor-pointer"
                  onclick="goToPost(${post.id})">
-                <div class="p-2 md:p-3">
+                <!-- Desktop Layout -->
+                <div class="hidden md:block p-3">
                     <div class="flex items-center space-x-3 text-sm">
                         <!-- Category -->
                         <div class="flex-shrink-0">
@@ -525,6 +526,59 @@ function renderPosts(posts) {
                             <span>${postDate}</span>
                             <span class="text-gray-400">•</span>
                             <span>${postTime}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mobile Layout -->
+                <div class="md:hidden p-3">
+                    <div class="space-y-2">
+                        <!-- First Row: Category + Title -->
+                        <div class="flex items-start space-x-2">
+                            <div class="flex-shrink-0">
+                                <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium" 
+                                      style="background-color: ${categoryColor}15; color: ${categoryColor};">
+                                    ${category?.icon || '📝'}
+                                </span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center space-x-1 mb-1">
+                                    ${post.is_notice ? `
+                                        <span class="bg-purple-100 text-purple-800 px-1 py-0.5 rounded text-xs font-medium">공지</span>
+                                    ` : ''}
+                                    ${post.is_pinned ? `
+                                        <span class="bg-yellow-100 text-yellow-800 px-1 py-0.5 rounded text-xs font-medium">고정</span>
+                                    ` : ''}
+                                </div>
+                                <h3 class="font-medium text-gray-900 text-sm leading-tight hover:text-blue-600 transition-colors">
+                                    ${post.title}
+                                    ${post.media_urls && post.media_urls.length > 0 ? `
+                                        <i data-lucide="paperclip" class="w-3 h-3 ml-1 text-blue-500 inline"></i>
+                                    ` : ''}
+                                </h3>
+                            </div>
+                        </div>
+                        
+                        <!-- Second Row: Author + Stats + Date -->
+                        <div class="flex items-center justify-between text-xs text-gray-500">
+                            <div class="flex items-center space-x-3">
+                                <span class="text-gray-600">
+                                    ${tierIcon} ${authorName}
+                                </span>
+                                <span class="flex items-center">
+                                    <i data-lucide="eye" class="w-3 h-3 mr-1"></i>
+                                    ${post.view_count || 0}
+                                </span>
+                                <span class="flex items-center">
+                                    <i data-lucide="heart" class="w-3 h-3 mr-1"></i>
+                                    ${post.like_count || 0}
+                                </span>
+                            </div>
+                            <div class="flex items-center space-x-1">
+                                <span>${postDate}</span>
+                                <span class="text-gray-400">•</span>
+                                <span>${postTime}</span>
+                            </div>
                         </div>
                     </div>
                 </div>

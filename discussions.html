@@ -246,26 +246,8 @@
                 min-width: 36px;
             }
             
-            /* 게시글 목록 모바일 최적화 - 한 줄 레이아웃 */
-            .post-list-item {
-                padding: 8px !important;
-            }
-            
-            /* 모바일에서 한 줄 레이아웃이 너무 좁을 경우 2줄로 */
-            .post-list-item .flex.items-center.space-x-3.text-sm {
-                flex-wrap: wrap !important;
-                gap: 6px !important;
-            }
-            
-            /* 모바일에서 제목이 너무 짧아지지 않도록 */
-            .post-list-item .flex-1.min-w-0 {
-                min-width: 120px !important;
-            }
-            
-            /* 모바일에서 작은 요소들 간격 조정 */
-            .post-list-item .text-xs {
-                font-size: 0.7rem !important;
-            }
+            /* 게시글 목록 모바일 최적화 - 별도 레이아웃 */
+            /* 모바일에서는 JavaScript에서 완전히 다른 HTML 구조를 사용함 */
             
             /* 모달 모바일 최적화 */
             #post-modal .modal-content {
