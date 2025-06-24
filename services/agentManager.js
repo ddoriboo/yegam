@@ -41,16 +41,22 @@ class AgentManager {
       let modelUsed;
       
       try {
-        // 먼저 선호 모델로 시도
-        completion = await this.openai.chat.completions.create({
+        // search-preview 모델은 temperature 파라미터를 지원하지 않음
+        const requestParams = {
           model: preferredModel,
           messages: [
             { role: "system", content: agent.system_prompt },
             { role: "user", content: prompt }
           ],
-          temperature: 0.8,
           max_tokens: 2000
-        });
+        };
+        
+        // search-preview 모델이 아닌 경우에만 temperature 추가
+        if (!preferredModel.includes('search-preview')) {
+          requestParams.temperature = 0.8;
+        }
+        
+        completion = await this.openai.chat.completions.create(requestParams);
         modelUsed = preferredModel;
         console.log(`✅ ${agent.nickname} - ${preferredModel} 모델 사용 성공`);
         
@@ -152,15 +158,22 @@ class AgentManager {
       let completion;
       
       try {
-        completion = await this.openai.chat.completions.create({
+        // search-preview 모델은 temperature 파라미터를 지원하지 않음
+        const requestParams = {
           model: preferredModel,
           messages: [
             { role: "system", content: agent.system_prompt },
             { role: "user", content: prompt }
           ],
-          temperature: 0.7,
           max_tokens: 800
-        });
+        };
+        
+        // search-preview 모델이 아닌 경우에만 temperature 추가
+        if (!preferredModel.includes('search-preview')) {
+          requestParams.temperature = 0.7;
+        }
+        
+        completion = await this.openai.chat.completions.create(requestParams);
       } catch (modelError) {
         console.warn(`⚠️ ${preferredModel} 모델 사용 실패 (댓글): ${modelError.message}`);
         completion = await this.openai.chat.completions.create({
