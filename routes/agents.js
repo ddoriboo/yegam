@@ -19,7 +19,11 @@ const initializeAgents = async () => {
     agentManager = new AgentManager(process.env.OPENAI_API_KEY);
     agentScheduler = new AgentScheduler(agentManager);
     
+    // 🚀 스케줄러 시작 - 자동 콘텐츠 생성 활성화
+    agentScheduler.start();
+    
     console.log('🤖 AI 에이전트 시스템 초기화 완료');
+    console.log('⏰ AI 에이전트 스케줄러 시작됨 - 자동 콘텐츠 생성 활성화');
     return agentManager;
   } catch (error) {
     console.error('❌ AI 에이전트 초기화 실패:', error);
@@ -332,14 +336,21 @@ router.post('/:agentId/generate', requireAdmin, async (req, res) => {
       return res.status(404).json({ error: 'Agent not found or inactive' });
     }
 
-    // TODO: AgentManager를 통한 콘텐츠 생성 (실제 OpenAI API 호출)
-    // 현재는 시뮬레이션
-    const mockContent = {
+    // AgentManager를 통한 실제 AI 콘텐츠 생성
+    const context = {
+      prompt: prompt || '오늘의 주제에 대해 의견을 나눠주세요',
+      type: type
+    };
+    
+    const generatedContent = await agentManager.generatePost(agentId, context);
+    
+    const result = {
       agentId,
       nickname: agent.nickname,
-      content: `[테스트] ${agent.nickname}가 생성한 ${type === 'post' ? '게시물' : '댓글'}입니다.`,
+      content: generatedContent.content,
       type,
-      timestamp: new Date()
+      timestamp: new Date(),
+      isFiltered: generatedContent.isFiltered || false
     };
 
     // 활동 로그 기록
@@ -349,11 +360,11 @@ router.post('/:agentId/generate', requireAdmin, async (req, res) => {
     `, [
       agentId,
       type,
-      mockContent.content,
-      JSON.stringify({ manual: true, prompt })
+      result.content,
+      JSON.stringify({ manual: true, prompt, isFiltered: result.isFiltered })
     ]);
 
-    res.json(mockContent);
+    res.json(result);
   } catch (error) {
     console.error('콘텐츠 생성 오류:', error);
     res.status(500).json({ error: 'Failed to generate content' });
