@@ -188,6 +188,18 @@
             color: white;
         }
 
+        .control-btn:disabled {
+            background: #e5e7eb;
+            color: #9ca3af;
+            border-color: #e5e7eb;
+            cursor: not-allowed;
+        }
+
+        .control-btn:disabled:hover {
+            background: #e5e7eb;
+            color: #9ca3af;
+        }
+
         .activity-log {
             background: white;
             border-radius: 8px;
@@ -409,6 +421,18 @@
                     <div style="margin-top: 10px; font-size: 12px; color: #6b7280;">
                         마지막 활동: ${agent.lastActivity ? new Date(agent.lastActivity).toLocaleString('ko-KR') : '없음'}
                     </div>
+                    <div style="margin-top: 15px; display: flex; gap: 8px;">
+                        <button class="control-btn" style="flex: 1; font-size: 12px; padding: 6px 12px;" 
+                                onclick="generateContent('${agent.agentId}')" 
+                                ${!agent.isActive ? 'disabled' : ''}>
+                            📝 콘텐츠 생성
+                        </button>
+                        <button class="control-btn" style="flex: 1; font-size: 12px; padding: 6px 12px;" 
+                                onclick="viewAgentContent('${agent.agentId}')" 
+                                title="이 에이전트가 생성한 콘텐츠만 보기">
+                            👁️ 콘텐츠 보기
+                        </button>
+                    </div>
                 </div>
             `).join('');
             
@@ -572,6 +596,82 @@
 
         function clearContentFilter() {
             loadGeneratedContent();
+        }
+
+        // 수동 콘텐츠 생성 함수
+        async function generateContent(agentId) {
+            const button = event.target;
+            const originalText = button.innerHTML;
+            
+            try {
+                // 버튼 상태 변경
+                button.disabled = true;
+                button.innerHTML = '⏳ 생성 중...';
+                
+                const response = await fetchJSON(`${API_BASE}/${agentId}/generate`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        prompt: '오늘의 흥미로운 주제에 대해 전문가적 관점으로 분석해주세요',
+                        type: 'post'
+                    })
+                });
+                
+                // 성공 시 즉시 콘텐츠 새로고침
+                await loadGeneratedContent();
+                await loadAgents(); // 통계 업데이트
+                
+                addLog(`✅ ${response.nickname}가 새로운 콘텐츠를 생성했습니다`);
+                
+                // 성공 애니메이션
+                button.innerHTML = '✅ 생성 완료!';
+                button.style.backgroundColor = '#10b981';
+                
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.style.backgroundColor = '';
+                    button.disabled = false;
+                }, 2000);
+                
+            } catch (error) {
+                console.error('콘텐츠 생성 오류:', error);
+                addLog(`❌ ${agentId} 콘텐츠 생성 실패: ${error.message}`);
+                
+                // 실패 애니메이션
+                button.innerHTML = '❌ 생성 실패';
+                button.style.backgroundColor = '#ef4444';
+                
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.style.backgroundColor = '';
+                    button.disabled = false;
+                }, 2000);
+            }
+        }
+
+        // 특정 에이전트 콘텐츠만 보기
+        async function viewAgentContent(agentId) {
+            try {
+                const content = await fetchJSON(`${API_BASE}/content?agent_id=${agentId}&limit=10`);
+                renderGeneratedContent(content);
+                
+                // 필터 상태 표시
+                const title = document.querySelector('#generated-content').parentElement.querySelector('h3');
+                const agents = await fetchJSON(`${API_BASE}/status`);
+                const agent = agents.find(a => a.agentId === agentId);
+                title.textContent = `📄 ${agent ? agent.nickname : agentId}의 생성 콘텐츠`;
+                
+                addLog(`👁️ ${agent ? agent.nickname : agentId}의 콘텐츠만 표시 중`);
+            } catch (error) {
+                console.error('에이전트 콘텐츠 조회 오류:', error);
+                addLog(`❌ ${agentId} 콘텐츠 조회 실패`);
+            }
+        }
+
+        function clearContentFilter() {
+            // 제목 초기화
+            document.querySelector('#generated-content').parentElement.querySelector('h3').textContent = '📄 생성된 AI 콘텐츠';
+            loadGeneratedContent();
+            addLog('🔄 전체 콘텐츠 보기로 변경');
         }
 
         // 초기화
