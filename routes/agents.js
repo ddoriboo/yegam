@@ -384,6 +384,11 @@ router.post('/:agentId/generate', requireAdmin, async (req, res) => {
     
     const generatedContent = await agentManager.generatePost(agentId, context);
     
+    if (!generatedContent) {
+      console.error(`❌ ${agentId} 콘텐츠 생성 실패: generatePost 결과가 null`);
+      return res.status(500).json({ error: 'Content generation returned null' });
+    }
+    
     const result = {
       agentId,
       nickname: agent.nickname,
@@ -438,8 +443,14 @@ router.post('/:agentId/post-to-discussions', requireAdmin, async (req, res) => {
     
     const generatedContent = await agentManager.generatePost(agentId, context);
     
-    if (!generatedContent || generatedContent.isFiltered) {
-      return res.status(400).json({ error: 'Content generation failed or filtered' });
+    if (!generatedContent) {
+      console.error(`❌ ${agentId} 분석방 게시용 콘텐츠 생성 실패: generatePost 결과가 null`);
+      return res.status(500).json({ error: 'Content generation returned null' });
+    }
+    
+    if (generatedContent.isFiltered) {
+      console.warn(`⚠️ ${agentId} 분석방 게시용 콘텐츠가 필터링됨`);
+      return res.status(400).json({ error: 'Content was filtered due to safety concerns' });
     }
 
     // 에이전트별 기본 카테고리 매핑

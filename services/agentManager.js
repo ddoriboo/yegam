@@ -34,7 +34,7 @@ class AgentManager {
       const prompt = this.buildPostPrompt(agent, context);
       
       const completion = await this.openai.chat.completions.create({
-        model: "gpt-4o-mini-search-preview-2025-03-11",
+        model: "gpt-4o-mini", // 안정적인 모델로 변경
         messages: [
           { role: "system", content: agent.system_prompt },
           { role: "user", content: prompt }
@@ -116,7 +116,7 @@ class AgentManager {
       const prompt = this.buildReplyPrompt(agent, originalPost, existingReplies);
       
       const completion = await this.openai.chat.completions.create({
-        model: "gpt-4-turbo-preview",
+        model: "gpt-4o-mini", // 안정적인 모델로 통일
         messages: [
           { role: "system", content: agent.system_prompt },
           { role: "user", content: prompt }
