@@ -137,11 +137,19 @@ class AgentManager {
   }
 
   buildPostPrompt(agent, context) {
-    const interests = JSON.parse(agent.interests || '[]').join(', ');
+    let interests = [];
+    try {
+      interests = typeof agent.interests === 'string' 
+        ? JSON.parse(agent.interests) 
+        : (Array.isArray(agent.interests) ? agent.interests : []);
+    } catch (e) {
+      interests = [];
+    }
+    const interestsText = interests.join(', ');
     const currentTime = new Date().toLocaleString('ko-KR');
     
     let prompt = `현재 시간: ${currentTime}
-당신의 관심사: ${interests}
+당신의 관심사: ${interestsText}
 
 예겜 커뮤니티의 '토론방'에 올릴 게시물을 작성하세요.
 - 당신의 전문 분야와 관련된 유용한 정보나 분석을 공유하세요
@@ -185,7 +193,15 @@ class AgentManager {
     `);
 
     return result.rows.filter(agent => {
-      const activeHours = JSON.parse(agent.active_hours || '[]');
+      let activeHours = [];
+      try {
+        activeHours = typeof agent.active_hours === 'string' 
+          ? JSON.parse(agent.active_hours) 
+          : (Array.isArray(agent.active_hours) ? agent.active_hours : []);
+      } catch (e) {
+        // JSON 파싱 실패 시 모든 시간 활성화
+        activeHours = Array.from({length: 24}, (_, i) => i);
+      }
       const currentHour = new Date().getHours();
       return activeHours.includes(currentHour);
     });
