@@ -643,17 +643,14 @@ router.post('/update-system-prompts', requireAdmin, async (req, res) => {
   }
 });
 
-// 레벨/등급 시스템 설정
-router.post('/setup-level-system', requireAdmin, async (req, res) => {
+// YEGAM 기존 티어 시스템 설정 (GAM 포인트 기반)
+router.post('/setup-yegam-tier-system', requireAdmin, async (req, res) => {
   try {
-    console.log('⭐ 사용자 레벨/등급 시스템 설정 중...');
+    console.log('⭐ YEGAM 기존 티어 시스템 설정 중...');
     
-    // 1. 테이블에 컬럼 추가
+    // 1. 통계 컬럼 추가 (기존 gam_balance는 유지)
     await query(`
       ALTER TABLE users 
-      ADD COLUMN IF NOT EXISTS level INTEGER DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS experience INTEGER DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS rank VARCHAR(20) DEFAULT '티끌',
       ADD COLUMN IF NOT EXISTS total_posts INTEGER DEFAULT 0,
       ADD COLUMN IF NOT EXISTS total_comments INTEGER DEFAULT 0,
       ADD COLUMN IF NOT EXISTS total_bets INTEGER DEFAULT 0,
@@ -661,75 +658,75 @@ router.post('/setup-level-system', requireAdmin, async (req, res) => {
       ADD COLUMN IF NOT EXISTS max_win_streak INTEGER DEFAULT 0
     `);
 
-    // 2. 등급 계산 함수 생성
-    await query(`
-      CREATE OR REPLACE FUNCTION get_user_rank(user_level INTEGER) 
-      RETURNS VARCHAR(20) AS $$
-      BEGIN
-        CASE 
-          WHEN user_level >= 100 THEN RETURN '전설';
-          WHEN user_level >= 80 THEN RETURN '다이아';
-          WHEN user_level >= 60 THEN RETURN '플래티넘';
-          WHEN user_level >= 40 THEN RETURN '골드';
-          WHEN user_level >= 20 THEN RETURN '실버';
-          WHEN user_level >= 10 THEN RETURN '브론즈';
-          WHEN user_level >= 5 THEN RETURN '아이언';
-          WHEN user_level >= 1 THEN RETURN '새싹';
-          ELSE RETURN '티끌';
-        END CASE;
-      END;
-      $$ LANGUAGE plpgsql
-    `);
-
-    // 3. AI 에이전트들에게 특별한 레벨 부여
+    // 2. AI 에이전트들에게 높은 GAM 포인트 부여 (Lv.18 찬란한 성좌)
     await query(`
       UPDATE users 
       SET 
-        level = 99,
-        experience = 9900,
-        rank = '다이아',
+        gam_balance = 75000000,
         total_posts = 999,
         total_comments = 999
       WHERE username LIKE 'ai_%'
     `);
 
-    // 4. 기존 일반 사용자들 기본값 설정
+    // 3. 기존 일반 사용자들 기본값 설정 (Lv.0 티끌)
     await query(`
       UPDATE users 
       SET 
-        level = COALESCE(level, 0),
-        experience = COALESCE(experience, 0),
-        rank = COALESCE(rank, '티끌'),
+        gam_balance = COALESCE(gam_balance, 10000),
         total_posts = COALESCE(total_posts, 0),
         total_comments = COALESCE(total_comments, 0),
         total_bets = COALESCE(total_bets, 0),
         win_streak = COALESCE(win_streak, 0),
         max_win_streak = COALESCE(max_win_streak, 0)
-      WHERE level IS NULL OR rank IS NULL
+      WHERE gam_balance < 10000
     `);
 
-    // 5. 확인용 데이터 조회
-    const userLevels = await query(`
+    // 4. 확인용 데이터 조회 (GAM 포인트와 함께)
+    const userTiers = await query(`
       SELECT 
-        id, username, level, experience, rank, total_posts, total_comments,
+        id, username, gam_balance, total_posts, total_comments,
         CASE 
           WHEN username LIKE 'ai_%' THEN '🤖 AI'
           ELSE '👤 User'
-        END as user_type
+        END as user_type,
+        CASE 
+          WHEN gam_balance >= 150000000 THEN 'Lv.20 모든 것을 보는 눈 👁️‍🗨️'
+          WHEN gam_balance >= 100000000 THEN 'Lv.19 은하의 지배자 🌌'
+          WHEN gam_balance >= 65000000 THEN 'Lv.18 찬란한 성좌 🌟'
+          WHEN gam_balance >= 40000000 THEN 'Lv.17 혜성의 인도자 ☄️'
+          WHEN gam_balance >= 25000000 THEN 'Lv.16 별의 조각 ✨'
+          WHEN gam_balance >= 16000000 THEN 'Lv.15 아카식 레코드 📔'
+          WHEN gam_balance >= 10000000 THEN 'Lv.14 시간의 모래시계 ⏳'
+          WHEN gam_balance >= 6500000 THEN 'Lv.13 세계수의 의지 🌳'
+          WHEN gam_balance >= 4000000 THEN 'Lv.12 용기의 문장 🐉'
+          WHEN gam_balance >= 2500000 THEN 'Lv.11 룬석 예언가 📜'
+          WHEN gam_balance >= 1500000 THEN 'Lv.10 황금 왕관 👑'
+          WHEN gam_balance >= 1000000 THEN 'Lv.9 플래티넘 챔피언 🏆'
+          WHEN gam_balance >= 650000 THEN 'Lv.8 골드 윙 🥇'
+          WHEN gam_balance >= 400000 THEN 'Lv.7 실버 윙 🥈'
+          WHEN gam_balance >= 250000 THEN 'Lv.6 브론즈 윙 🥉'
+          WHEN gam_balance >= 150000 THEN 'Lv.5 스틸 소드 ⚔️'
+          WHEN gam_balance >= 90000 THEN 'Lv.4 아이언 실드 🛡️'
+          WHEN gam_balance >= 50000 THEN 'Lv.3 강철 연마가 ⛓️'
+          WHEN gam_balance >= 25000 THEN 'Lv.2 원석 채굴자 ⛏️'
+          WHEN gam_balance >= 10000 THEN 'Lv.1 조약돌 🪨'
+          ELSE 'Lv.0 티끌 ⚪'
+        END as tier_info
       FROM users
-      ORDER BY level DESC, experience DESC
+      ORDER BY gam_balance DESC
       LIMIT 20
     `);
 
     res.json({
-      message: '사용자 레벨/등급 시스템 설정 완료',
-      userLevels: userLevels.rows,
-      totalUsers: userLevels.rows.length
+      message: 'YEGAM 기존 티어 시스템 설정 완료',
+      userTiers: userTiers.rows,
+      totalUsers: userTiers.rows.length,
+      note: 'AI 에이전트들은 Lv.18 찬란한 성좌 (75,000,000 GAM) 등급으로 설정됨'
     });
 
   } catch (error) {
-    console.error('레벨 시스템 설정 실패:', error);
-    res.status(500).json({ error: 'Failed to setup level system', details: error.message });
+    console.error('YEGAM 티어 시스템 설정 실패:', error);
+    res.status(500).json({ error: 'Failed to setup YEGAM tier system', details: error.message });
   }
 });
 
@@ -756,11 +753,11 @@ router.post('/setup-ai-users', requireAdmin, async (req, res) => {
       try {
         const result = await query(`
           INSERT INTO users (username, email, password_hash, coins, gam_balance) 
-          VALUES ($1, $2, 'ai_agent_no_login', 999999, 999999)
+          VALUES ($1, $2, 'ai_agent_no_login', 999999, 75000000)
           ON CONFLICT (username) DO UPDATE SET
             email = EXCLUDED.email,
             coins = 999999,
-            gam_balance = 999999
+            gam_balance = 75000000
           RETURNING id, username
         `, [user.username, user.email]);
         
@@ -781,13 +778,37 @@ router.post('/setup-ai-users', requireAdmin, async (req, res) => {
       }
     }
 
-    // 매핑 확인
+    // 매핑 확인 (YEGAM 티어 포함)
     const mapping = await query(`
       SELECT 
         aa.agent_id,
         aa.nickname,
         u.id as user_id,
-        u.username
+        u.username,
+        u.gam_balance,
+        CASE 
+          WHEN u.gam_balance >= 150000000 THEN 'Lv.20 모든 것을 보는 눈 👁️‍🗨️'
+          WHEN u.gam_balance >= 100000000 THEN 'Lv.19 은하의 지배자 🌌'
+          WHEN u.gam_balance >= 65000000 THEN 'Lv.18 찬란한 성좌 🌟'
+          WHEN u.gam_balance >= 40000000 THEN 'Lv.17 혜성의 인도자 ☄️'
+          WHEN u.gam_balance >= 25000000 THEN 'Lv.16 별의 조각 ✨'
+          WHEN u.gam_balance >= 16000000 THEN 'Lv.15 아카식 레코드 📔'
+          WHEN u.gam_balance >= 10000000 THEN 'Lv.14 시간의 모래시계 ⏳'
+          WHEN u.gam_balance >= 6500000 THEN 'Lv.13 세계수의 의지 🌳'
+          WHEN u.gam_balance >= 4000000 THEN 'Lv.12 용기의 문장 🐉'
+          WHEN u.gam_balance >= 2500000 THEN 'Lv.11 룬석 예언가 📜'
+          WHEN u.gam_balance >= 1500000 THEN 'Lv.10 황금 왕관 👑'
+          WHEN u.gam_balance >= 1000000 THEN 'Lv.9 플래티넘 챔피언 🏆'
+          WHEN u.gam_balance >= 650000 THEN 'Lv.8 골드 윙 🥇'
+          WHEN u.gam_balance >= 400000 THEN 'Lv.7 실버 윙 🥈'
+          WHEN u.gam_balance >= 250000 THEN 'Lv.6 브론즈 윙 🥉'
+          WHEN u.gam_balance >= 150000 THEN 'Lv.5 스틸 소드 ⚔️'
+          WHEN u.gam_balance >= 90000 THEN 'Lv.4 아이언 실드 🛡️'
+          WHEN u.gam_balance >= 50000 THEN 'Lv.3 강철 연마가 ⛓️'
+          WHEN u.gam_balance >= 25000 THEN 'Lv.2 원석 채굴자 ⛏️'
+          WHEN u.gam_balance >= 10000 THEN 'Lv.1 조약돌 🪨'
+          ELSE 'Lv.0 티끌 ⚪'
+        END as yegam_tier
       FROM ai_agents aa
       JOIN users u ON (
         (aa.agent_id = 'data-kim' AND u.username = 'ai_data_kim') OR
@@ -833,7 +854,7 @@ router.get('/admin/discussions', requireAdmin, async (req, res) => {
       paramIndex++;
     }
     
-    // 게시물 조회
+    // 게시물 조회 (YEGAM 티어 시스템 사용)
     const posts = await query(`
       SELECT 
         dp.id,
@@ -843,8 +864,30 @@ router.get('/admin/discussions', requireAdmin, async (req, res) => {
         dp.created_at,
         u.id as author_id,
         u.username as author_username,
-        u.level,
-        u.rank,
+        u.gam_balance,
+        CASE 
+          WHEN u.gam_balance >= 150000000 THEN 'Lv.20 모든 것을 보는 눈 👁️‍🗨️'
+          WHEN u.gam_balance >= 100000000 THEN 'Lv.19 은하의 지배자 🌌'
+          WHEN u.gam_balance >= 65000000 THEN 'Lv.18 찬란한 성좌 🌟'
+          WHEN u.gam_balance >= 40000000 THEN 'Lv.17 혜성의 인도자 ☄️'
+          WHEN u.gam_balance >= 25000000 THEN 'Lv.16 별의 조각 ✨'
+          WHEN u.gam_balance >= 16000000 THEN 'Lv.15 아카식 레코드 📔'
+          WHEN u.gam_balance >= 10000000 THEN 'Lv.14 시간의 모래시계 ⏳'
+          WHEN u.gam_balance >= 6500000 THEN 'Lv.13 세계수의 의지 🌳'
+          WHEN u.gam_balance >= 4000000 THEN 'Lv.12 용기의 문장 🐉'
+          WHEN u.gam_balance >= 2500000 THEN 'Lv.11 룬석 예언가 📜'
+          WHEN u.gam_balance >= 1500000 THEN 'Lv.10 황금 왕관 👑'
+          WHEN u.gam_balance >= 1000000 THEN 'Lv.9 플래티넘 챔피언 🏆'
+          WHEN u.gam_balance >= 650000 THEN 'Lv.8 골드 윙 🥇'
+          WHEN u.gam_balance >= 400000 THEN 'Lv.7 실버 윙 🥈'
+          WHEN u.gam_balance >= 250000 THEN 'Lv.6 브론즈 윙 🥉'
+          WHEN u.gam_balance >= 150000 THEN 'Lv.5 스틸 소드 ⚔️'
+          WHEN u.gam_balance >= 90000 THEN 'Lv.4 아이언 실드 🛡️'
+          WHEN u.gam_balance >= 50000 THEN 'Lv.3 강철 연마가 ⛓️'
+          WHEN u.gam_balance >= 25000 THEN 'Lv.2 원석 채굴자 ⛏️'
+          WHEN u.gam_balance >= 10000 THEN 'Lv.1 조약돌 🪨'
+          ELSE 'Lv.0 티끌 ⚪'
+        END as yegam_tier,
         CASE WHEN u.username LIKE 'ai_%' THEN true ELSE false END as is_ai
       FROM discussion_posts dp
       JOIN users u ON dp.author_id = u.id
@@ -853,7 +896,7 @@ router.get('/admin/discussions', requireAdmin, async (req, res) => {
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `, [...params, parseInt(limit), parseInt(offset)]);
 
-    // 댓글 조회 (최근 50개)
+    // 댓글 조회 (최근 50개, YEGAM 티어 시스템 사용)
     const comments = await query(`
       SELECT 
         dc.id,
@@ -862,8 +905,30 @@ router.get('/admin/discussions', requireAdmin, async (req, res) => {
         dc.created_at,
         u.id as author_id,
         u.username as author_username,
-        u.level,
-        u.rank,
+        u.gam_balance,
+        CASE 
+          WHEN u.gam_balance >= 150000000 THEN 'Lv.20 모든 것을 보는 눈 👁️‍🗨️'
+          WHEN u.gam_balance >= 100000000 THEN 'Lv.19 은하의 지배자 🌌'
+          WHEN u.gam_balance >= 65000000 THEN 'Lv.18 찬란한 성좌 🌟'
+          WHEN u.gam_balance >= 40000000 THEN 'Lv.17 혜성의 인도자 ☄️'
+          WHEN u.gam_balance >= 25000000 THEN 'Lv.16 별의 조각 ✨'
+          WHEN u.gam_balance >= 16000000 THEN 'Lv.15 아카식 레코드 📔'
+          WHEN u.gam_balance >= 10000000 THEN 'Lv.14 시간의 모래시계 ⏳'
+          WHEN u.gam_balance >= 6500000 THEN 'Lv.13 세계수의 의지 🌳'
+          WHEN u.gam_balance >= 4000000 THEN 'Lv.12 용기의 문장 🐉'
+          WHEN u.gam_balance >= 2500000 THEN 'Lv.11 룬석 예언가 📜'
+          WHEN u.gam_balance >= 1500000 THEN 'Lv.10 황금 왕관 👑'
+          WHEN u.gam_balance >= 1000000 THEN 'Lv.9 플래티넘 챔피언 🏆'
+          WHEN u.gam_balance >= 650000 THEN 'Lv.8 골드 윙 🥇'
+          WHEN u.gam_balance >= 400000 THEN 'Lv.7 실버 윙 🥈'
+          WHEN u.gam_balance >= 250000 THEN 'Lv.6 브론즈 윙 🥉'
+          WHEN u.gam_balance >= 150000 THEN 'Lv.5 스틸 소드 ⚔️'
+          WHEN u.gam_balance >= 90000 THEN 'Lv.4 아이언 실드 🛡️'
+          WHEN u.gam_balance >= 50000 THEN 'Lv.3 강철 연마가 ⛓️'
+          WHEN u.gam_balance >= 25000 THEN 'Lv.2 원석 채굴자 ⛏️'
+          WHEN u.gam_balance >= 10000 THEN 'Lv.1 조약돌 🪨'
+          ELSE 'Lv.0 티끌 ⚪'
+        END as yegam_tier,
         dp.title as post_title,
         CASE WHEN u.username LIKE 'ai_%' THEN true ELSE false END as is_ai
       FROM discussion_comments dc
