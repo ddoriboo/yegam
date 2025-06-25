@@ -736,16 +736,16 @@ router.post('/setup-ai-users', requireAdmin, async (req, res) => {
     console.log('🤖 AI 에이전트용 사용자 계정 생성 중...');
     
     const aiUsers = [
-      { username: 'ai_data_kim', email: 'data.kim@yegam.ai', agentId: 'data-kim' },
-      { username: 'ai_chart_king', email: 'chart.king@yegam.ai', agentId: 'chart-king' },
-      { username: 'ai_tech_guru', email: 'tech.guru@yegam.ai', agentId: 'tech-guru' },
-      { username: 'ai_hipster_choi', email: 'hipster.choi@yegam.ai', agentId: 'hipster-choi' },
-      { username: 'ai_social_lover', email: 'social.lover@yegam.ai', agentId: 'social-lover' },
-      { username: 'ai_medical_doctor', email: 'medical.doctor@yegam.ai', agentId: 'medical-doctor' },
-      { username: 'ai_positive_one', email: 'positive.one@yegam.ai', agentId: 'positive-one' },
-      { username: 'ai_cautious_one', email: 'cautious.one@yegam.ai', agentId: 'cautious-one' },
-      { username: 'ai_humor_king', email: 'humor.king@yegam.ai', agentId: 'humor-king' },
-      { username: 'ai_observer', email: 'observer@yegam.ai', agentId: 'observer' }
+      { username: 'data_kim', email: 'data.kim@yegam.ai', agentId: 'data-kim' },
+      { username: 'chart_king', email: 'chart.king@yegam.ai', agentId: 'chart-king' },
+      { username: 'tech_guru', email: 'tech.guru@yegam.ai', agentId: 'tech-guru' },
+      { username: 'hipster_choi', email: 'hipster.choi@yegam.ai', agentId: 'hipster-choi' },
+      { username: 'social_lover', email: 'social.lover@yegam.ai', agentId: 'social-lover' },
+      { username: 'medical_doctor', email: 'medical.doctor@yegam.ai', agentId: 'medical-doctor' },
+      { username: 'positive_one', email: 'positive.one@yegam.ai', agentId: 'positive-one' },
+      { username: 'cautious_one', email: 'cautious.one@yegam.ai', agentId: 'cautious-one' },
+      { username: 'humor_king', email: 'humor.king@yegam.ai', agentId: 'humor-king' },
+      { username: 'observer', email: 'observer@yegam.ai', agentId: 'observer' }
     ];
 
     const results = [];
@@ -811,16 +811,16 @@ router.post('/setup-ai-users', requireAdmin, async (req, res) => {
         END as yegam_tier
       FROM ai_agents aa
       JOIN users u ON (
-        (aa.agent_id = 'data-kim' AND u.username = 'ai_data_kim') OR
-        (aa.agent_id = 'chart-king' AND u.username = 'ai_chart_king') OR
-        (aa.agent_id = 'tech-guru' AND u.username = 'ai_tech_guru') OR
-        (aa.agent_id = 'hipster-choi' AND u.username = 'ai_hipster_choi') OR
-        (aa.agent_id = 'social-lover' AND u.username = 'ai_social_lover') OR
-        (aa.agent_id = 'medical-doctor' AND u.username = 'ai_medical_doctor') OR
-        (aa.agent_id = 'positive-one' AND u.username = 'ai_positive_one') OR
-        (aa.agent_id = 'cautious-one' AND u.username = 'ai_cautious_one') OR
-        (aa.agent_id = 'humor-king' AND u.username = 'ai_humor_king') OR
-        (aa.agent_id = 'observer' AND u.username = 'ai_observer')
+        (aa.agent_id = 'data-kim' AND u.username = 'data_kim') OR
+        (aa.agent_id = 'chart-king' AND u.username = 'chart_king') OR
+        (aa.agent_id = 'tech-guru' AND u.username = 'tech_guru') OR
+        (aa.agent_id = 'hipster-choi' AND u.username = 'hipster_choi') OR
+        (aa.agent_id = 'social-lover' AND u.username = 'social_lover') OR
+        (aa.agent_id = 'medical-doctor' AND u.username = 'medical_doctor') OR
+        (aa.agent_id = 'positive-one' AND u.username = 'positive_one') OR
+        (aa.agent_id = 'cautious-one' AND u.username = 'cautious_one') OR
+        (aa.agent_id = 'humor-king' AND u.username = 'humor_king') OR
+        (aa.agent_id = 'observer' AND u.username = 'observer')
       )
       ORDER BY aa.agent_id
     `);
@@ -836,6 +836,96 @@ router.post('/setup-ai-users', requireAdmin, async (req, res) => {
   } catch (error) {
     console.error('AI 사용자 설정 실패:', error);
     res.status(500).json({ error: 'Failed to setup AI users' });
+  }
+});
+
+// AI 사용자명 마이그레이션 엔드포인트
+router.post('/migrate-usernames', requireAdmin, async (req, res) => {
+  try {
+    console.log('🔄 AI 에이전트 사용자명 마이그레이션 시작...');
+    
+    // 마이그레이션할 사용자명 매핑
+    const migrations = [
+      { old: 'ai_data_kim', new: 'data_kim' },
+      { old: 'ai_chart_king', new: 'chart_king' },
+      { old: 'ai_tech_guru', new: 'tech_guru' },
+      { old: 'ai_hipster_choi', new: 'hipster_choi' },
+      { old: 'ai_social_lover', new: 'social_lover' },
+      { old: 'ai_medical_doctor', new: 'medical_doctor' },
+      { old: 'ai_positive_one', new: 'positive_one' },
+      { old: 'ai_cautious_one', new: 'cautious_one' },
+      { old: 'ai_humor_king', new: 'humor_king' },
+      { old: 'ai_observer', new: 'observer' }
+    ];
+    
+    const results = [];
+    
+    // 사용자명 업데이트
+    for (const migration of migrations) {
+      try {
+        const result = await query(
+          'UPDATE users SET username = $1 WHERE username = $2 RETURNING id, username',
+          [migration.new, migration.old]
+        );
+        if (result.rows.length > 0) {
+          results.push({
+            old: migration.old,
+            new: migration.new,
+            id: result.rows[0].id,
+            status: 'success'
+          });
+          console.log(`✅ ${migration.old} → ${migration.new}`);
+        } else {
+          results.push({
+            old: migration.old,
+            new: migration.new,
+            status: 'not_found'
+          });
+        }
+      } catch (error) {
+        results.push({
+          old: migration.old,
+          new: migration.new,
+          status: 'error',
+          error: error.message
+        });
+      }
+    }
+    
+    // 매핑 뷰 재생성
+    await query(`
+      CREATE OR REPLACE VIEW ai_agent_user_mapping AS
+      SELECT 
+        aa.agent_id,
+        aa.nickname,
+        u.id as user_id,
+        u.username
+      FROM ai_agents aa
+      JOIN users u ON (
+        (aa.agent_id = 'data-kim' AND u.username = 'data_kim') OR
+        (aa.agent_id = 'chart-king' AND u.username = 'chart_king') OR
+        (aa.agent_id = 'tech-guru' AND u.username = 'tech_guru') OR
+        (aa.agent_id = 'hipster-choi' AND u.username = 'hipster_choi') OR
+        (aa.agent_id = 'social-lover' AND u.username = 'social_lover') OR
+        (aa.agent_id = 'medical-doctor' AND u.username = 'medical_doctor') OR
+        (aa.agent_id = 'positive-one' AND u.username = 'positive_one') OR
+        (aa.agent_id = 'cautious-one' AND u.username = 'cautious_one') OR
+        (aa.agent_id = 'humor-king' AND u.username = 'humor_king') OR
+        (aa.agent_id = 'observer' AND u.username = 'observer')
+      )
+    `);
+    
+    res.json({
+      message: 'AI 에이전트 사용자명 마이그레이션 완료',
+      results: results,
+      successCount: results.filter(r => r.status === 'success').length,
+      notFoundCount: results.filter(r => r.status === 'not_found').length,
+      errorCount: results.filter(r => r.status === 'error').length
+    });
+    
+  } catch (error) {
+    console.error('마이그레이션 실패:', error);
+    res.status(500).json({ error: 'Migration failed', details: error.message });
   }
 });
 
@@ -1033,7 +1123,7 @@ router.post('/admin/discussions/bulk-delete', requireAdmin, async (req, res) => 
       const aiPosts = await query(`
         SELECT dp.id FROM discussion_posts dp
         JOIN users u ON dp.author_id = u.id
-        WHERE u.username LIKE 'ai_%'
+        WHERE u.username IN ('data_kim', 'chart_king', 'tech_guru', 'hipster_choi', 'social_lover', 'medical_doctor', 'positive_one', 'cautious_one', 'humor_king', 'observer')
       `);
       
       for (const post of aiPosts.rows) {
@@ -1043,7 +1133,7 @@ router.post('/admin/discussions/bulk-delete', requireAdmin, async (req, res) => 
       
       const result = await query(`
         DELETE FROM discussion_posts 
-        WHERE author_id IN (SELECT id FROM users WHERE username LIKE 'ai_%')
+        WHERE author_id IN (SELECT id FROM users WHERE username IN ('data_kim', 'chart_king', 'tech_guru', 'hipster_choi', 'social_lover', 'medical_doctor', 'positive_one', 'cautious_one', 'humor_king', 'observer'))
         RETURNING id
       `);
       
@@ -1083,16 +1173,16 @@ router.post('/admin/discussions/bulk-delete', requireAdmin, async (req, res) => 
 // AI 에이전트 ID로 사용자 ID 가져오는 헬퍼 함수
 async function getAIAgentUserId(agentId) {
   const mapping = {
-    'data-kim': 'ai_data_kim',
-    'chart-king': 'ai_chart_king', 
-    'tech-guru': 'ai_tech_guru',
-    'hipster-choi': 'ai_hipster_choi',
-    'social-lover': 'ai_social_lover',
-    'medical-doctor': 'ai_medical_doctor',
-    'positive-one': 'ai_positive_one',
-    'cautious-one': 'ai_cautious_one',
-    'humor-king': 'ai_humor_king',
-    'observer': 'ai_observer'
+    'data-kim': 'data_kim',
+    'chart-king': 'chart_king', 
+    'tech-guru': 'tech_guru',
+    'hipster-choi': 'hipster_choi',
+    'social-lover': 'social_lover',
+    'medical-doctor': 'medical_doctor',
+    'positive-one': 'positive_one',
+    'cautious-one': 'cautious_one',
+    'humor-king': 'humor_king',
+    'observer': 'observer'
   };
 
   const username = mapping[agentId];

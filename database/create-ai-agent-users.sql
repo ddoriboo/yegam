@@ -3,16 +3,16 @@
 
 -- AI 에이전트용 사용자들 생성 (중복 방지)
 INSERT INTO users (username, email, password_hash, coins, gam_balance) VALUES 
-  ('ai_data_kim', 'data.kim@yegam.ai', 'ai_agent_no_login', 999999, 999999),
-  ('ai_chart_king', 'chart.king@yegam.ai', 'ai_agent_no_login', 999999, 999999),
-  ('ai_tech_guru', 'tech.guru@yegam.ai', 'ai_agent_no_login', 999999, 999999),
-  ('ai_hipster_choi', 'hipster.choi@yegam.ai', 'ai_agent_no_login', 999999, 999999),
-  ('ai_social_lover', 'social.lover@yegam.ai', 'ai_agent_no_login', 999999, 999999),
-  ('ai_medical_doctor', 'medical.doctor@yegam.ai', 'ai_agent_no_login', 999999, 999999),
-  ('ai_positive_one', 'positive.one@yegam.ai', 'ai_agent_no_login', 999999, 999999),
-  ('ai_cautious_one', 'cautious.one@yegam.ai', 'ai_agent_no_login', 999999, 999999),
-  ('ai_humor_king', 'humor.king@yegam.ai', 'ai_agent_no_login', 999999, 999999),
-  ('ai_observer', 'observer@yegam.ai', 'ai_agent_no_login', 999999, 999999)
+  ('data_kim', 'data.kim@yegam.ai', 'ai_agent_no_login', 999999, 999999),
+  ('chart_king', 'chart.king@yegam.ai', 'ai_agent_no_login', 999999, 999999),
+  ('tech_guru', 'tech.guru@yegam.ai', 'ai_agent_no_login', 999999, 999999),
+  ('hipster_choi', 'hipster.choi@yegam.ai', 'ai_agent_no_login', 999999, 999999),
+  ('social_lover', 'social.lover@yegam.ai', 'ai_agent_no_login', 999999, 999999),
+  ('medical_doctor', 'medical.doctor@yegam.ai', 'ai_agent_no_login', 999999, 999999),
+  ('positive_one', 'positive.one@yegam.ai', 'ai_agent_no_login', 999999, 999999),
+  ('cautious_one', 'cautious.one@yegam.ai', 'ai_agent_no_login', 999999, 999999),
+  ('humor_king', 'humor.king@yegam.ai', 'ai_agent_no_login', 999999, 999999),
+  ('observer', 'observer@yegam.ai', 'ai_agent_no_login', 999999, 999999)
 ON CONFLICT (username) DO NOTHING;
 
 -- AI 에이전트 ID와 User ID 매핑을 확인하기 위한 뷰 생성
@@ -24,16 +24,16 @@ SELECT
   u.username
 FROM ai_agents aa
 JOIN users u ON (
-  (aa.agent_id = 'data-kim' AND u.username = 'ai_data_kim') OR
-  (aa.agent_id = 'chart-king' AND u.username = 'ai_chart_king') OR
-  (aa.agent_id = 'tech-guru' AND u.username = 'ai_tech_guru') OR
-  (aa.agent_id = 'hipster-choi' AND u.username = 'ai_hipster_choi') OR
-  (aa.agent_id = 'social-lover' AND u.username = 'ai_social_lover') OR
-  (aa.agent_id = 'medical-doctor' AND u.username = 'ai_medical_doctor') OR
-  (aa.agent_id = 'positive-one' AND u.username = 'ai_positive_one') OR
-  (aa.agent_id = 'cautious-one' AND u.username = 'ai_cautious_one') OR
-  (aa.agent_id = 'humor-king' AND u.username = 'ai_humor_king') OR
-  (aa.agent_id = 'observer' AND u.username = 'ai_observer')
+  (aa.agent_id = 'data-kim' AND u.username = 'data_kim') OR
+  (aa.agent_id = 'chart-king' AND u.username = 'chart_king') OR
+  (aa.agent_id = 'tech-guru' AND u.username = 'tech_guru') OR
+  (aa.agent_id = 'hipster-choi' AND u.username = 'hipster_choi') OR
+  (aa.agent_id = 'social-lover' AND u.username = 'social_lover') OR
+  (aa.agent_id = 'medical-doctor' AND u.username = 'medical_doctor') OR
+  (aa.agent_id = 'positive-one' AND u.username = 'positive_one') OR
+  (aa.agent_id = 'cautious-one' AND u.username = 'cautious_one') OR
+  (aa.agent_id = 'humor-king' AND u.username = 'humor_king') OR
+  (aa.agent_id = 'observer' AND u.username = 'observer')
 );
 
 -- 확인 쿼리

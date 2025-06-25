@@ -6,16 +6,16 @@ async function setupAIUsers() {
   try {
     // AI 에이전트용 사용자들 생성
     const aiUsers = [
-      { username: 'ai_data_kim', email: 'data.kim@yegam.ai', agentId: 'data-kim' },
-      { username: 'ai_chart_king', email: 'chart.king@yegam.ai', agentId: 'chart-king' },
-      { username: 'ai_tech_guru', email: 'tech.guru@yegam.ai', agentId: 'tech-guru' },
-      { username: 'ai_hipster_choi', email: 'hipster.choi@yegam.ai', agentId: 'hipster-choi' },
-      { username: 'ai_social_lover', email: 'social.lover@yegam.ai', agentId: 'social-lover' },
-      { username: 'ai_medical_doctor', email: 'medical.doctor@yegam.ai', agentId: 'medical-doctor' },
-      { username: 'ai_positive_one', email: 'positive.one@yegam.ai', agentId: 'positive-one' },
-      { username: 'ai_cautious_one', email: 'cautious.one@yegam.ai', agentId: 'cautious-one' },
-      { username: 'ai_humor_king', email: 'humor.king@yegam.ai', agentId: 'humor-king' },
-      { username: 'ai_observer', email: 'observer@yegam.ai', agentId: 'observer' }
+      { username: 'data_kim', email: 'data.kim@yegam.ai', agentId: 'data-kim' },
+      { username: 'chart_king', email: 'chart.king@yegam.ai', agentId: 'chart-king' },
+      { username: 'tech_guru', email: 'tech.guru@yegam.ai', agentId: 'tech-guru' },
+      { username: 'hipster_choi', email: 'hipster.choi@yegam.ai', agentId: 'hipster-choi' },
+      { username: 'social_lover', email: 'social.lover@yegam.ai', agentId: 'social-lover' },
+      { username: 'medical_doctor', email: 'medical.doctor@yegam.ai', agentId: 'medical-doctor' },
+      { username: 'positive_one', email: 'positive.one@yegam.ai', agentId: 'positive-one' },
+      { username: 'cautious_one', email: 'cautious.one@yegam.ai', agentId: 'cautious-one' },
+      { username: 'humor_king', email: 'humor.king@yegam.ai', agentId: 'humor-king' },
+      { username: 'observer', email: 'observer@yegam.ai', agentId: 'observer' }
     ];
 
     for (const user of aiUsers) {
@@ -46,16 +46,16 @@ async function setupAIUsers() {
         u.username
       FROM ai_agents aa
       JOIN users u ON (
-        (aa.agent_id = 'data-kim' AND u.username = 'ai_data_kim') OR
-        (aa.agent_id = 'chart-king' AND u.username = 'ai_chart_king') OR
-        (aa.agent_id = 'tech-guru' AND u.username = 'ai_tech_guru') OR
-        (aa.agent_id = 'hipster-choi' AND u.username = 'ai_hipster_choi') OR
-        (aa.agent_id = 'social-lover' AND u.username = 'ai_social_lover') OR
-        (aa.agent_id = 'medical-doctor' AND u.username = 'ai_medical_doctor') OR
-        (aa.agent_id = 'positive-one' AND u.username = 'ai_positive_one') OR
-        (aa.agent_id = 'cautious-one' AND u.username = 'ai_cautious_one') OR
-        (aa.agent_id = 'humor-king' AND u.username = 'ai_humor_king') OR
-        (aa.agent_id = 'observer' AND u.username = 'ai_observer')
+        (aa.agent_id = 'data-kim' AND u.username = 'data_kim') OR
+        (aa.agent_id = 'chart-king' AND u.username = 'chart_king') OR
+        (aa.agent_id = 'tech-guru' AND u.username = 'tech_guru') OR
+        (aa.agent_id = 'hipster-choi' AND u.username = 'hipster_choi') OR
+        (aa.agent_id = 'social-lover' AND u.username = 'social_lover') OR
+        (aa.agent_id = 'medical-doctor' AND u.username = 'medical_doctor') OR
+        (aa.agent_id = 'positive-one' AND u.username = 'positive_one') OR
+        (aa.agent_id = 'cautious-one' AND u.username = 'cautious_one') OR
+        (aa.agent_id = 'humor-king' AND u.username = 'humor_king') OR
+        (aa.agent_id = 'observer' AND u.username = 'observer')
       )
       ORDER BY aa.agent_id
     `);
