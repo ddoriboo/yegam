@@ -360,7 +360,7 @@ async function initHomePage() {
     
     try {
         // Load issues from API
-        const response = await fetch('/api/issues');
+        const response = await fetch(`/api/issues?_t=${Date.now()}`);
         const data = await response.json();
         
         if (data.success) {
@@ -554,9 +554,10 @@ function renderPopularIssues() {
     const listContainer = document.getElementById('popular-issues-list');
     const mobileContainer = document.getElementById('popular-issues-mobile');
     
-    // 인기 이슈는 필터링하지 않고 항상 고정된 인기 이슈를 표시
+    // 인기 이슈는 필터링하지 않고 항상 고정된 인기 이슈를 표시 (최신순으로 정렬)
     const popularIssues = allIssues
         .filter(issue => issue.is_popular || issue.isPopular)
+        .sort((a, b) => new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt))
         .slice(0, 8); // 최대 8개까지 표시
     
     if (popularIssues.length === 0) {
@@ -763,6 +764,7 @@ function sortIssues(issues, sortType) {
     
     switch (sortType) {
         case 'newest':
+        default:
             return sortedIssues.sort((a, b) => 
                 new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt)
             );
@@ -778,8 +780,6 @@ function sortIssues(issues, sortType) {
             return sortedIssues.sort((a, b) => 
                 (b.total_volume || b.totalVolume || 0) - (a.total_volume || a.totalVolume || 0)
             );
-        default:
-            return sortedIssues;
     }
 }
 
@@ -1938,7 +1938,7 @@ async function placeBetLegacy(issueId, choice) {
             if (currentPath === 'issues.html') {
                 // Reload issues for issues page
                 try {
-                    const response = await fetch('/api/issues');
+                    const response = await fetch(`/api/issues?_t=${Date.now()}`);
                     const data = await response.json();
                     if (data.success) {
                         allIssues = data.issues;
@@ -2865,8 +2865,8 @@ async function loadAdminIssues() {
     try {
         // adminFetch가 사용 가능하면 사용, 아니면 일반 fetch 사용
         const response = window.adminFetch ? 
-            await window.adminFetch('/api/issues') : 
-            await fetch('/api/issues');
+            await window.adminFetch(`/api/issues?_t=${Date.now()}`) : 
+            await fetch(`/api/issues?_t=${Date.now()}`);
         const data = await response.json();
         
         if (data.success) {
@@ -3394,7 +3394,7 @@ async function initIssuesPage() {
     
     try {
         // Load issues from API
-        const response = await fetch('/api/issues');
+        const response = await fetch(`/api/issues?_t=${Date.now()}`);
         const data = await response.json();
         
         if (data.success) {
