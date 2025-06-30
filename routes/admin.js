@@ -664,4 +664,53 @@ router.post('/scheduler/run', secureAdminMiddleware, async (req, res) => {
     }
 });
 
+// 타임스탬프 수정 API (개발용)
+router.post('/fix-timestamps', secureAdminMiddleware, async (req, res) => {
+    try {
+        console.log('기존 이슈들의 타임스탬프 수정 시작...');
+        
+        // "test" 이슈를 가장 최신으로 설정 (현재 시간)
+        const testResult = await query(`
+            UPDATE issues 
+            SET created_at = NOW(), updated_at = NOW()
+            WHERE title LIKE '%test%'
+            RETURNING id, title, created_at
+        `);
+        
+        // "비트코인 up vs. down" 이슈를 두 번째로 최신으로 설정 (1분 전)
+        const bitcoinResult = await query(`
+            UPDATE issues 
+            SET created_at = NOW() - INTERVAL '1 minute', updated_at = NOW()
+            WHERE title LIKE '%비트코인%'
+            RETURNING id, title, created_at
+        `);
+        
+        // 모든 이슈의 created_at 확인
+        const allIssues = await query(`
+            SELECT id, title, created_at 
+            FROM issues 
+            WHERE status = 'active'
+            ORDER BY created_at DESC
+        `);
+        
+        res.json({
+            success: true,
+            message: '타임스탬프 수정 완료',
+            results: {
+                testUpdated: testResult.rows,
+                bitcoinUpdated: bitcoinResult.rows,
+                allIssues: allIssues.rows
+            }
+        });
+        
+    } catch (error) {
+        console.error('타임스탬프 수정 중 오류:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: '타임스탬프 수정 중 오류가 발생했습니다.',
+            error: error.message 
+        });
+    }
+});
+
 module.exports = router;

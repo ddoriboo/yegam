@@ -174,8 +174,8 @@ router.post('/', authMiddleware, async (req, res) => {
         }
         
         const insertQuery = `
-            INSERT INTO issues (title, category, description, image_url, end_date, yes_price, is_popular) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            INSERT INTO issues (title, category, description, image_url, end_date, yes_price, is_popular, created_at, updated_at) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
             RETURNING id
         `;
         
