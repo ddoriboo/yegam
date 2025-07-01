@@ -4404,26 +4404,42 @@ if (window.isAdminPage) {
     function initPopularIssuesManagement() {
         console.log('🎯 인기이슈 관리 기능 초기화');
         
-        // 탭 클릭 이벤트
+        // SortableJS 라이브러리 로드 확인
+        if (typeof Sortable === 'undefined') {
+            console.error('❌ SortableJS 라이브러리가 로드되지 않았습니다.');
+            return;
+        }
+        console.log('✅ SortableJS 라이브러리 로드 확인됨');
+        
+        // 기존 이벤트 리스너 제거 (중복 방지)
         const popularIssuesTab = document.getElementById('popular-issues-tab');
         if (popularIssuesTab) {
-            popularIssuesTab.addEventListener('click', () => {
-                showPopularIssuesSection();
-                loadPopularIssues();
-            });
+            // 기존 리스너 제거
+            popularIssuesTab.removeEventListener('click', handlePopularIssuesTabClick);
+            // 새 리스너 추가
+            popularIssuesTab.addEventListener('click', handlePopularIssuesTabClick);
         }
 
         // 새로고침 버튼
         const refreshBtn = document.getElementById('refresh-popular-issues');
         if (refreshBtn) {
+            refreshBtn.removeEventListener('click', loadPopularIssues);
             refreshBtn.addEventListener('click', loadPopularIssues);
         }
 
         // 순서 저장 버튼
         const saveBtn = document.getElementById('save-popular-order');
         if (saveBtn) {
+            saveBtn.removeEventListener('click', savePopularIssuesOrder);
             saveBtn.addEventListener('click', savePopularIssuesOrder);
         }
+    }
+
+    // 탭 클릭 핸들러 분리
+    function handlePopularIssuesTabClick() {
+        console.log('📋 인기이슈 탭 클릭됨');
+        showPopularIssuesSection();
+        loadPopularIssues();
     }
 
     // 인기이슈 섹션 표시
@@ -4486,24 +4502,39 @@ if (window.isAdminPage) {
     // 인기이슈 목록 렌더링
     function renderPopularIssuesList() {
         const container = document.getElementById('sortable-popular-issues');
+        console.log('🎨 인기이슈 목록 렌더링 시작, 컨테이너:', container ? '✅ 찾음' : '❌ 없음');
+        
+        if (!container) {
+            console.error('❌ sortable-popular-issues 컨테이너를 찾을 수 없습니다.');
+            showErrorState('컨테이너를 찾을 수 없습니다.');
+            return;
+        }
         
         if (popularIssuesData.length === 0) {
+            console.log('📭 인기이슈 데이터가 없습니다.');
             document.getElementById('popular-issues-loading').classList.add('hidden');
             document.getElementById('popular-issues-list').classList.add('hidden');
             document.getElementById('no-popular-issues').classList.remove('hidden');
             return;
         }
+        
+        console.log('📋 렌더링할 인기이슈:', popularIssuesData.length, '개');
 
         container.innerHTML = popularIssuesData.map((issue, index) => `
-            <div class="popular-issue-item bg-white border border-gray-200 rounded-lg p-4 cursor-move hover:shadow-md transition-all duration-200" data-issue-id="${issue.id}">
+            <div class="popular-issue-item bg-white border-2 border-gray-200 rounded-lg p-4 mb-2 transition-all duration-200 hover:border-blue-300 hover:shadow-lg select-none" 
+                 data-issue-id="${issue.id}" 
+                 style="cursor: grab; user-select: none;">
                 <div class="flex items-center space-x-4">
-                    <div class="flex-shrink-0">
-                        <i data-lucide="grip-vertical" class="w-5 h-5 text-gray-400"></i>
+                    <div class="drag-handle flex-shrink-0 p-2 -m-2 cursor-grab hover:bg-gray-100 rounded transition-colors" 
+                         style="cursor: grab !important;">
+                        <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M7 2a1 1 0 000 2h6a1 1 0 100-2H7zM4 6a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM4 10a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM5 15a1 1 0 100 2h10a1 1 0 100-2H5z"/>
+                        </svg>
                     </div>
-                    <div class="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-sm">
+                    <div class="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-sm order-number">
                         ${issue.popular_order || index + 1}
                     </div>
-                    <div class="flex-1 min-w-0">
+                    <div class="flex-1 min-w-0 pointer-events-none">
                         <div class="flex items-center space-x-2 mb-1">
                             <span class="inline-block px-2 py-1 text-xs font-medium rounded bg-purple-100 text-purple-800">
                                 ${issue.category}
@@ -4523,19 +4554,58 @@ if (window.isAdminPage) {
 
         // Sortable 초기화
         if (sortableInstance) {
+            console.log('🗑️ 기존 Sortable 인스턴스 제거');
             sortableInstance.destroy();
+            sortableInstance = null;
         }
         
-        sortableInstance = Sortable.create(container, {
-            animation: 150,
-            ghostClass: 'opacity-50',
-            chosenClass: 'ring-2 ring-blue-500',
-            dragClass: 'shadow-lg scale-105',
-            onUpdate: function(evt) {
-                console.log('📝 순서 변경됨:', evt.oldIndex, '->', evt.newIndex);
-                updateOrderNumbers();
-            }
-        });
+        console.log('🎯 새 Sortable 인스턴스 생성 중...');
+        
+        try {
+            sortableInstance = Sortable.create(container, {
+                handle: '.drag-handle', // 드래그 핸들 지정
+                animation: 150,
+                ghostClass: 'sortable-ghost',
+                chosenClass: 'sortable-chosen',
+                dragClass: 'sortable-drag',
+                forceFallback: true, // 모바일 지원 강화
+                fallbackClass: 'sortable-fallback',
+                onStart: function(evt) {
+                    console.log('🖱️ 드래그 시작:', evt.oldIndex);
+                    evt.item.style.cursor = 'grabbing';
+                },
+                onEnd: function(evt) {
+                    console.log('🖱️ 드래그 종료:', evt.oldIndex, '->', evt.newIndex);
+                    evt.item.style.cursor = 'grab';
+                },
+                onUpdate: function(evt) {
+                    console.log('📝 순서 변경됨:', evt.oldIndex, '->', evt.newIndex);
+                    
+                    // 데이터 배열도 업데이트
+                    const movedItem = popularIssuesData.splice(evt.oldIndex, 1)[0];
+                    popularIssuesData.splice(evt.newIndex, 0, movedItem);
+                    
+                    // 순서 번호 업데이트
+                    updateOrderNumbers();
+                    
+                    // 저장 버튼 활성화 표시
+                    const saveBtn = document.getElementById('save-popular-order');
+                    if (saveBtn) {
+                        saveBtn.classList.add('animate-pulse');
+                        saveBtn.textContent = '순서 저장 (변경됨)';
+                    }
+                },
+                onMove: function(evt) {
+                    console.log('👆 드래그 중:', evt.related.dataset.issueId);
+                    return true; // 이동 허용
+                }
+            });
+            
+            console.log('✅ Sortable 인스턴스 생성 완료');
+            
+        } catch (error) {
+            console.error('❌ Sortable 생성 오류:', error);
+        }
 
         // 상태 표시 업데이트
         document.getElementById('popular-issues-loading').classList.add('hidden');
@@ -4551,10 +4621,14 @@ if (window.isAdminPage) {
     // 순서 번호 업데이트
     function updateOrderNumbers() {
         const items = document.querySelectorAll('.popular-issue-item');
+        console.log('🔢 순서 번호 업데이트:', items.length, '개 아이템');
+        
         items.forEach((item, index) => {
-            const numberElement = item.querySelector('.bg-blue-100');
+            const numberElement = item.querySelector('.order-number');
             if (numberElement) {
-                numberElement.textContent = index + 1;
+                const newNumber = index + 1;
+                numberElement.textContent = newNumber;
+                console.log(`📍 아이템 ${item.dataset.issueId}: ${newNumber}번으로 변경`);
             }
         });
     }
@@ -4569,10 +4643,11 @@ if (window.isAdminPage) {
         console.log('💾 순서 저장 중:', orderedIssueIds);
         
         const saveBtn = document.getElementById('save-popular-order');
-        const originalText = saveBtn.textContent;
+        const originalText = '순서 저장';
         
         try {
             saveBtn.disabled = true;
+            saveBtn.classList.remove('animate-pulse');
             saveBtn.textContent = '저장 중...';
             
             const response = await window.adminFetch('/api/admin/popular-issues/reorder', {
@@ -4597,14 +4672,13 @@ if (window.isAdminPage) {
                     saveBtn.disabled = false;
                 }, 2000);
                 
-                // 데이터 다시 로드
-                await loadPopularIssues();
             } else {
                 throw new Error(data.message || '순서 저장 실패');
             }
         } catch (error) {
             console.error('❌ 순서 저장 오류:', error);
             saveBtn.textContent = '저장 실패';
+            saveBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
             saveBtn.classList.add('bg-red-600', 'hover:bg-red-700');
             
             setTimeout(() => {

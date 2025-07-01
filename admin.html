@@ -11,6 +11,64 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <style>
+        /* 드래그앤드롭 스타일 */
+        .sortable-ghost {
+            opacity: 0.4;
+            background: #f3f4f6 !important;
+            border: 2px dashed #3b82f6 !important;
+        }
+        
+        .sortable-chosen {
+            background: #eff6ff !important;
+            border-color: #3b82f6 !important;
+            transform: rotate(5deg);
+        }
+        
+        .sortable-drag {
+            background: #ffffff !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+            transform: rotate(5deg) scale(1.05);
+            z-index: 9999 !important;
+        }
+        
+        .sortable-fallback {
+            background: #ffffff !important;
+            border: 2px solid #3b82f6 !important;
+            border-radius: 8px !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+            opacity: 1 !important;
+        }
+        
+        .drag-handle:hover {
+            background-color: #f3f4f6 !important;
+        }
+        
+        .drag-handle:active {
+            background-color: #e5e7eb !important;
+        }
+        
+        .popular-issue-item:hover {
+            transform: translateY(-1px);
+        }
+        
+        .popular-issue-item.sortable-chosen {
+            cursor: grabbing !important;
+        }
+        
+        /* 드래그 중 커서 */
+        .sortable-drag * {
+            cursor: grabbing !important;
+        }
+        
+        /* 선택 방지 */
+        .select-none {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+    </style>
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
 </head>
