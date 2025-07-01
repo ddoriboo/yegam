@@ -966,6 +966,84 @@ router.get('/discussions/posts', secureAdminMiddleware, requirePermission('view_
     }
 });
 
+// 분석방 게시글 일괄 삭제 (관리자용) - 단일 삭제보다 먼저 정의해야 함
+router.delete('/discussions/posts/bulk', secureAdminMiddleware, requirePermission('delete_discussions'), async (req, res) => {
+    try {
+        const { postIds, reason } = req.body;
+        
+        if (!postIds || !Array.isArray(postIds) || postIds.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: '삭제할 게시글 ID 목록이 필요합니다.'
+            });
+        }
+        
+        // 최대 50개까지만 허용 (안전성)
+        if (postIds.length > 50) {
+            return res.status(400).json({
+                success: false,
+                message: '한 번에 최대 50개의 게시글만 삭제할 수 있습니다.'
+            });
+        }
+        
+        // 삭제할 게시글들 조회
+        const placeholders = postIds.map((_, i) => `$${i + 1}`).join(',');
+        const postsResult = await query(
+            `SELECT id, title, author_id FROM discussion_posts WHERE id IN (${placeholders})`,
+            postIds
+        );
+        
+        if (postsResult.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: '삭제할 게시글을 찾을 수 없습니다.'
+            });
+        }
+        
+        const posts = postsResult.rows;
+        const foundIds = posts.map(p => p.id);
+        
+        // 게시글들 일괄 삭제
+        await query(`DELETE FROM discussion_posts WHERE id IN (${placeholders})`, postIds);
+        
+        // 관리자 활동 로그 기록
+        try {
+            await query(`
+                INSERT INTO admin_activity_logs (admin_id, action, resource_type, resource_id, details, ip_address)
+                VALUES ($1, $2, $3, $4, $5, $6)
+            `, [
+                req.admin.id,
+                'BULK_DELETE_DISCUSSION_POSTS',
+                'discussion_post',
+                null,
+                JSON.stringify({
+                    deleted_posts: posts.map(p => ({ id: p.id, title: p.title, author_id: p.author_id })),
+                    total_count: posts.length,
+                    reason: reason || '사유 없음'
+                }),
+                req.ip
+            ]);
+        } catch (logError) {
+            console.error('관리자 활동 로그 기록 실패:', logError);
+        }
+        
+        res.json({
+            success: true,
+            message: `${posts.length}개의 게시글이 성공적으로 삭제되었습니다.`,
+            deletedCount: posts.length,
+            notFoundIds: postIds.filter(id => !foundIds.includes(id))
+        });
+        
+    } catch (error) {
+        console.error('[관리자] 분석방 게시글 일괄 삭제 오류:', error);
+        res.status(500).json({
+            success: false,
+            message: '게시글 일괄 삭제 중 오류가 발생했습니다.',
+            error: error.message
+        });
+    }
+});
+
 // 분석방 게시글 삭제 (관리자용)
 router.delete('/discussions/posts/:id', secureAdminMiddleware, requirePermission('delete_discussions'), async (req, res) => {
     try {
@@ -1188,6 +1266,89 @@ router.delete('/discussions/comments/:id', secureAdminMiddleware, requirePermiss
         res.status(500).json({
             success: false,
             message: '댓글 삭제 중 오류가 발생했습니다.',
+            error: error.message
+        });
+    }
+});
+
+// 분석방 댓글 일괄 삭제 (관리자용)
+router.delete('/discussions/comments/bulk', secureAdminMiddleware, requirePermission('delete_discussions'), async (req, res) => {
+    try {
+        const { commentIds, reason } = req.body;
+        
+        if (!commentIds || !Array.isArray(commentIds) || commentIds.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: '삭제할 댓글 ID 목록이 필요합니다.'
+            });
+        }
+        
+        // 최대 100개까지만 허용 (안전성)
+        if (commentIds.length > 100) {
+            return res.status(400).json({
+                success: false,
+                message: '한 번에 최대 100개의 댓글만 삭제할 수 있습니다.'
+            });
+        }
+        
+        // 삭제할 댓글들 조회
+        const placeholders = commentIds.map((_, i) => `$${i + 1}`).join(',');
+        const commentsResult = await query(
+            `SELECT id, content, author_id, post_id FROM discussion_comments WHERE id IN (${placeholders})`,
+            commentIds
+        );
+        
+        if (commentsResult.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: '삭제할 댓글을 찾을 수 없습니다.'
+            });
+        }
+        
+        const comments = commentsResult.rows;
+        const foundIds = comments.map(c => c.id);
+        
+        // 댓글들 일괄 삭제
+        await query(`DELETE FROM discussion_comments WHERE id IN (${placeholders})`, commentIds);
+        
+        // 관리자 활동 로그 기록
+        try {
+            await query(`
+                INSERT INTO admin_activity_logs (admin_id, action, resource_type, resource_id, details, ip_address)
+                VALUES ($1, $2, $3, $4, $5, $6)
+            `, [
+                req.admin.id,
+                'BULK_DELETE_DISCUSSION_COMMENTS',
+                'discussion_comment',
+                null,
+                JSON.stringify({
+                    deleted_comments: comments.map(c => ({ 
+                        id: c.id, 
+                        content: c.content.substring(0, 100), 
+                        author_id: c.author_id, 
+                        post_id: c.post_id 
+                    })),
+                    total_count: comments.length,
+                    reason: reason || '사유 없음'
+                }),
+                req.ip
+            ]);
+        } catch (logError) {
+            console.error('관리자 활동 로그 기록 실패:', logError);
+        }
+        
+        res.json({
+            success: true,
+            message: `${comments.length}개의 댓글이 성공적으로 삭제되었습니다.`,
+            deletedCount: comments.length,
+            notFoundIds: commentIds.filter(id => !foundIds.includes(id))
+        });
+        
+    } catch (error) {
+        console.error('[관리자] 분석방 댓글 일괄 삭제 오류:', error);
+        res.status(500).json({
+            success: false,
+            message: '댓글 일괄 삭제 중 오류가 발생했습니다.',
             error: error.message
         });
     }

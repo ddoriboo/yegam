@@ -779,6 +779,20 @@
                             </div>
                         </div>
                         
+                        <!-- 일괄 선택 및 삭제 컨트롤 -->
+                        <div class="mb-4 flex items-center justify-between bg-gray-50 p-3 rounded-md">
+                            <div class="flex items-center gap-3">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" id="select-all-posts" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500">
+                                    <span class="text-sm font-medium text-gray-700">전체 선택</span>
+                                </label>
+                                <span id="selected-posts-count" class="text-sm text-gray-500">0개 선택됨</span>
+                            </div>
+                            <button id="bulk-delete-posts" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                                선택된 항목 삭제
+                            </button>
+                        </div>
+                        
                         <!-- 게시글 목록 -->
                         <div id="posts-loading" class="text-center py-8 hidden">
                             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
@@ -814,6 +828,20 @@
                                     검색
                                 </button>
                             </div>
+                        </div>
+                        
+                        <!-- 일괄 선택 및 삭제 컨트롤 -->
+                        <div class="mb-4 flex items-center justify-between bg-gray-50 p-3 rounded-md">
+                            <div class="flex items-center gap-3">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" id="select-all-comments" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500">
+                                    <span class="text-sm font-medium text-gray-700">전체 선택</span>
+                                </label>
+                                <span id="selected-comments-count" class="text-sm text-gray-500">0개 선택됨</span>
+                            </div>
+                            <button id="bulk-delete-comments" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                                선택된 항목 삭제
+                            </button>
                         </div>
                         
                         <!-- 댓글 목록 -->
@@ -1104,6 +1132,8 @@
         let discussionCurrentSort = 'latest';
         let discussionCurrentSearch = '';
         let discussionManagementType = 'posts'; // 'posts' or 'comments'
+        let selectedPosts = new Set(); // 선택된 게시글 ID들
+        let selectedComments = new Set(); // 선택된 댓글 ID들
         
         // 분석방 관리 초기화
         function initDiscussionManagement() {
@@ -1216,6 +1246,58 @@
                     loadDiscussionComments();
                 });
             }
+            
+            // 전체 선택 체크박스
+            const selectAllPostsBtn = document.getElementById('select-all-posts');
+            const selectAllCommentsBtn = document.getElementById('select-all-comments');
+            
+            if (selectAllPostsBtn) {
+                selectAllPostsBtn.addEventListener('change', (e) => {
+                    const isChecked = e.target.checked;
+                    document.querySelectorAll('.post-checkbox').forEach(checkbox => {
+                        checkbox.checked = isChecked;
+                        const postId = parseInt(checkbox.value);
+                        if (isChecked) {
+                            selectedPosts.add(postId);
+                        } else {
+                            selectedPosts.delete(postId);
+                        }
+                    });
+                    updateSelectedCount('posts');
+                });
+            }
+            
+            if (selectAllCommentsBtn) {
+                selectAllCommentsBtn.addEventListener('change', (e) => {
+                    const isChecked = e.target.checked;
+                    document.querySelectorAll('.comment-checkbox').forEach(checkbox => {
+                        checkbox.checked = isChecked;
+                        const commentId = parseInt(checkbox.value);
+                        if (isChecked) {
+                            selectedComments.add(commentId);
+                        } else {
+                            selectedComments.delete(commentId);
+                        }
+                    });
+                    updateSelectedCount('comments');
+                });
+            }
+            
+            // 일괄 삭제 버튼
+            const bulkDeletePostsBtn = document.getElementById('bulk-delete-posts');
+            const bulkDeleteCommentsBtn = document.getElementById('bulk-delete-comments');
+            
+            if (bulkDeletePostsBtn) {
+                bulkDeletePostsBtn.addEventListener('click', () => {
+                    bulkDeletePosts();
+                });
+            }
+            
+            if (bulkDeleteCommentsBtn) {
+                bulkDeleteCommentsBtn.addEventListener('click', () => {
+                    bulkDeleteComments();
+                });
+            }
         }
         
         // 분석방 통계 로드
@@ -1308,6 +1390,17 @@
             const listEl = document.getElementById('posts-list');
             if (!listEl) return;
             
+            // 선택 상태 초기화
+            selectedPosts.clear();
+            updateSelectedCount('posts');
+            
+            // 전체 선택 체크박스 해제
+            const selectAllCheckbox = document.getElementById('select-all-posts');
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+            }
+            
             if (posts.length === 0) {
                 listEl.innerHTML = '<div class="text-center py-8 text-gray-500">게시글이 없습니다.</div>';
                 return;
@@ -1315,7 +1408,11 @@
             
             listEl.innerHTML = posts.map(post => `
                 <div class="bg-white border border-gray-200 rounded-lg p-4">
-                    <div class="flex justify-between items-start">
+                    <div class="flex items-start gap-3">
+                        <div class="flex items-center pt-1">
+                            <input type="checkbox" class="post-checkbox w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500" 
+                                value="${post.id}" onchange="handlePostCheckboxChange(${post.id})">
+                        </div>
                         <div class="flex-1">
                             <div class="flex items-center gap-2 mb-2">
                                 <h4 class="font-medium text-gray-900">${post.title}</h4>
@@ -1332,12 +1429,12 @@
                                 <span>${new Date(post.created_at).toLocaleString('ko-KR')}</span>
                             </div>
                         </div>
-                        <div class="flex gap-2 ml-4">
+                        <div class="flex gap-2">
                             <button onclick="toggleDiscussionPostNotice(${post.id}, ${post.is_notice}, ${post.is_pinned})" 
                                 class="px-3 py-1 text-xs ${post.is_notice ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'} rounded hover:bg-opacity-80">
                                 ${post.is_notice ? '공지해제' : '공지설정'}
                             </button>
-                            <button onclick="deleteDiscussionPost(${post.id}, '${post.title}')" 
+                            <button onclick="deleteDiscussionPost(${post.id}, '${post.title.replace(/'/g, '\\\'')}')" 
                                 class="px-3 py-1 text-xs bg-red-100 text-red-800 rounded hover:bg-red-200">
                                 삭제
                             </button>
@@ -1352,6 +1449,17 @@
             const listEl = document.getElementById('comments-list');
             if (!listEl) return;
             
+            // 선택 상태 초기화
+            selectedComments.clear();
+            updateSelectedCount('comments');
+            
+            // 전체 선택 체크박스 해제
+            const selectAllCheckbox = document.getElementById('select-all-comments');
+            if (selectAllCheckbox) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+            }
+            
             if (comments.length === 0) {
                 listEl.innerHTML = '<div class="text-center py-8 text-gray-500">댓글이 없습니다.</div>';
                 return;
@@ -1359,7 +1467,11 @@
             
             listEl.innerHTML = comments.map(comment => `
                 <div class="bg-white border border-gray-200 rounded-lg p-4">
-                    <div class="flex justify-between items-start">
+                    <div class="flex items-start gap-3">
+                        <div class="flex items-center pt-1">
+                            <input type="checkbox" class="comment-checkbox w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500" 
+                                value="${comment.id}" onchange="handleCommentCheckboxChange(${comment.id})">
+                        </div>
                         <div class="flex-1">
                             <div class="flex items-center gap-2 mb-2">
                                 <span class="font-medium text-gray-900">${comment.author_name}</span>
@@ -1373,7 +1485,7 @@
                                 ${comment.parent_author_name ? `<span>답글 대상: ${comment.parent_author_name}</span>` : ''}
                             </div>
                         </div>
-                        <div class="flex gap-2 ml-4">
+                        <div class="flex gap-2">
                             <button onclick="deleteDiscussionComment(${comment.id}, ${comment.post_id})" 
                                 class="px-3 py-1 text-xs bg-red-100 text-red-800 rounded hover:bg-red-200">
                                 삭제
@@ -1546,11 +1658,154 @@
             initDiscussionManagement();
         });
         
+        // 체크박스 이벤트 핸들러
+        function handlePostCheckboxChange(postId) {
+            const checkbox = document.querySelector(`.post-checkbox[value="${postId}"]`);
+            if (checkbox.checked) {
+                selectedPosts.add(postId);
+            } else {
+                selectedPosts.delete(postId);
+            }
+            updateSelectedCount('posts');
+            updateSelectAllCheckbox('posts');
+        }
+        
+        function handleCommentCheckboxChange(commentId) {
+            const checkbox = document.querySelector(`.comment-checkbox[value="${commentId}"]`);
+            if (checkbox.checked) {
+                selectedComments.add(commentId);
+            } else {
+                selectedComments.delete(commentId);
+            }
+            updateSelectedCount('comments');
+            updateSelectAllCheckbox('comments');
+        }
+        
+        // 선택된 항목 수 업데이트
+        function updateSelectedCount(type) {
+            const countEl = document.getElementById(`selected-${type}-count`);
+            const deleteBtn = document.getElementById(`bulk-delete-${type}`);
+            
+            const selectedCount = type === 'posts' ? selectedPosts.size : selectedComments.size;
+            
+            if (countEl) {
+                countEl.textContent = `${selectedCount}개 선택됨`;
+            }
+            
+            if (deleteBtn) {
+                deleteBtn.disabled = selectedCount === 0;
+            }
+        }
+        
+        // 전체 선택 체크박스 상태 업데이트
+        function updateSelectAllCheckbox(type) {
+            const selectAllCheckbox = document.getElementById(`select-all-${type}`);
+            const checkboxes = document.querySelectorAll(`.${type.slice(0, -1)}-checkbox`);
+            
+            if (selectAllCheckbox && checkboxes.length > 0) {
+                const checkedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+                
+                if (checkedCount === 0) {
+                    selectAllCheckbox.checked = false;
+                    selectAllCheckbox.indeterminate = false;
+                } else if (checkedCount === checkboxes.length) {
+                    selectAllCheckbox.checked = true;
+                    selectAllCheckbox.indeterminate = false;
+                } else {
+                    selectAllCheckbox.checked = false;
+                    selectAllCheckbox.indeterminate = true;
+                }
+            }
+        }
+        
+        // 일괄 삭제 함수들
+        async function bulkDeletePosts() {
+            if (selectedPosts.size === 0) {
+                alert('삭제할 게시글을 선택해주세요.');
+                return;
+            }
+            
+            const postIds = Array.from(selectedPosts);
+            const confirmMessage = `선택된 ${postIds.length}개의 게시글을 정말 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`;
+            
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+            
+            const reason = prompt('삭제 사유를 입력하세요 (선택사항):');
+            
+            try {
+                const response = await window.adminFetch('/api/admin/discussions/posts/bulk', {
+                    method: 'DELETE',
+                    body: JSON.stringify({ 
+                        postIds: postIds,
+                        reason: reason
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`${data.deletedCount}개의 게시글이 성공적으로 삭제되었습니다.`);
+                    selectedPosts.clear();
+                    loadDiscussionPosts();
+                    loadDiscussionStats();
+                } else {
+                    alert('일괄 삭제에 실패했습니다: ' + data.message);
+                }
+            } catch (error) {
+                console.error('게시글 일괄 삭제 오류:', error);
+                alert('게시글 일괄 삭제 중 오류가 발생했습니다.');
+            }
+        }
+        
+        async function bulkDeleteComments() {
+            if (selectedComments.size === 0) {
+                alert('삭제할 댓글을 선택해주세요.');
+                return;
+            }
+            
+            const commentIds = Array.from(selectedComments);
+            const confirmMessage = `선택된 ${commentIds.length}개의 댓글을 정말 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`;
+            
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+            
+            const reason = prompt('삭제 사유를 입력하세요 (선택사항):');
+            
+            try {
+                const response = await window.adminFetch('/api/admin/discussions/comments/bulk', {
+                    method: 'DELETE',
+                    body: JSON.stringify({ 
+                        commentIds: commentIds,
+                        reason: reason
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert(`${data.deletedCount}개의 댓글이 성공적으로 삭제되었습니다.`);
+                    selectedComments.clear();
+                    loadDiscussionComments();
+                    loadDiscussionStats();
+                } else {
+                    alert('일괄 삭제에 실패했습니다: ' + data.message);
+                }
+            } catch (error) {
+                console.error('댓글 일괄 삭제 오류:', error);
+                alert('댓글 일괄 삭제 중 오류가 발생했습니다.');
+            }
+        }
+        
         // 전역 함수들 노출
         window.toggleDiscussionPostNotice = toggleDiscussionPostNotice;
         window.deleteDiscussionPost = deleteDiscussionPost;
         window.deleteDiscussionComment = deleteDiscussionComment;
         window.changeDiscussionPage = changeDiscussionPage;
+        window.handlePostCheckboxChange = handlePostCheckboxChange;
+        window.handleCommentCheckboxChange = handleCommentCheckboxChange;
     </script>
     
     <script src="utils/tierSystem.js"></script>
