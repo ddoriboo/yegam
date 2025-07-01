@@ -837,4 +837,438 @@ router.get('/popular-issues', secureAdminMiddleware, requirePermission('view_iss
     }
 });
 
+// === 분석방 관리 API ===
+
+// 분석방 게시글 목록 조회 (관리자용)
+router.get('/discussions/posts', secureAdminMiddleware, requirePermission('view_discussions'), async (req, res) => {
+    try {
+        const { 
+            page = 1, 
+            limit = 20, 
+            category_id,
+            search,
+            sort = 'latest',
+            filter = 'all'
+        } = req.query;
+        
+        const offset = (page - 1) * limit;
+        
+        let whereClause = '1=1';
+        let orderClause = 'p.created_at DESC';
+        let params = [];
+        let paramIndex = 1;
+        
+        // 카테고리 필터
+        if (category_id && category_id !== 'all') {
+            whereClause += ` AND p.category_id = $${paramIndex}`;
+            params.push(category_id);
+            paramIndex++;
+        }
+        
+        // 검색
+        if (search && search.trim()) {
+            whereClause += ` AND (p.title ILIKE $${paramIndex} OR p.content ILIKE $${paramIndex} OR u.username ILIKE $${paramIndex})`;
+            params.push(`%${search.trim()}%`);
+            paramIndex++;
+        }
+        
+        // 필터
+        switch (filter) {
+            case 'notice':
+                whereClause += ' AND p.is_notice = true';
+                break;
+            case 'pinned':
+                whereClause += ' AND p.is_pinned = true';
+                break;
+            case 'reported':
+                whereClause += ' AND p.like_count < -5';
+                break;
+        }
+        
+        // 정렬
+        switch (sort) {
+            case 'popular':
+                orderClause = 'p.like_count DESC, p.created_at DESC';
+                break;
+            case 'discussed':
+                orderClause = 'p.comment_count DESC, p.created_at DESC';
+                break;
+            case 'viewed':
+                orderClause = 'p.view_count DESC, p.created_at DESC';
+                break;
+            default:
+                orderClause = 'p.is_notice DESC, p.is_pinned DESC, p.created_at DESC';
+        }
+        
+        // 총 게시글 수 조회
+        const countQuery = `
+            SELECT COUNT(*) as total
+            FROM discussion_posts p
+            LEFT JOIN users u ON p.author_id = u.id
+            WHERE ${whereClause}
+        `;
+        
+        const countResult = await query(countQuery, params);
+        const total = parseInt(countResult.rows[0].total);
+        
+        // 게시글 목록 조회
+        const postsQuery = `
+            SELECT 
+                p.id,
+                p.title,
+                p.content,
+                p.category_id,
+                p.author_id,
+                p.is_notice,
+                p.is_pinned,
+                p.view_count,
+                p.like_count,
+                p.comment_count,
+                p.created_at,
+                p.updated_at,
+                u.username as author_name,
+                u.gam_balance,
+                c.name as category_name,
+                c.color as category_color,
+                c.icon as category_icon,
+                SUBSTRING(p.content, 1, 100) as content_preview
+            FROM discussion_posts p
+            LEFT JOIN users u ON p.author_id = u.id
+            LEFT JOIN discussion_categories c ON p.category_id = c.id
+            WHERE ${whereClause}
+            ORDER BY ${orderClause}
+            LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+        `;
+        
+        params.push(limit, offset);
+        const postsResult = await query(postsQuery, params);
+        
+        res.json({
+            success: true,
+            data: {
+                posts: postsResult.rows,
+                pagination: {
+                    total,
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    pages: Math.ceil(total / limit)
+                }
+            }
+        });
+        
+    } catch (error) {
+        console.error('[관리자] 분석방 게시글 목록 조회 오류:', error);
+        res.status(500).json({
+            success: false,
+            message: '게시글 목록 조회 중 오류가 발생했습니다.',
+            error: error.message
+        });
+    }
+});
+
+// 분석방 게시글 삭제 (관리자용)
+router.delete('/discussions/posts/:id', secureAdminMiddleware, requirePermission('delete_discussions'), async (req, res) => {
+    try {
+        const postId = req.params.id;
+        const { reason } = req.body;
+        
+        // 게시글 존재 확인
+        const postResult = await query(
+            'SELECT id, title, author_id FROM discussion_posts WHERE id = $1',
+            [postId]
+        );
+        
+        if (postResult.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: '게시글을 찾을 수 없습니다.'
+            });
+        }
+        
+        const post = postResult.rows[0];
+        
+        // 게시글 삭제 (CASCADE로 인해 관련 댓글과 좋아요도 함께 삭제됨)
+        await query('DELETE FROM discussion_posts WHERE id = $1', [postId]);
+        
+        // 관리자 활동 로그 기록
+        try {
+            await query(`
+                INSERT INTO admin_activity_logs (admin_id, action, resource_type, resource_id, details, ip_address)
+                VALUES ($1, $2, $3, $4, $5, $6)
+            `, [
+                req.admin.id,
+                'DELETE_DISCUSSION_POST',
+                'discussion_post',
+                postId,
+                JSON.stringify({
+                    title: post.title,
+                    author_id: post.author_id,
+                    reason: reason || '사유 없음'
+                }),
+                req.ip
+            ]);
+        } catch (logError) {
+            console.error('관리자 활동 로그 기록 실패:', logError);
+        }
+        
+        res.json({
+            success: true,
+            message: '게시글이 성공적으로 삭제되었습니다.'
+        });
+        
+    } catch (error) {
+        console.error('[관리자] 분석방 게시글 삭제 오류:', error);
+        res.status(500).json({
+            success: false,
+            message: '게시글 삭제 중 오류가 발생했습니다.',
+            error: error.message
+        });
+    }
+});
+
+// 분석방 댓글 목록 조회 (관리자용)
+router.get('/discussions/comments', secureAdminMiddleware, requirePermission('view_discussions'), async (req, res) => {
+    try {
+        const { 
+            page = 1, 
+            limit = 50, 
+            post_id,
+            search,
+            filter = 'all'
+        } = req.query;
+        
+        const offset = (page - 1) * limit;
+        
+        let whereClause = '1=1';
+        let params = [];
+        let paramIndex = 1;
+        
+        // 게시글 필터
+        if (post_id) {
+            whereClause += ` AND c.post_id = $${paramIndex}`;
+            params.push(post_id);
+            paramIndex++;
+        }
+        
+        // 검색
+        if (search && search.trim()) {
+            whereClause += ` AND (c.content ILIKE $${paramIndex} OR u.username ILIKE $${paramIndex})`;
+            params.push(`%${search.trim()}%`);
+            paramIndex++;
+        }
+        
+        // 필터
+        switch (filter) {
+            case 'reported':
+                whereClause += ' AND c.like_count < -5';
+                break;
+            case 'top_level':
+                whereClause += ' AND c.parent_id IS NULL';
+                break;
+            case 'replies':
+                whereClause += ' AND c.parent_id IS NOT NULL';
+                break;
+        }
+        
+        // 총 댓글 수 조회
+        const countQuery = `
+            SELECT COUNT(*) as total
+            FROM discussion_comments c
+            LEFT JOIN users u ON c.author_id = u.id
+            WHERE ${whereClause}
+        `;
+        
+        const countResult = await query(countQuery, params);
+        const total = parseInt(countResult.rows[0].total);
+        
+        // 댓글 목록 조회
+        const commentsQuery = `
+            SELECT 
+                c.id,
+                c.content,
+                c.post_id,
+                c.author_id,
+                c.parent_id,
+                c.like_count,
+                c.created_at,
+                c.updated_at,
+                u.username as author_name,
+                u.gam_balance,
+                p.title as post_title,
+                CASE WHEN c.parent_id IS NOT NULL THEN
+                    (SELECT username FROM users WHERE id = (SELECT author_id FROM discussion_comments WHERE id = c.parent_id))
+                ELSE NULL END as parent_author_name
+            FROM discussion_comments c
+            LEFT JOIN users u ON c.author_id = u.id
+            LEFT JOIN discussion_posts p ON c.post_id = p.id
+            WHERE ${whereClause}
+            ORDER BY c.created_at DESC
+            LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
+        `;
+        
+        params.push(limit, offset);
+        const commentsResult = await query(commentsQuery, params);
+        
+        res.json({
+            success: true,
+            data: {
+                comments: commentsResult.rows,
+                pagination: {
+                    total,
+                    page: parseInt(page),
+                    limit: parseInt(limit),
+                    pages: Math.ceil(total / limit)
+                }
+            }
+        });
+        
+    } catch (error) {
+        console.error('[관리자] 분석방 댓글 목록 조회 오류:', error);
+        res.status(500).json({
+            success: false,
+            message: '댓글 목록 조회 중 오류가 발생했습니다.',
+            error: error.message
+        });
+    }
+});
+
+// 분석방 댓글 삭제 (관리자용)
+router.delete('/discussions/comments/:id', secureAdminMiddleware, requirePermission('delete_discussions'), async (req, res) => {
+    try {
+        const commentId = req.params.id;
+        const { reason } = req.body;
+        
+        // 댓글 존재 확인
+        const commentResult = await query(
+            'SELECT id, content, author_id, post_id FROM discussion_comments WHERE id = $1',
+            [commentId]
+        );
+        
+        if (commentResult.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: '댓글을 찾을 수 없습니다.'
+            });
+        }
+        
+        const comment = commentResult.rows[0];
+        
+        // 댓글 삭제 (CASCADE로 인해 관련 대댓글과 좋아요도 함께 삭제됨)
+        await query('DELETE FROM discussion_comments WHERE id = $1', [commentId]);
+        
+        // 관리자 활동 로그 기록
+        try {
+            await query(`
+                INSERT INTO admin_activity_logs (admin_id, action, resource_type, resource_id, details, ip_address)
+                VALUES ($1, $2, $3, $4, $5, $6)
+            `, [
+                req.admin.id,
+                'DELETE_DISCUSSION_COMMENT',
+                'discussion_comment',
+                commentId,
+                JSON.stringify({
+                    content: comment.content.substring(0, 100),
+                    author_id: comment.author_id,
+                    post_id: comment.post_id,
+                    reason: reason || '사유 없음'
+                }),
+                req.ip
+            ]);
+        } catch (logError) {
+            console.error('관리자 활동 로그 기록 실패:', logError);
+        }
+        
+        res.json({
+            success: true,
+            message: '댓글이 성공적으로 삭제되었습니다.'
+        });
+        
+    } catch (error) {
+        console.error('[관리자] 분석방 댓글 삭제 오류:', error);
+        res.status(500).json({
+            success: false,
+            message: '댓글 삭제 중 오류가 발생했습니다.',
+            error: error.message
+        });
+    }
+});
+
+// 분석방 게시글 공지/고정 토글 (관리자용)
+router.post('/discussions/posts/:id/toggle-notice', secureAdminMiddleware, requirePermission('manage_discussions'), async (req, res) => {
+    try {
+        const postId = req.params.id;
+        const { is_notice, is_pinned } = req.body;
+        
+        await query(`
+            UPDATE discussion_posts 
+            SET is_notice = $1, is_pinned = $2, updated_at = CURRENT_TIMESTAMP
+            WHERE id = $3
+        `, [is_notice || false, is_pinned || false, postId]);
+        
+        res.json({
+            success: true,
+            message: '게시글 설정이 업데이트되었습니다.'
+        });
+        
+    } catch (error) {
+        console.error('[관리자] 분석방 게시글 설정 변경 오류:', error);
+        res.status(500).json({
+            success: false,
+            message: '게시글 설정 변경 중 오류가 발생했습니다.',
+            error: error.message
+        });
+    }
+});
+
+// 분석방 통계 조회 (관리자용)
+router.get('/discussions/stats', secureAdminMiddleware, requirePermission('view_discussions'), async (req, res) => {
+    try {
+        const stats = await Promise.all([
+            query('SELECT COUNT(*) as total FROM discussion_posts'),
+            query('SELECT COUNT(*) as total FROM discussion_comments'),
+            query('SELECT COUNT(*) as total FROM discussion_posts WHERE created_at >= CURRENT_DATE'),
+            query('SELECT COUNT(*) as total FROM discussion_comments WHERE created_at >= CURRENT_DATE'),
+            query('SELECT COUNT(*) as total FROM discussion_posts WHERE is_notice = true'),
+            query('SELECT COUNT(*) as total FROM discussion_posts WHERE is_pinned = true'),
+            query(`
+                SELECT c.name, COUNT(p.id) as post_count
+                FROM discussion_categories c
+                LEFT JOIN discussion_posts p ON c.id = p.category_id
+                WHERE c.is_active = true
+                GROUP BY c.id, c.name
+                ORDER BY c.display_order
+            `),
+            query(`
+                SELECT DATE(created_at) as date, COUNT(*) as count
+                FROM discussion_posts 
+                WHERE created_at >= CURRENT_DATE - INTERVAL '7 days'
+                GROUP BY DATE(created_at)
+                ORDER BY date DESC
+            `)
+        ]);
+        
+        res.json({
+            success: true,
+            stats: {
+                totalPosts: parseInt(stats[0].rows[0].total),
+                totalComments: parseInt(stats[1].rows[0].total),
+                todayPosts: parseInt(stats[2].rows[0].total),
+                todayComments: parseInt(stats[3].rows[0].total),
+                noticePosts: parseInt(stats[4].rows[0].total),
+                pinnedPosts: parseInt(stats[5].rows[0].total),
+                categoryStats: stats[6].rows,
+                weeklyActivity: stats[7].rows
+            }
+        });
+        
+    } catch (error) {
+        console.error('[관리자] 분석방 통계 조회 오류:', error);
+        res.status(500).json({
+            success: false,
+            message: '통계 조회 중 오류가 발생했습니다.',
+            error: error.message
+        });
+    }
+});
+
 module.exports = router;

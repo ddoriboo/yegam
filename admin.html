@@ -167,6 +167,9 @@
                     <button id="popular-issues-tab" class="admin-tab pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium whitespace-nowrap">
                         인기 이슈 관리
                     </button>
+                    <button id="discussions-tab" class="admin-tab pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium whitespace-nowrap">
+                        분석방 관리
+                    </button>
                 </nav>
             </div>
 
@@ -699,6 +702,137 @@
                     </div>
                 </div>
             </div>
+
+            <!-- 분석방 관리 섹션 -->
+            <div id="discussions-section" class="hidden bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">분석방 관리</h3>
+                            <p class="text-sm text-gray-600 mt-1">분석방 게시글과 댓글을 관리할 수 있습니다</p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button id="refresh-discussions" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                                새로고침
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-6">
+                    <!-- 분석방 통계 -->
+                    <div id="discussions-stats" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <div class="text-2xl font-bold text-blue-600" id="total-posts">-</div>
+                            <div class="text-sm text-gray-600">전체 게시글</div>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <div class="text-2xl font-bold text-green-600" id="total-comments">-</div>
+                            <div class="text-sm text-gray-600">전체 댓글</div>
+                        </div>
+                        <div class="bg-yellow-50 p-4 rounded-lg">
+                            <div class="text-2xl font-bold text-yellow-600" id="today-posts">-</div>
+                            <div class="text-sm text-gray-600">오늘 게시글</div>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-lg">
+                            <div class="text-2xl font-bold text-purple-600" id="notice-posts">-</div>
+                            <div class="text-sm text-gray-600">공지글</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 탭 네비게이션 -->
+                    <div class="border-b border-gray-200 mb-6">
+                        <nav class="flex space-x-8">
+                            <button id="posts-management-tab" class="discussion-tab active pb-4 border-b-2 border-blue-500 text-blue-600 font-medium">
+                                게시글 관리
+                            </button>
+                            <button id="comments-management-tab" class="discussion-tab pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium">
+                                댓글 관리
+                            </button>
+                        </nav>
+                    </div>
+                    
+                    <!-- 게시글 관리 섹션 -->
+                    <div id="posts-management" class="discussion-content">
+                        <!-- 검색 및 필터 -->
+                        <div class="mb-4 flex flex-col md:flex-row gap-4">
+                            <div class="flex-1">
+                                <input type="text" id="posts-search" placeholder="제목, 내용, 작성자로 검색..." 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div class="flex gap-2">
+                                <select id="posts-filter" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="all">전체 게시글</option>
+                                    <option value="notice">공지글</option>
+                                    <option value="pinned">고정글</option>
+                                    <option value="reported">신고된 글</option>
+                                </select>
+                                <select id="posts-sort" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="latest">최신순</option>
+                                    <option value="popular">인기순</option>
+                                    <option value="discussed">댓글순</option>
+                                    <option value="viewed">조회순</option>
+                                </select>
+                                <button id="search-posts" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                                    검색
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- 게시글 목록 -->
+                        <div id="posts-loading" class="text-center py-8 hidden">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                            <p class="text-gray-500 mt-2">게시글을 불러오는 중...</p>
+                        </div>
+                        
+                        <div id="posts-list" class="space-y-4">
+                            <!-- 동적으로 생성되는 게시글 목록 -->
+                        </div>
+                        
+                        <!-- 페이지네이션 -->
+                        <div id="posts-pagination" class="mt-6 flex justify-center">
+                            <!-- 동적으로 생성되는 페이지네이션 -->
+                        </div>
+                    </div>
+                    
+                    <!-- 댓글 관리 섹션 -->
+                    <div id="comments-management" class="discussion-content hidden">
+                        <!-- 검색 및 필터 -->
+                        <div class="mb-4 flex flex-col md:flex-row gap-4">
+                            <div class="flex-1">
+                                <input type="text" id="comments-search" placeholder="댓글 내용, 작성자로 검색..." 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <div class="flex gap-2">
+                                <select id="comments-filter" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                    <option value="all">전체 댓글</option>
+                                    <option value="reported">신고된 댓글</option>
+                                    <option value="top_level">원댓글만</option>
+                                    <option value="replies">대댓글만</option>
+                                </select>
+                                <button id="search-comments" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                                    검색
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- 댓글 목록 -->
+                        <div id="comments-loading" class="text-center py-8 hidden">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                            <p class="text-gray-500 mt-2">댓글을 불러오는 중...</p>
+                        </div>
+                        
+                        <div id="comments-list" class="space-y-4">
+                            <!-- 동적으로 생성되는 댓글 목록 -->
+                        </div>
+                        
+                        <!-- 페이지네이션 -->
+                        <div id="comments-pagination" class="mt-6 flex justify-center">
+                            <!-- 동적으로 생성되는 페이지네이션 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
         </main>
 
         <!-- Footer -->
@@ -960,6 +1094,431 @@
                 throw error;
             }
         };
+    </script>
+    
+    <!-- 분석방 관리 JavaScript -->
+    <script>
+        // 분석방 관리 전역 변수
+        let discussionCurrentPage = 1;
+        let discussionCurrentFilter = 'all';
+        let discussionCurrentSort = 'latest';
+        let discussionCurrentSearch = '';
+        let discussionManagementType = 'posts'; // 'posts' or 'comments'
+        
+        // 분석방 관리 초기화
+        function initDiscussionManagement() {
+            setupDiscussionTabs();
+            setupDiscussionEventListeners();
+        }
+        
+        // 분석방 탭 설정
+        function setupDiscussionTabs() {
+            // 메인 탭 (분석방 관리)
+            const discussionsTab = document.getElementById('discussions-tab');
+            if (discussionsTab) {
+                discussionsTab.addEventListener('click', () => {
+                    showSection('discussions-section');
+                    setActiveTab('discussions-tab');
+                    loadDiscussionStats();
+                    loadDiscussionPosts();
+                });
+            }
+            
+            // 하위 탭 (게시글/댓글 관리)
+            const postsTab = document.getElementById('posts-management-tab');
+            const commentsTab = document.getElementById('comments-management-tab');
+            
+            if (postsTab) {
+                postsTab.addEventListener('click', () => {
+                    discussionManagementType = 'posts';
+                    setActiveDiscussionTab('posts-management-tab');
+                    showDiscussionContent('posts-management');
+                    loadDiscussionPosts();
+                });
+            }
+            
+            if (commentsTab) {
+                commentsTab.addEventListener('click', () => {
+                    discussionManagementType = 'comments';
+                    setActiveDiscussionTab('comments-management-tab');
+                    showDiscussionContent('comments-management');
+                    loadDiscussionComments();
+                });
+            }
+        }
+        
+        // 분석방 이벤트 리스너 설정
+        function setupDiscussionEventListeners() {
+            // 새로고침 버튼
+            const refreshBtn = document.getElementById('refresh-discussions');
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', () => {
+                    loadDiscussionStats();
+                    if (discussionManagementType === 'posts') {
+                        loadDiscussionPosts();
+                    } else {
+                        loadDiscussionComments();
+                    }
+                });
+            }
+            
+            // 검색 버튼들
+            const searchPostsBtn = document.getElementById('search-posts');
+            const searchCommentsBtn = document.getElementById('search-comments');
+            
+            if (searchPostsBtn) {
+                searchPostsBtn.addEventListener('click', () => {
+                    discussionCurrentPage = 1;
+                    discussionCurrentSearch = document.getElementById('posts-search').value;
+                    discussionCurrentFilter = document.getElementById('posts-filter').value;
+                    discussionCurrentSort = document.getElementById('posts-sort').value;
+                    loadDiscussionPosts();
+                });
+            }
+            
+            if (searchCommentsBtn) {
+                searchCommentsBtn.addEventListener('click', () => {
+                    discussionCurrentPage = 1;
+                    discussionCurrentSearch = document.getElementById('comments-search').value;
+                    discussionCurrentFilter = document.getElementById('comments-filter').value;
+                    loadDiscussionComments();
+                });
+            }
+        }
+        
+        // 분석방 통계 로드
+        async function loadDiscussionStats() {
+            try {
+                const response = await window.adminFetch('/api/admin/discussions/stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const stats = data.stats;
+                    document.getElementById('total-posts').textContent = stats.totalPosts.toLocaleString();
+                    document.getElementById('total-comments').textContent = stats.totalComments.toLocaleString();
+                    document.getElementById('today-posts').textContent = stats.todayPosts.toLocaleString();
+                    document.getElementById('notice-posts').textContent = stats.noticePosts.toLocaleString();
+                }
+            } catch (error) {
+                console.error('분석방 통계 로드 오류:', error);
+            }
+        }
+        
+        // 분석방 게시글 로드
+        async function loadDiscussionPosts() {
+            const loadingEl = document.getElementById('posts-loading');
+            const listEl = document.getElementById('posts-list');
+            
+            if (loadingEl) loadingEl.classList.remove('hidden');
+            if (listEl) listEl.innerHTML = '';
+            
+            try {
+                const params = new URLSearchParams({
+                    page: discussionCurrentPage,
+                    limit: 20,
+                    search: discussionCurrentSearch,
+                    filter: discussionCurrentFilter,
+                    sort: discussionCurrentSort
+                });
+                
+                const response = await window.adminFetch(`/api/admin/discussions/posts?${params}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderDiscussionPosts(data.data.posts);
+                    renderDiscussionPagination(data.data.pagination, 'posts');
+                }
+            } catch (error) {
+                console.error('분석방 게시글 로드 오류:', error);
+                if (listEl) {
+                    listEl.innerHTML = '<div class="text-center py-8 text-red-600">게시글을 불러오는 중 오류가 발생했습니다.</div>';
+                }
+            } finally {
+                if (loadingEl) loadingEl.classList.add('hidden');
+            }
+        }
+        
+        // 분석방 댓글 로드
+        async function loadDiscussionComments() {
+            const loadingEl = document.getElementById('comments-loading');
+            const listEl = document.getElementById('comments-list');
+            
+            if (loadingEl) loadingEl.classList.remove('hidden');
+            if (listEl) listEl.innerHTML = '';
+            
+            try {
+                const params = new URLSearchParams({
+                    page: discussionCurrentPage,
+                    limit: 50,
+                    search: discussionCurrentSearch,
+                    filter: discussionCurrentFilter
+                });
+                
+                const response = await window.adminFetch(`/api/admin/discussions/comments?${params}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderDiscussionComments(data.data.comments);
+                    renderDiscussionPagination(data.data.pagination, 'comments');
+                }
+            } catch (error) {
+                console.error('분석방 댓글 로드 오류:', error);
+                if (listEl) {
+                    listEl.innerHTML = '<div class="text-center py-8 text-red-600">댓글을 불러오는 중 오류가 발생했습니다.</div>';
+                }
+            } finally {
+                if (loadingEl) loadingEl.classList.add('hidden');
+            }
+        }
+        
+        // 분석방 게시글 렌더링
+        function renderDiscussionPosts(posts) {
+            const listEl = document.getElementById('posts-list');
+            if (!listEl) return;
+            
+            if (posts.length === 0) {
+                listEl.innerHTML = '<div class="text-center py-8 text-gray-500">게시글이 없습니다.</div>';
+                return;
+            }
+            
+            listEl.innerHTML = posts.map(post => `
+                <div class="bg-white border border-gray-200 rounded-lg p-4">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-2">
+                                <h4 class="font-medium text-gray-900">${post.title}</h4>
+                                ${post.is_notice ? '<span class="px-2 py-1 text-xs bg-red-100 text-red-800 rounded">공지</span>' : ''}
+                                ${post.is_pinned ? '<span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">고정</span>' : ''}
+                            </div>
+                            <p class="text-sm text-gray-600 mb-2">${post.content_preview}...</p>
+                            <div class="flex items-center gap-4 text-xs text-gray-500">
+                                <span>작성자: ${post.author_name}</span>
+                                <span>카테고리: ${post.category_name}</span>
+                                <span>좋아요: ${post.like_count}</span>
+                                <span>댓글: ${post.comment_count}</span>
+                                <span>조회: ${post.view_count}</span>
+                                <span>${new Date(post.created_at).toLocaleString('ko-KR')}</span>
+                            </div>
+                        </div>
+                        <div class="flex gap-2 ml-4">
+                            <button onclick="toggleDiscussionPostNotice(${post.id}, ${post.is_notice}, ${post.is_pinned})" 
+                                class="px-3 py-1 text-xs ${post.is_notice ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'} rounded hover:bg-opacity-80">
+                                ${post.is_notice ? '공지해제' : '공지설정'}
+                            </button>
+                            <button onclick="deleteDiscussionPost(${post.id}, '${post.title}')" 
+                                class="px-3 py-1 text-xs bg-red-100 text-red-800 rounded hover:bg-red-200">
+                                삭제
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // 분석방 댓글 렌더링
+        function renderDiscussionComments(comments) {
+            const listEl = document.getElementById('comments-list');
+            if (!listEl) return;
+            
+            if (comments.length === 0) {
+                listEl.innerHTML = '<div class="text-center py-8 text-gray-500">댓글이 없습니다.</div>';
+                return;
+            }
+            
+            listEl.innerHTML = comments.map(comment => `
+                <div class="bg-white border border-gray-200 rounded-lg p-4">
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="font-medium text-gray-900">${comment.author_name}</span>
+                                <span class="text-sm text-gray-500">→ ${comment.post_title}</span>
+                                ${comment.parent_id ? `<span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">답글</span>` : ''}
+                            </div>
+                            <p class="text-sm text-gray-700 mb-2">${comment.content}</p>
+                            <div class="flex items-center gap-4 text-xs text-gray-500">
+                                <span>좋아요: ${comment.like_count}</span>
+                                <span>${new Date(comment.created_at).toLocaleString('ko-KR')}</span>
+                                ${comment.parent_author_name ? `<span>답글 대상: ${comment.parent_author_name}</span>` : ''}
+                            </div>
+                        </div>
+                        <div class="flex gap-2 ml-4">
+                            <button onclick="deleteDiscussionComment(${comment.id}, ${comment.post_id})" 
+                                class="px-3 py-1 text-xs bg-red-100 text-red-800 rounded hover:bg-red-200">
+                                삭제
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // 분석방 페이지네이션 렌더링
+        function renderDiscussionPagination(pagination, type) {
+            const paginationEl = document.getElementById(`${type}-pagination`);
+            if (!paginationEl) return;
+            
+            const { page, pages, total } = pagination;
+            
+            if (pages <= 1) {
+                paginationEl.innerHTML = '';
+                return;
+            }
+            
+            let paginationHTML = '';
+            
+            // 이전 페이지
+            if (page > 1) {
+                paginationHTML += `<button onclick="changeDiscussionPage(${page - 1}, '${type}')" class="px-3 py-2 text-sm bg-white border border-gray-300 text-gray-500 hover:bg-gray-50 rounded-l-md">이전</button>`;
+            }
+            
+            // 페이지 번호들
+            const startPage = Math.max(1, page - 2);
+            const endPage = Math.min(pages, page + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const isActive = i === page;
+                paginationHTML += `<button onclick="changeDiscussionPage(${i}, '${type}')" class="px-3 py-2 text-sm ${isActive ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 text-gray-500 hover:bg-gray-50'}">${i}</button>`;
+            }
+            
+            // 다음 페이지
+            if (page < pages) {
+                paginationHTML += `<button onclick="changeDiscussionPage(${page + 1}, '${type}')" class="px-3 py-2 text-sm bg-white border border-gray-300 text-gray-500 hover:bg-gray-50 rounded-r-md">다음</button>`;
+            }
+            
+            paginationEl.innerHTML = `<div class="flex">${paginationHTML}</div>`;
+        }
+        
+        // 페이지 변경
+        function changeDiscussionPage(page, type) {
+            discussionCurrentPage = page;
+            if (type === 'posts') {
+                loadDiscussionPosts();
+            } else {
+                loadDiscussionComments();
+            }
+        }
+        
+        // 게시글 공지/고정 토글
+        async function toggleDiscussionPostNotice(postId, currentNotice, currentPinned) {
+            const newNotice = !currentNotice;
+            
+            try {
+                const response = await window.adminFetch(`/api/admin/discussions/posts/${postId}/toggle-notice`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        is_notice: newNotice,
+                        is_pinned: currentPinned
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    loadDiscussionPosts();
+                    loadDiscussionStats();
+                } else {
+                    alert('설정 변경에 실패했습니다: ' + data.message);
+                }
+            } catch (error) {
+                console.error('공지 설정 오류:', error);
+                alert('설정 변경 중 오류가 발생했습니다.');
+            }
+        }
+        
+        // 게시글 삭제
+        async function deleteDiscussionPost(postId, title) {
+            if (!confirm(`"${title}" 게시글을 정말 삭제하시겠습니까?`)) {
+                return;
+            }
+            
+            const reason = prompt('삭제 사유를 입력하세요 (선택사항):');
+            
+            try {
+                const response = await window.adminFetch(`/api/admin/discussions/posts/${postId}`, {
+                    method: 'DELETE',
+                    body: JSON.stringify({ reason })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('게시글이 삭제되었습니다.');
+                    loadDiscussionPosts();
+                    loadDiscussionStats();
+                } else {
+                    alert('게시글 삭제에 실패했습니다: ' + data.message);
+                }
+            } catch (error) {
+                console.error('게시글 삭제 오류:', error);
+                alert('게시글 삭제 중 오류가 발생했습니다.');
+            }
+        }
+        
+        // 댓글 삭제
+        async function deleteDiscussionComment(commentId, postId) {
+            if (!confirm('이 댓글을 정말 삭제하시겠습니까?')) {
+                return;
+            }
+            
+            const reason = prompt('삭제 사유를 입력하세요 (선택사항):');
+            
+            try {
+                const response = await window.adminFetch(`/api/admin/discussions/comments/${commentId}`, {
+                    method: 'DELETE',
+                    body: JSON.stringify({ reason })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('댓글이 삭제되었습니다.');
+                    loadDiscussionComments();
+                    loadDiscussionStats();
+                } else {
+                    alert('댓글 삭제에 실패했습니다: ' + data.message);
+                }
+            } catch (error) {
+                console.error('댓글 삭제 오류:', error);
+                alert('댓글 삭제 중 오류가 발생했습니다.');
+            }
+        }
+        
+        // 분석방 탭 활성화
+        function setActiveDiscussionTab(activeTabId) {
+            const tabs = document.querySelectorAll('.discussion-tab');
+            tabs.forEach(tab => {
+                if (tab.id === activeTabId) {
+                    tab.classList.add('active', 'border-blue-500', 'text-blue-600');
+                    tab.classList.remove('border-transparent', 'text-gray-500');
+                } else {
+                    tab.classList.remove('active', 'border-blue-500', 'text-blue-600');
+                    tab.classList.add('border-transparent', 'text-gray-500');
+                }
+            });
+        }
+        
+        // 분석방 콘텐츠 표시
+        function showDiscussionContent(activeContentId) {
+            const contents = document.querySelectorAll('.discussion-content');
+            contents.forEach(content => {
+                if (content.id === activeContentId) {
+                    content.classList.remove('hidden');
+                } else {
+                    content.classList.add('hidden');
+                }
+            });
+        }
+        
+        // 페이지 로드 시 분석방 관리 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            initDiscussionManagement();
+        });
+        
+        // 전역 함수들 노출
+        window.toggleDiscussionPostNotice = toggleDiscussionPostNotice;
+        window.deleteDiscussionPost = deleteDiscussionPost;
+        window.deleteDiscussionComment = deleteDiscussionComment;
+        window.changeDiscussionPage = changeDiscussionPage;
     </script>
     
     <script src="utils/tierSystem.js"></script>
