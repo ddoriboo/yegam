@@ -170,6 +170,9 @@
                     <button id="discussions-tab" class="admin-tab pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium whitespace-nowrap">
                         분석방 관리
                     </button>
+                    <button id="issue-requests-tab" class="admin-tab pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium whitespace-nowrap">
+                        이슈 신청 관리
+                    </button>
                 </nav>
             </div>
 
@@ -864,6 +867,88 @@
         </main>
 
         <!-- Footer -->
+            <!-- 이슈 신청 관리 섹션 -->
+            <div id="issue-requests-section" class="hidden bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">이슈 신청 관리</h3>
+                            <p class="text-sm text-gray-600 mt-1">사용자와 AI가 신청한 이슈를 관리할 수 있습니다</p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button id="refresh-issue-requests" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                                새로고침
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-6">
+                    <!-- 이슈 신청 통계 -->
+                    <div id="issue-requests-stats" class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+                        <div class="bg-yellow-50 p-4 rounded-lg">
+                            <div class="text-2xl font-bold text-yellow-600" id="pending-requests">-</div>
+                            <div class="text-sm text-gray-600">대기 중</div>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <div class="text-2xl font-bold text-green-600" id="approved-requests">-</div>
+                            <div class="text-sm text-gray-600">승인됨</div>
+                        </div>
+                        <div class="bg-red-50 p-4 rounded-lg">
+                            <div class="text-2xl font-bold text-red-600" id="rejected-requests">-</div>
+                            <div class="text-sm text-gray-600">거부됨</div>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-lg">
+                            <div class="text-2xl font-bold text-purple-600" id="ai-requests">-</div>
+                            <div class="text-sm text-gray-600">AI 생성</div>
+                        </div>
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <div class="text-2xl font-bold text-blue-600" id="user-requests">-</div>
+                            <div class="text-sm text-gray-600">사용자 신청</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 필터 및 검색 -->
+                    <div class="mb-4 flex flex-col md:flex-row gap-4">
+                        <div class="flex-1">
+                            <input type="text" id="requests-search" placeholder="제목, 설명으로 검색..." 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div class="flex gap-2">
+                            <select id="requests-status-filter" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="all">전체 상태</option>
+                                <option value="pending">대기 중</option>
+                                <option value="approved">승인됨</option>
+                                <option value="rejected">거부됨</option>
+                            </select>
+                            <select id="requests-type-filter" class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="all">전체 타입</option>
+                                <option value="ai">AI 생성</option>
+                                <option value="user">사용자 신청</option>
+                            </select>
+                            <button id="search-requests" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors">
+                                검색
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 이슈 신청 목록 -->
+                    <div id="requests-loading" class="text-center py-8 hidden">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                        <p class="text-gray-500 mt-2">이슈 신청을 불러오는 중...</p>
+                    </div>
+                    
+                    <div id="requests-list" class="space-y-4">
+                        <!-- 동적으로 생성되는 이슈 신청 목록 -->
+                    </div>
+                    
+                    <!-- 페이지네이션 -->
+                    <div id="requests-pagination" class="mt-6 flex justify-center">
+                        <!-- 동적으로 생성되는 페이지네이션 -->
+                    </div>
+                </div>
+            </div>
+
         <footer class="bg-gray-50 border-t border-gray-200">
             <div class="container mx-auto px-4 lg:px-8 py-8">
                 <div class="flex flex-col md:flex-row justify-between items-center text-center md:text-left space-y-4 md:space-y-0">
@@ -1806,6 +1891,334 @@
         window.changeDiscussionPage = changeDiscussionPage;
         window.handlePostCheckboxChange = handlePostCheckboxChange;
         window.handleCommentCheckboxChange = handleCommentCheckboxChange;
+    </script>
+    
+    <!-- 이슈 신청 관리 JavaScript -->
+    <script>
+        // 이슈 신청 관리 전역 변수
+        let requestsCurrentPage = 1;
+        let requestsCurrentStatusFilter = 'all';
+        let requestsCurrentTypeFilter = 'all';
+        let requestsCurrentSearch = '';
+        
+        // 이슈 신청 관리 초기화
+        function initIssueRequestsManagement() {
+            setupIssueRequestsTabs();
+            setupIssueRequestsEventListeners();
+        }
+        
+        // 이슈 신청 섹션 표시
+        function showIssueRequestsSection() {
+            // 모든 섹션 숨기기
+            document.querySelectorAll('[id$="-section"]').forEach(section => {
+                section.classList.add('hidden');
+            });
+            
+            // 모든 탭 비활성화
+            document.querySelectorAll('.admin-tab').forEach(tab => {
+                tab.classList.remove('active', 'border-blue-500', 'text-blue-600');
+                tab.classList.add('border-transparent', 'text-gray-500');
+            });
+            
+            // 이슈 신청 섹션 표시
+            const section = document.getElementById('issue-requests-section');
+            if (section) {
+                section.classList.remove('hidden');
+            }
+            
+            // 이슈 신청 탭 활성화
+            const tab = document.getElementById('issue-requests-tab');
+            if (tab) {
+                tab.classList.add('active', 'border-blue-500', 'text-blue-600');
+                tab.classList.remove('border-transparent', 'text-gray-500');
+            }
+            
+            // 새 이슈 생성 버튼 숨기기
+            const createBtn = document.getElementById('create-issue-btn');
+            if (createBtn) {
+                createBtn.classList.add('hidden');
+            }
+        }
+        
+        // 이슈 신청 탭 설정
+        function setupIssueRequestsTabs() {
+            const issueRequestsTab = document.getElementById('issue-requests-tab');
+            if (issueRequestsTab) {
+                issueRequestsTab.addEventListener('click', () => {
+                    showIssueRequestsSection();
+                    loadIssueRequestsStats();
+                    loadIssueRequests();
+                });
+            }
+        }
+        
+        // 이슈 신청 이벤트 리스너 설정
+        function setupIssueRequestsEventListeners() {
+            // 새로고침 버튼
+            const refreshBtn = document.getElementById('refresh-issue-requests');
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', () => {
+                    loadIssueRequestsStats();
+                    loadIssueRequests();
+                });
+            }
+            
+            // 검색 버튼
+            const searchBtn = document.getElementById('search-requests');
+            if (searchBtn) {
+                searchBtn.addEventListener('click', () => {
+                    requestsCurrentPage = 1;
+                    requestsCurrentSearch = document.getElementById('requests-search').value;
+                    requestsCurrentStatusFilter = document.getElementById('requests-status-filter').value;
+                    requestsCurrentTypeFilter = document.getElementById('requests-type-filter').value;
+                    loadIssueRequests();
+                });
+            }
+        }
+        
+        // 이슈 신청 통계 로드
+        async function loadIssueRequestsStats() {
+            try {
+                const response = await window.adminFetch('/api/issue-requests/admin/stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const stats = data.stats;
+                    document.getElementById('pending-requests').textContent = stats.pending.toLocaleString();
+                    document.getElementById('approved-requests').textContent = stats.approved.toLocaleString();
+                    document.getElementById('rejected-requests').textContent = stats.rejected.toLocaleString();
+                    document.getElementById('ai-requests').textContent = stats.aiGenerated.toLocaleString();
+                    document.getElementById('user-requests').textContent = stats.userGenerated.toLocaleString();
+                }
+            } catch (error) {
+                console.error('이슈 신청 통계 로드 오류:', error);
+            }
+        }
+        
+        // 이슈 신청 목록 로드
+        async function loadIssueRequests() {
+            const loadingEl = document.getElementById('requests-loading');
+            const listEl = document.getElementById('requests-list');
+            
+            if (loadingEl) loadingEl.classList.remove('hidden');
+            if (listEl) listEl.innerHTML = '';
+            
+            try {
+                const params = new URLSearchParams({
+                    page: requestsCurrentPage,
+                    limit: 20,
+                    search: requestsCurrentSearch,
+                    status: requestsCurrentStatusFilter,
+                    type: requestsCurrentTypeFilter
+                });
+                
+                const response = await window.adminFetch(`/api/issue-requests/admin/all?${params}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderIssueRequests(data.requests);
+                    renderIssueRequestsPagination(data.pagination);
+                }
+            } catch (error) {
+                console.error('이슈 신청 목록 로드 오류:', error);
+                if (listEl) {
+                    listEl.innerHTML = '<div class="text-center py-8 text-red-600">이슈 신청을 불러오는 중 오류가 발생했습니다.</div>';
+                }
+            } finally {
+                if (loadingEl) loadingEl.classList.add('hidden');
+            }
+        }
+        
+        // 이슈 신청 목록 렌더링
+        function renderIssueRequests(requests) {
+            const listEl = document.getElementById('requests-list');
+            if (!listEl) return;
+            
+            if (requests.length === 0) {
+                listEl.innerHTML = '<div class="text-center py-8 text-gray-500">이슈 신청이 없습니다.</div>';
+                return;
+            }
+            
+            listEl.innerHTML = requests.map(request => `
+                <div class="bg-white border border-gray-200 rounded-lg p-4">
+                    <div class="flex items-start gap-4">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-2">
+                                <h4 class="font-medium text-gray-900">${request.title}</h4>
+                                ${request.is_ai_generated ? 
+                                    `<span class="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-full">🤖 AI 생성</span>` : 
+                                    `<span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">👤 사용자</span>`
+                                }
+                                ${getStatusBadge(request.status)}
+                                <span class="px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-full">${request.category}</span>
+                            </div>
+                            
+                            <div class="text-sm text-gray-600 mb-3 line-clamp-2">
+                                ${request.description.length > 200 ? request.description.substring(0, 200) + '...' : request.description}
+                            </div>
+                            
+                            <div class="flex items-center gap-4 text-xs text-gray-500">
+                                <span>신청자: ${request.username}</span>
+                                <span>신청일: ${new Date(request.created_at).toLocaleString('ko-KR')}</span>
+                                <span>마감일: ${new Date(request.deadline).toLocaleString('ko-KR')}</span>
+                                ${request.is_ai_generated ? `<span>에이전트: ${request.agent_id}</span>` : ''}
+                            </div>
+                            
+                            ${request.admin_comments ? `
+                                <div class="mt-2 p-2 bg-gray-50 rounded text-sm">
+                                    <strong>관리자 의견:</strong> ${request.admin_comments}
+                                </div>
+                            ` : ''}
+                        </div>
+                        
+                        <div class="flex flex-col gap-2">
+                            ${request.status === 'pending' ? `
+                                <button onclick="approveIssueRequest(${request.id}, '${request.title.replace(/'/g, '\\\'')}')" 
+                                    class="px-3 py-1 text-xs bg-green-100 text-green-800 rounded hover:bg-green-200">
+                                    승인
+                                </button>
+                                <button onclick="rejectIssueRequest(${request.id}, '${request.title.replace(/'/g, '\\\'')}')" 
+                                    class="px-3 py-1 text-xs bg-red-100 text-red-800 rounded hover:bg-red-200">
+                                    거부
+                                </button>
+                            ` : ''}
+                            <button onclick="viewIssueRequestDetails(${request.id})" 
+                                class="px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded hover:bg-blue-200">
+                                상세보기
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // 상태 배지 생성
+        function getStatusBadge(status) {
+            const statusConfig = {
+                'pending': { class: 'bg-yellow-100 text-yellow-800', text: '대기 중' },
+                'approved': { class: 'bg-green-100 text-green-800', text: '승인됨' },
+                'rejected': { class: 'bg-red-100 text-red-800', text: '거부됨' }
+            };
+            
+            const config = statusConfig[status] || statusConfig.pending;
+            return `<span class="px-2 py-1 text-xs ${config.class} rounded-full">${config.text}</span>`;
+        }
+        
+        // 이슈 신청 승인
+        async function approveIssueRequest(requestId, title) {
+            const comments = prompt(`"${title}" 이슈 신청을 승인하시겠습니까?\n\n관리자 의견 (선택사항):`);
+            
+            if (comments === null) return; // 취소
+            
+            try {
+                const response = await window.adminFetch(`/api/issue-requests/${requestId}/approve`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ adminComments: comments })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('이슈 신청이 승인되었습니다.');
+                    loadIssueRequests();
+                    loadIssueRequestsStats();
+                } else {
+                    alert('승인 실패: ' + data.message);
+                }
+            } catch (error) {
+                console.error('이슈 신청 승인 오류:', error);
+                alert('승인 처리 중 오류가 발생했습니다.');
+            }
+        }
+        
+        // 이슈 신청 거부
+        async function rejectIssueRequest(requestId, title) {
+            const comments = prompt(`"${title}" 이슈 신청을 거부하시겠습니까?\n\n거부 사유를 입력하세요:`);
+            
+            if (!comments || comments.trim() === '') {
+                alert('거부 사유를 입력해주세요.');
+                return;
+            }
+            
+            try {
+                const response = await window.adminFetch(`/api/issue-requests/${requestId}/reject`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ adminComments: comments })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('이슈 신청이 거부되었습니다.');
+                    loadIssueRequests();
+                    loadIssueRequestsStats();
+                } else {
+                    alert('거부 실패: ' + data.message);
+                }
+            } catch (error) {
+                console.error('이슈 신청 거부 오류:', error);
+                alert('거부 처리 중 오류가 발생했습니다.');
+            }
+        }
+        
+        // 이슈 신청 상세 보기
+        function viewIssueRequestDetails(requestId) {
+            // TODO: 모달로 상세 정보 표시
+            alert(`이슈 신청 상세 정보 (ID: ${requestId})\n\n이 기능은 곧 구현될 예정입니다.`);
+        }
+        
+        // 페이지네이션 렌더링
+        function renderIssueRequestsPagination(pagination) {
+            const paginationEl = document.getElementById('requests-pagination');
+            if (!paginationEl || !pagination) return;
+            
+            const { page, pages, total } = pagination;
+            
+            if (pages <= 1) {
+                paginationEl.innerHTML = '';
+                return;
+            }
+            
+            let paginationHTML = '';
+            
+            // 이전 페이지
+            if (page > 1) {
+                paginationHTML += `<button onclick="changeIssueRequestsPage(${page - 1})" class="px-3 py-2 text-sm bg-white border border-gray-300 text-gray-500 hover:bg-gray-50 rounded-l-md">이전</button>`;
+            }
+            
+            // 페이지 번호들
+            const startPage = Math.max(1, page - 2);
+            const endPage = Math.min(pages, page + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const isActive = i === page;
+                paginationHTML += `<button onclick="changeIssueRequestsPage(${i})" class="px-3 py-2 text-sm ${isActive ? 'bg-blue-600 text-white' : 'bg-white border border-gray-300 text-gray-500 hover:bg-gray-50'}">${i}</button>`;
+            }
+            
+            // 다음 페이지
+            if (page < pages) {
+                paginationHTML += `<button onclick="changeIssueRequestsPage(${page + 1})" class="px-3 py-2 text-sm bg-white border border-gray-300 text-gray-500 hover:bg-gray-50 rounded-r-md">다음</button>`;
+            }
+            
+            paginationEl.innerHTML = `<div class="flex">${paginationHTML}</div>`;
+        }
+        
+        // 페이지 변경
+        function changeIssueRequestsPage(page) {
+            requestsCurrentPage = page;
+            loadIssueRequests();
+        }
+        
+        // 페이지 로드 시 이슈 신청 관리 초기화
+        document.addEventListener('DOMContentLoaded', function() {
+            initIssueRequestsManagement();
+        });
+        
+        // 전역 함수들 노출
+        window.approveIssueRequest = approveIssueRequest;
+        window.rejectIssueRequest = rejectIssueRequest;
+        window.viewIssueRequestDetails = viewIssueRequestDetails;
+        window.changeIssueRequestsPage = changeIssueRequestsPage;
     </script>
     
     <script src="utils/tierSystem.js"></script>

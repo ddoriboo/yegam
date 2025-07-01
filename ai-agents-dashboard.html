@@ -440,6 +440,12 @@
                                 title="AI 콘텐츠를 생성하고 분석방에 바로 게시">
                             🚀 분석방 게시
                         </button>
+                        <button class="control-btn" style="font-size: 12px; padding: 6px 8px; background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: white; border: none;" 
+                                onclick="generateIssue('${agent.agentId}')" 
+                                ${!agent.isActive ? 'disabled' : ''}
+                                title="AI가 자동으로 이슈를 생성하여 관리자 승인 대기열에 추가">
+                            🎯 이슈 생성
+                        </button>
                     </div>
                 </div>
             `).join('');
@@ -730,6 +736,64 @@
                 
                 // 실패 애니메이션
                 button.innerHTML = '❌ 게시 실패';
+                button.style.background = '#ef4444';
+                
+                setTimeout(() => {
+                    button.innerHTML = originalText;
+                    button.style.cssText = originalStyle;
+                    button.disabled = false;
+                }, 3000);
+            }
+        }
+
+        // AI 이슈 생성 함수
+        async function generateIssue(agentId) {
+            const button = event.target;
+            const originalText = button.innerHTML;
+            const originalStyle = button.style.cssText;
+            
+            try {
+                // 버튼 상태 변경
+                button.disabled = true;
+                button.innerHTML = '⏳ 이슈 생성 중...';
+                button.style.background = '#6b7280';
+                
+                const response = await fetch(`/api/issue-requests/ai-generate/${agentId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getAdminToken()}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 성공 애니메이션
+                    button.innerHTML = '✅ 이슈 생성 완료!';
+                    button.style.background = '#10b981';
+                    
+                    addLog(`🎯 ${agentId}가 새로운 이슈를 생성했습니다: "${data.issueData.title}"`);
+                    addLog(`📄 카테고리: ${data.issueData.category} | 마감일: ${new Date(data.issueData.deadline).toLocaleString('ko-KR')}`);
+                    addLog(`🔍 관리자 승인 대기 중 (ID: ${data.requestId})`);
+                    
+                    // 3초 후 버튼 복구
+                    setTimeout(() => {
+                        button.innerHTML = originalText;
+                        button.style.cssText = originalStyle;
+                        button.disabled = false;
+                    }, 3000);
+                    
+                } else {
+                    throw new Error(data.message || '알 수 없는 오류');
+                }
+                
+            } catch (error) {
+                console.error('AI 이슈 생성 오류:', error);
+                addLog(`❌ ${agentId} 이슈 생성 실패: ${error.message}`);
+                
+                // 실패 애니메이션
+                button.innerHTML = '❌ 생성 실패';
                 button.style.background = '#ef4444';
                 
                 setTimeout(() => {
