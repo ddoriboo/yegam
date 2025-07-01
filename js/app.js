@@ -351,7 +351,7 @@ function setupMobileMenu() {
 let allIssues = [];
 let currentPage = 1;
 let currentCategory = '전체';
-let currentSort = 'newest';
+let currentSort = 'ending'; // 기본 정렬을 마감 임박순으로 변경
 let currentSearch = '';
 let isLoading = false;
 
@@ -570,10 +570,21 @@ function renderPopularIssues() {
     const listContainer = document.getElementById('popular-issues-list');
     const mobileContainer = document.getElementById('popular-issues-mobile');
     
-    // 인기 이슈는 필터링하지 않고 항상 고정된 인기 이슈를 표시 (최신순으로 정렬)
+    // 인기 이슈는 필터링하지 않고 항상 고정된 인기 이슈를 표시 (popular_order 우선, 그 다음 최신순)
     const popularIssues = allIssues
         .filter(issue => issue.is_popular || issue.isPopular)
-        .sort((a, b) => new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt))
+        .sort((a, b) => {
+            // popular_order가 있으면 그것으로 정렬 (오름차순)
+            const orderA = a.popular_order || 999999;
+            const orderB = b.popular_order || 999999;
+            
+            if (orderA !== orderB) {
+                return orderA - orderB; // popular_order 오름차순
+            }
+            
+            // popular_order가 같으면 created_at으로 정렬 (최신순)
+            return new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt);
+        })
         .slice(0, 8); // 최대 8개까지 표시
     
     if (popularIssues.length === 0) {
@@ -4382,5 +4393,261 @@ function addSchedulerLog(message, type = 'info') {
 window.initIssuesPage = initIssuesPage;
 window.renderAllIssuesOnPage = renderAllIssuesOnPage;
 window.initHomePage = initHomePage;
+
+// 관리자 페이지 전용 기능
+if (window.isAdminPage) {
+    // 인기이슈 관리 기능
+    let popularIssuesData = [];
+    let sortableInstance = null;
+
+    // 인기이슈 관리 초기화
+    function initPopularIssuesManagement() {
+        console.log('🎯 인기이슈 관리 기능 초기화');
+        
+        // 탭 클릭 이벤트
+        const popularIssuesTab = document.getElementById('popular-issues-tab');
+        if (popularIssuesTab) {
+            popularIssuesTab.addEventListener('click', () => {
+                showPopularIssuesSection();
+                loadPopularIssues();
+            });
+        }
+
+        // 새로고침 버튼
+        const refreshBtn = document.getElementById('refresh-popular-issues');
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', loadPopularIssues);
+        }
+
+        // 순서 저장 버튼
+        const saveBtn = document.getElementById('save-popular-order');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', savePopularIssuesOrder);
+        }
+    }
+
+    // 인기이슈 섹션 표시
+    function showPopularIssuesSection() {
+        // 모든 섹션 숨기기
+        document.querySelectorAll('[id$="-section"]').forEach(section => {
+            section.classList.add('hidden');
+        });
+        
+        // 모든 탭 비활성화
+        document.querySelectorAll('.admin-tab').forEach(tab => {
+            tab.classList.remove('active', 'border-blue-500', 'text-blue-600');
+            tab.classList.add('border-transparent', 'text-gray-500');
+        });
+        
+        // 인기이슈 섹션 표시
+        const section = document.getElementById('popular-issues-section');
+        if (section) {
+            section.classList.remove('hidden');
+        }
+        
+        // 인기이슈 탭 활성화
+        const tab = document.getElementById('popular-issues-tab');
+        if (tab) {
+            tab.classList.add('active', 'border-blue-500', 'text-blue-600');
+            tab.classList.remove('border-transparent', 'text-gray-500');
+        }
+    }
+
+    // 인기이슈 목록 로드
+    async function loadPopularIssues() {
+        console.log('📋 인기이슈 목록 로드 중...');
+        
+        showLoadingState();
+        
+        try {
+            const response = await window.adminFetch('/api/admin/popular-issues');
+            const data = await response.json();
+            
+            if (data.success) {
+                popularIssuesData = data.issues;
+                console.log('✅ 인기이슈 로드 완료:', popularIssuesData.length, '개');
+                renderPopularIssuesList();
+            } else {
+                throw new Error(data.message || '인기이슈 로드 실패');
+            }
+        } catch (error) {
+            console.error('❌ 인기이슈 로드 오류:', error);
+            showErrorState(error.message);
+        }
+    }
+
+    // 로딩 상태 표시
+    function showLoadingState() {
+        document.getElementById('popular-issues-loading').classList.remove('hidden');
+        document.getElementById('popular-issues-list').classList.add('hidden');
+        document.getElementById('no-popular-issues').classList.add('hidden');
+    }
+
+    // 인기이슈 목록 렌더링
+    function renderPopularIssuesList() {
+        const container = document.getElementById('sortable-popular-issues');
+        
+        if (popularIssuesData.length === 0) {
+            document.getElementById('popular-issues-loading').classList.add('hidden');
+            document.getElementById('popular-issues-list').classList.add('hidden');
+            document.getElementById('no-popular-issues').classList.remove('hidden');
+            return;
+        }
+
+        container.innerHTML = popularIssuesData.map((issue, index) => `
+            <div class="popular-issue-item bg-white border border-gray-200 rounded-lg p-4 cursor-move hover:shadow-md transition-all duration-200" data-issue-id="${issue.id}">
+                <div class="flex items-center space-x-4">
+                    <div class="flex-shrink-0">
+                        <i data-lucide="grip-vertical" class="w-5 h-5 text-gray-400"></i>
+                    </div>
+                    <div class="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-sm">
+                        ${issue.popular_order || index + 1}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center space-x-2 mb-1">
+                            <span class="inline-block px-2 py-1 text-xs font-medium rounded bg-purple-100 text-purple-800">
+                                ${issue.category}
+                            </span>
+                            <span class="text-xs text-gray-500">
+                                ID: ${issue.id}
+                            </span>
+                        </div>
+                        <h4 class="text-sm font-medium text-gray-900 truncate">${issue.title}</h4>
+                        <p class="text-xs text-gray-500 mt-1">
+                            ${new Date(issue.end_date).toLocaleDateString('ko-KR')} 마감
+                        </p>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        // Sortable 초기화
+        if (sortableInstance) {
+            sortableInstance.destroy();
+        }
+        
+        sortableInstance = Sortable.create(container, {
+            animation: 150,
+            ghostClass: 'opacity-50',
+            chosenClass: 'ring-2 ring-blue-500',
+            dragClass: 'shadow-lg scale-105',
+            onUpdate: function(evt) {
+                console.log('📝 순서 변경됨:', evt.oldIndex, '->', evt.newIndex);
+                updateOrderNumbers();
+            }
+        });
+
+        // 상태 표시 업데이트
+        document.getElementById('popular-issues-loading').classList.add('hidden');
+        document.getElementById('popular-issues-list').classList.remove('hidden');
+        document.getElementById('no-popular-issues').classList.add('hidden');
+        
+        // Lucide 아이콘 다시 초기화
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    }
+
+    // 순서 번호 업데이트
+    function updateOrderNumbers() {
+        const items = document.querySelectorAll('.popular-issue-item');
+        items.forEach((item, index) => {
+            const numberElement = item.querySelector('.bg-blue-100');
+            if (numberElement) {
+                numberElement.textContent = index + 1;
+            }
+        });
+    }
+
+    // 인기이슈 순서 저장
+    async function savePopularIssuesOrder() {
+        const items = document.querySelectorAll('.popular-issue-item');
+        const orderedIssueIds = Array.from(items).map(item => 
+            parseInt(item.getAttribute('data-issue-id'))
+        );
+        
+        console.log('💾 순서 저장 중:', orderedIssueIds);
+        
+        const saveBtn = document.getElementById('save-popular-order');
+        const originalText = saveBtn.textContent;
+        
+        try {
+            saveBtn.disabled = true;
+            saveBtn.textContent = '저장 중...';
+            
+            const response = await window.adminFetch('/api/admin/popular-issues/reorder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderedIssueIds })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                console.log('✅ 순서 저장 완료');
+                saveBtn.textContent = '저장 완료!';
+                saveBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+                saveBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                
+                // 성공 메시지 후 원래 상태로 복구
+                setTimeout(() => {
+                    saveBtn.textContent = originalText;
+                    saveBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                    saveBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+                    saveBtn.disabled = false;
+                }, 2000);
+                
+                // 데이터 다시 로드
+                await loadPopularIssues();
+            } else {
+                throw new Error(data.message || '순서 저장 실패');
+            }
+        } catch (error) {
+            console.error('❌ 순서 저장 오류:', error);
+            saveBtn.textContent = '저장 실패';
+            saveBtn.classList.add('bg-red-600', 'hover:bg-red-700');
+            
+            setTimeout(() => {
+                saveBtn.textContent = originalText;
+                saveBtn.classList.remove('bg-red-600', 'hover:bg-red-700');
+                saveBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+                saveBtn.disabled = false;
+            }, 3000);
+        }
+    }
+
+    // 오류 상태 표시
+    function showErrorState(message) {
+        document.getElementById('popular-issues-loading').classList.add('hidden');
+        document.getElementById('popular-issues-list').classList.add('hidden');
+        document.getElementById('no-popular-issues').classList.remove('hidden');
+        
+        const errorElement = document.getElementById('no-popular-issues');
+        errorElement.innerHTML = `
+            <i data-lucide="alert-circle" class="w-12 h-12 mx-auto text-red-300 mb-3"></i>
+            <p class="text-red-500 font-medium">오류가 발생했습니다</p>
+            <p class="text-sm text-gray-400 mt-1">${message}</p>
+        `;
+        
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    }
+
+    // 관리자 인증 완료 후 초기화
+    document.addEventListener('DOMContentLoaded', () => {
+        if (window.adminAuthCompleted) {
+            initPopularIssuesManagement();
+        } else {
+            // 인증 완료를 기다림
+            const checkAuth = setInterval(() => {
+                if (window.adminAuthCompleted) {
+                    clearInterval(checkAuth);
+                    initPopularIssuesManagement();
+                }
+            }, 100);
+        }
+    });
+}
 
 console.log('✅ Working app script loaded successfully');

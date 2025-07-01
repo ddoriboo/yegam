@@ -90,6 +90,14 @@ const createTables = async () => {
             console.log('사용자 테이블 gam_balance 컬럼 추가 스킵 (이미 존재함)');
         }
         
+        // 인기이슈 순서 관리를 위한 popular_order 컬럼 추가
+        try {
+            await client.query(`ALTER TABLE issues ADD COLUMN IF NOT EXISTS popular_order INTEGER DEFAULT NULL`);
+            console.log('✅ 이슈 테이블 popular_order 컬럼 추가 완료');
+        } catch (error) {
+            console.log('이슈 테이블 popular_order 컬럼 추가 스킵 (이미 존재함)');
+        }
+        
         // 타임존 지원을 위한 TIMESTAMP -> TIMESTAMPTZ 마이그레이션
         try {
             // issues 테이블의 timestamp 컬럼들을 timestamptz로 변경

@@ -763,4 +763,78 @@ router.post('/make-issue-latest', secureAdminMiddleware, async (req, res) => {
     }
 });
 
+// 인기이슈 순서 업데이트 API
+router.post('/popular-issues/reorder', secureAdminMiddleware, requirePermission('create_issue'), async (req, res) => {
+    try {
+        const { orderedIssueIds } = req.body; // [3, 1, 5, 2] 형태의 배열
+        
+        if (!Array.isArray(orderedIssueIds) || orderedIssueIds.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: '유효한 이슈 ID 배열이 필요합니다.'
+            });
+        }
+        
+        console.log('🔄 인기이슈 순서 업데이트 요청:', orderedIssueIds);
+        
+        // 트랜잭션으로 순서 업데이트
+        const updatePromises = orderedIssueIds.map((issueId, index) => {
+            const order = index + 1; // 1부터 시작
+            return query(`
+                UPDATE issues 
+                SET popular_order = $1, updated_at = NOW() AT TIME ZONE 'Asia/Seoul'
+                WHERE id = $2 AND is_popular = true
+                RETURNING id, title, popular_order
+            `, [order, issueId]);
+        });
+        
+        const results = await Promise.all(updatePromises);
+        const updatedIssues = results.map(result => result.rows[0]).filter(Boolean);
+        
+        console.log('✅ 순서 업데이트 완료:', updatedIssues);
+        
+        res.json({
+            success: true,
+            message: '인기이슈 순서가 업데이트되었습니다.',
+            updatedIssues
+        });
+        
+    } catch (error) {
+        console.error('인기이슈 순서 업데이트 중 오류:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: '인기이슈 순서 업데이트 중 오류가 발생했습니다.',
+            error: error.message 
+        });
+    }
+});
+
+// 인기이슈 목록 조회 (순서대로)
+router.get('/popular-issues', secureAdminMiddleware, requirePermission('view_issues'), async (req, res) => {
+    try {
+        const result = await query(`
+            SELECT id, title, category, end_date, is_popular, popular_order, created_at
+            FROM issues 
+            WHERE status = 'active' AND is_popular = true
+            ORDER BY popular_order ASC NULLS LAST, created_at DESC
+        `);
+        
+        const popularIssues = result.rows;
+        
+        console.log('📋 인기이슈 목록 조회:', popularIssues.length, '개');
+        
+        res.json({
+            success: true,
+            issues: popularIssues
+        });
+        
+    } catch (error) {
+        console.error('인기이슈 조회 중 오류:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: '인기이슈를 불러오는 중 오류가 발생했습니다.' 
+        });
+    }
+});
+
 module.exports = router;
