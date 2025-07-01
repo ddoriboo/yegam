@@ -154,7 +154,8 @@ const requirePermission = (action) => {
         const adminPermissions = [
             'view_issues', 'create_issue', 'update_issue', 'delete_issue',
             'view_users', 'view_bets', 'upload_files', 'manage_comments',
-            'run_scheduler', 'view_logs'
+            'run_scheduler', 'view_logs',
+            'view_discussions', 'delete_discussions', 'manage_discussions'
         ];
         
         if (!adminPermissions.includes(action)) {
