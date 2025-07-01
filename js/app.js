@@ -4048,13 +4048,12 @@ function getStatusBadge(status) {
 // 이슈 신청 상세 모달 표시
 async function showIssueRequestDetails(requestId) {
     try {
-        const response = await window.adminFetch(`/api/issue-requests/admin/all`);
+        const response = await window.adminFetch(`/api/issue-requests/${requestId}`);
         
         const data = await response.json();
         if (!data.success) throw new Error(data.message);
         
-        const request = data.requests.find(r => r.id === requestId);
-        if (!request) throw new Error('이슈 신청을 찾을 수 없습니다.');
+        const request = data.data;
         
         const modal = document.getElementById('request-detail-modal');
         const content = document.getElementById('request-detail-content');
