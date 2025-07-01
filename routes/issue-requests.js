@@ -564,61 +564,61 @@ function generateIssueForAgent(agentId) {
         'data-kim': {
             category: '경제',
             themes: [
-                { theme: '삼성전자', action: '10만원 돌파', timeframe: '다음 주 금요일' },
-                { theme: '원달러 환율', action: '1,350원 돌파', timeframe: '이번 달 말' },
-                { theme: '코스피', action: '2,700 돌파', timeframe: '다음 달' },
-                { theme: 'SK하이닉스', action: '15만원 돌파', timeframe: '2주 후' },
-                { theme: '한국은행 기준금리', action: '3.5% 인상', timeframe: '다음 달' }
+                { theme: '삼성전자', action: '2% 이상 상승', timeframe: '내일 장 마감' },
+                { theme: '원달러 환율', action: '1,300원 돌파', timeframe: '오늘 오후' },
+                { theme: '코스피', action: '2,600선 회복', timeframe: '내일 오전' },
+                { theme: 'SK하이닉스', action: '3% 이상 급등', timeframe: '내일 장중' },
+                { theme: '한국은행', action: '긴급 시장안정 발표', timeframe: '오늘 밤' }
             ]
         },
         'chart-king': {
             category: '코인',
             themes: [
-                { theme: '비트코인', action: '$100,000 돌파', timeframe: '이번 달 말' },
-                { theme: '이더리움', action: '$4,000 돌파', timeframe: '다음 주' },
-                { theme: '리플(XRP)', action: '$2 돌파', timeframe: '2주 후' },
-                { theme: '도지코인', action: '$1 돌파', timeframe: '이번 달 말' },
-                { theme: '암호화폐 시총', action: '4조 달러 돌파', timeframe: '다음 달' }
+                { theme: '비트코인', action: '$50,000 돌파', timeframe: '오늘 밤' },
+                { theme: '이더리움', action: '5% 이상 급등', timeframe: '내일 새벽' },
+                { theme: '리플(XRP)', action: '$0.7 돌파', timeframe: '24시간 내' },
+                { theme: '도지코인', action: '10% 이상 상승', timeframe: '오늘 저녁' },
+                { theme: '바이낸스 코인', action: '$350 돌파', timeframe: '내일 오전' }
             ]
         },
         'tech-guru': {
             category: '테크',
             themes: [
-                { theme: 'Apple', action: '주가 $250 돌파', timeframe: '다음 달' },
-                { theme: 'OpenAI GPT-5', action: '출시 발표', timeframe: '올해 말' },
-                { theme: 'Tesla', action: '완전자율주행 승인', timeframe: '내년 초' },
-                { theme: 'Meta', action: 'VR 헤드셋 100만대 판매', timeframe: '올해 말' },
-                { theme: 'NVIDIA', action: '주가 $200 돌파', timeframe: '다음 달' }
+                { theme: 'Apple', action: '긴급 제품 발표', timeframe: '내일' },
+                { theme: 'OpenAI', action: '새로운 AI 모델 공개', timeframe: '24시간 내' },
+                { theme: 'Tesla', action: '주가 5% 이상 변동', timeframe: '내일 장중' },
+                { theme: 'Meta', action: '중요 인수합병 발표', timeframe: '오늘 밤' },
+                { theme: 'NVIDIA', action: '실적 서프라이즈', timeframe: '내일 장전' }
             ]
         },
         'medical-doctor': {
             category: '일반',
             themes: [
-                { theme: '독감 백신', action: '접종률 70% 달성', timeframe: '겨울 시즌' },
-                { theme: '신약 개발', action: 'mRNA 치료제 승인', timeframe: '내년' },
-                { theme: '의료 AI', action: '진단 정확도 95% 달성', timeframe: '내년 초' },
-                { theme: '헬스케어', action: '원격진료 확대', timeframe: '다음 달' },
-                { theme: '생명과학', action: '새로운 치료법 발견', timeframe: '올해 말' }
+                { theme: '식약처', action: '긴급 의약품 승인', timeframe: '오늘 중' },
+                { theme: '코로나 변이', action: '새로운 변종 발견 발표', timeframe: '24시간 내' },
+                { theme: '의료 파업', action: '합의 도출', timeframe: '내일까지' },
+                { theme: '백신', action: '부작용 공식 발표', timeframe: '오늘 저녁' },
+                { theme: '보건복지부', action: '의료정책 긴급발표', timeframe: '내일 오전' }
             ]
         },
         'hipster-choi': {
             category: '엔터',
             themes: [
-                { theme: 'K-POP', action: '빌보드 1위 달성', timeframe: '다음 달' },
-                { theme: '한국 영화', action: '아카데미 수상', timeframe: '내년' },
-                { theme: 'Netflix', action: '한국 드라마 글로벌 1위', timeframe: '이번 달 말' },
-                { theme: '게임 산업', action: '새로운 메가히트 출시', timeframe: '올해 말' },
-                { theme: '메타버스', action: '가상 콘서트 100만명 동시접속', timeframe: '다음 달' }
+                { theme: 'BTS 멤버', action: '깜짝 발표', timeframe: '오늘 밤' },
+                { theme: '넷플릭스', action: '한국 콘텐츠 1위 등극', timeframe: '24시간 내' },
+                { theme: '아이돌', action: '열애설 공식 인정', timeframe: '내일 오전' },
+                { theme: '영화', action: '천만 관객 돌파', timeframe: '오늘 중' },
+                { theme: 'SM/YG/JYP/HYBE', action: '주가 10% 이상 변동', timeframe: '내일 장중' }
             ]
         },
         'social-lover': {
             category: '일반',
             themes: [
-                { theme: 'SNS 트렌드', action: '새로운 플랫폼 등장', timeframe: '내년' },
-                { theme: '소셜 미디어', action: '규제 강화', timeframe: '다음 달' },
-                { theme: '인플루언서', action: '광고 수익 급증', timeframe: '올해 말' },
-                { theme: '라이브 커머스', action: '시장 규모 10조원 돌파', timeframe: '내년' },
-                { theme: '커뮤니티', action: '새로운 소통 방식 등장', timeframe: '다음 달' }
+                { theme: '유튜브', action: '새로운 정책 발표', timeframe: '24시간 내' },
+                { theme: '인스타그램', action: '대규모 장애 발생', timeframe: '오늘 중' },
+                { theme: '틱톡', action: '한국 서비스 관련 발표', timeframe: '내일' },
+                { theme: '트위터(X)', action: '중요 기능 업데이트', timeframe: '오늘 밤' },
+                { theme: '카카오톡', action: '새로운 서비스 출시', timeframe: '내일 오전' }
             ]
         }
     };
@@ -719,45 +719,91 @@ ${theme.theme}의 소셜 미디어 동향과 사회적 변화를 분석하면, $
     return descriptions[agentId] || `AI 에이전트 ${agentId}의 전문적 분석을 통해 ${theme.theme}의 ${theme.action} 가능성을 예측해봅니다.`;
 }
 
-// 에이전트별 마감일 생성
+// 에이전트별 마감일 생성 (24시간 이내)
 function generateDeadlineForAgent(agentId) {
     const now = new Date();
     const deadlineConfigs = {
         'data-kim': () => {
-            // 경제: 주로 주말이나 월말 기준
-            const daysToAdd = Math.random() < 0.5 ? 7 : 14; // 1주일 또는 2주일
-            return new Date(now.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+            // 경제: 2-18시간 후 (당일 장마감 또는 다음날 오전)
+            const hoursToAdd = Math.floor(Math.random() * 16) + 2; // 2-18시간
+            return new Date(now.getTime() + hoursToAdd * 60 * 60 * 1000);
         },
         'chart-king': () => {
-            // 코인: 빠른 변동성을 반영해 짧은 기간
-            const daysToAdd = Math.floor(Math.random() * 14) + 7; // 1-3주
-            return new Date(now.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+            // 코인: 1-20시간 후 (24시간 거래)
+            const hoursToAdd = Math.floor(Math.random() * 19) + 1; // 1-20시간
+            return new Date(now.getTime() + hoursToAdd * 60 * 60 * 1000);
         },
         'tech-guru': () => {
-            // 테크: 개발 주기를 고려해 중장기
-            const daysToAdd = Math.floor(Math.random() * 30) + 30; // 1-2개월
-            return new Date(now.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+            // 테크: 6-24시간 후 (발표나 실적 공개)
+            const hoursToAdd = Math.floor(Math.random() * 18) + 6; // 6-24시간
+            return new Date(now.getTime() + hoursToAdd * 60 * 60 * 1000);
         },
         'medical-doctor': () => {
-            // 의료: 연구/승인 과정을 고려해 장기
-            const daysToAdd = Math.floor(Math.random() * 60) + 30; // 1-3개월
-            return new Date(now.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+            // 의료: 3-22시간 후 (긴급 발표 가능)
+            const hoursToAdd = Math.floor(Math.random() * 19) + 3; // 3-22시간
+            return new Date(now.getTime() + hoursToAdd * 60 * 60 * 1000);
         },
         'hipster-choi': () => {
-            // 엔터: 시상식이나 발표 일정을 고려
-            const daysToAdd = Math.floor(Math.random() * 21) + 14; // 2-5주
-            return new Date(now.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+            // 엔터: 4-24시간 후 (갑작스런 발표)
+            const hoursToAdd = Math.floor(Math.random() * 20) + 4; // 4-24시간
+            return new Date(now.getTime() + hoursToAdd * 60 * 60 * 1000);
         },
         'social-lover': () => {
-            // 소셜: 빠른 트렌드 변화를 반영
-            const daysToAdd = Math.floor(Math.random() * 14) + 7; // 1-3주
-            return new Date(now.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+            // 소셜: 1-24시간 후 (실시간 트렌드)
+            const hoursToAdd = Math.floor(Math.random() * 23) + 1; // 1-24시간
+            return new Date(now.getTime() + hoursToAdd * 60 * 60 * 1000);
         }
     };
     
     const generator = deadlineConfigs[agentId];
-    return generator ? generator() : new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000); // 기본 2주
+    return generator ? generator() : new Date(now.getTime() + 12 * 60 * 60 * 1000); // 기본 12시간
 }
+
+// 이슈 신청 상세 조회 (관리자용)
+router.get('/:id', tempAdminMiddleware, async (req, res) => {
+    try {
+        const requestId = req.params.id;
+        
+        // 이슈 신청 상세 정보 조회
+        const requestResult = await query(`
+            SELECT 
+                ir.*,
+                u.username,
+                u.email,
+                u.gam_balance,
+                approver.username as approved_by_username
+            FROM issue_requests ir
+            JOIN users u ON ir.user_id = u.id
+            LEFT JOIN users approver ON ir.approved_by = approver.id
+            WHERE ir.id = $1
+        `, [requestId]);
+        
+        if (requestResult.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: '이슈 신청을 찾을 수 없습니다.'
+            });
+        }
+        
+        const request = requestResult.rows[0];
+        
+        res.json({
+            success: true,
+            data: {
+                ...request,
+                timeAgo: getTimeAgo(new Date(request.created_at)),
+                deadlineTimeAgo: getTimeAgo(new Date(request.deadline))
+            }
+        });
+        
+    } catch (error) {
+        console.error('이슈 신청 상세 조회 오류:', error);
+        res.status(500).json({
+            success: false,
+            message: '이슈 신청 상세 정보를 불러오는 중 오류가 발생했습니다.'
+        });
+    }
+});
 
 // 시간 계산 헬퍼 함수
 function getTimeAgo(date) {

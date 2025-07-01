@@ -2162,9 +2162,179 @@
         }
         
         // 이슈 신청 상세 보기
-        function viewIssueRequestDetails(requestId) {
-            // TODO: 모달로 상세 정보 표시
-            alert(`이슈 신청 상세 정보 (ID: ${requestId})\n\n이 기능은 곧 구현될 예정입니다.`);
+        async function viewIssueRequestDetails(requestId) {
+            const modal = document.getElementById('request-detail-modal');
+            const content = document.getElementById('request-detail-content');
+            const approveBtn = document.getElementById('approve-request-btn');
+            const rejectBtn = document.getElementById('reject-request-btn');
+            const closeBtn = document.getElementById('close-request-modal-btn');
+            
+            if (!modal || !content) return;
+            
+            try {
+                // 로딩 상태 표시
+                content.innerHTML = '<div class="flex items-center justify-center py-8"><i data-lucide="loader-2" class="w-6 h-6 animate-spin mr-2"></i>로딩 중...</div>';
+                modal.classList.remove('hidden');
+                
+                // API에서 상세 정보 가져오기
+                const response = await window.adminFetch(`/api/issue-requests/${requestId}`);
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.message || '이슈 신청을 찾을 수 없습니다.');
+                }
+                
+                const request = data.data;
+                
+                // 상세 정보 HTML 생성
+                content.innerHTML = `
+                    <div class="space-y-6">
+                        <!-- 기본 정보 -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">기본 정보</h3>
+                                <div class="space-y-3">
+                                    <div>
+                                        <span class="text-sm font-medium text-gray-500">제목</span>
+                                        <p class="text-gray-900 mt-1">${request.title}</p>
+                                    </div>
+                                    <div>
+                                        <span class="text-sm font-medium text-gray-500">카테고리</span>
+                                        <span class="inline-block mt-1 px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-full">${request.category}</span>
+                                    </div>
+                                    <div>
+                                        <span class="text-sm font-medium text-gray-500">상태</span>
+                                        <div class="mt-1">${getStatusBadge(request.status)}</div>
+                                    </div>
+                                    <div>
+                                        <span class="text-sm font-medium text-gray-500">유형</span>
+                                        <div class="mt-1">
+                                            ${request.is_ai_generated ? 
+                                                '<span class="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-full">🤖 AI 생성</span>' : 
+                                                '<span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded-full">👤 사용자 신청</span>'
+                                            }
+                                        </div>
+                                    </div>
+                                    ${request.agent_id ? `
+                                        <div>
+                                            <span class="text-sm font-medium text-gray-500">AI 에이전트</span>
+                                            <p class="text-gray-900 mt-1">${request.agent_id}</p>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">신청자 정보</h3>
+                                <div class="space-y-3">
+                                    <div>
+                                        <span class="text-sm font-medium text-gray-500">사용자명</span>
+                                        <p class="text-gray-900 mt-1">${request.username}</p>
+                                    </div>
+                                    <div>
+                                        <span class="text-sm font-medium text-gray-500">이메일</span>
+                                        <p class="text-gray-900 mt-1">${request.email || '정보 없음'}</p>
+                                    </div>
+                                    <div>
+                                        <span class="text-sm font-medium text-gray-500">GAM 잔액</span>
+                                        <p class="text-gray-900 mt-1">${(request.gam_balance || 0).toLocaleString()} GAM</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 일정 정보 -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">일정 정보</h3>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <span class="text-sm font-medium text-gray-500">신청일</span>
+                                    <p class="text-gray-900 mt-1">${new Date(request.created_at).toLocaleString('ko-KR')} (${request.timeAgo})</p>
+                                </div>
+                                <div>
+                                    <span class="text-sm font-medium text-gray-500">예상 마감일</span>
+                                    <p class="text-gray-900 mt-1">${new Date(request.deadline).toLocaleString('ko-KR')}</p>
+                                </div>
+                                ${request.approved_at ? `
+                                    <div>
+                                        <span class="text-sm font-medium text-gray-500">처리일</span>
+                                        <p class="text-gray-900 mt-1">${new Date(request.approved_at).toLocaleString('ko-KR')}</p>
+                                    </div>
+                                ` : ''}
+                                ${request.approved_by_username ? `
+                                    <div>
+                                        <span class="text-sm font-medium text-gray-500">처리자</span>
+                                        <p class="text-gray-900 mt-1">${request.approved_by_username}</p>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                        
+                        <!-- 상세 설명 -->
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">상세 설명</h3>
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <p class="text-gray-700 whitespace-pre-wrap">${request.description}</p>
+                            </div>
+                        </div>
+                        
+                        ${request.admin_comments ? `
+                            <!-- 관리자 의견 -->
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900 mb-4">관리자 의견</h3>
+                                <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                                    <p class="text-gray-700">${request.admin_comments}</p>
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+                
+                // 버튼 상태 설정
+                if (request.status === 'pending') {
+                    approveBtn.style.display = 'block';
+                    rejectBtn.style.display = 'block';
+                    approveBtn.onclick = () => {
+                        modal.classList.add('hidden');
+                        approveIssueRequest(requestId, request.title);
+                    };
+                    rejectBtn.onclick = () => {
+                        modal.classList.add('hidden');
+                        rejectIssueRequest(requestId, request.title);
+                    };
+                } else {
+                    approveBtn.style.display = 'none';
+                    rejectBtn.style.display = 'none';
+                }
+                
+                // 닫기 버튼 이벤트
+                closeBtn.onclick = () => modal.classList.add('hidden');
+                
+                // 모달 배경 클릭 시 닫기
+                modal.onclick = (e) => {
+                    if (e.target === modal) modal.classList.add('hidden');
+                };
+                
+                // Lucide 아이콘 다시 초기화
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+                
+            } catch (error) {
+                console.error('이슈 신청 상세 로드 오류:', error);
+                content.innerHTML = `
+                    <div class="text-center py-8 text-red-600">
+                        <i data-lucide="alert-circle" class="w-8 h-8 mx-auto mb-2"></i>
+                        <p>이슈 신청 상세 정보를 불러오는 중 오류가 발생했습니다.</p>
+                        <p class="text-sm mt-1">${error.message}</p>
+                    </div>
+                `;
+                
+                // 아이콘 초기화
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            }
         }
         
         // 페이지네이션 렌더링
