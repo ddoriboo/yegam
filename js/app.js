@@ -557,18 +557,7 @@ function renderPopularIssues() {
     // 인기 이슈는 필터링하지 않고 항상 고정된 인기 이슈를 표시 (최신순으로 정렬)
     const popularIssues = allIssues
         .filter(issue => issue.is_popular || issue.isPopular)
-        .sort((a, b) => {
-            const dateA = new Date(a.created_at || a.createdAt);
-            const dateB = new Date(b.created_at || b.createdAt);
-            console.log('Popular sorting:', {
-                titleA: a.title?.substring(0, 20) + '...',
-                titleB: b.title?.substring(0, 20) + '...',
-                dateA: dateA.toISOString(),
-                dateB: dateB.toISOString(),
-                result: dateB - dateA
-            });
-            return dateB - dateA;
-        })
+        .sort((a, b) => new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt))
         .slice(0, 8); // 최대 8개까지 표시
     
     if (popularIssues.length === 0) {
@@ -772,22 +761,12 @@ function renderAllIssues(append = false) {
 
 function sortIssues(issues, sortType) {
     const sortedIssues = [...issues];
-    console.log('Sorting issues by:', sortType, 'Total issues:', issues.length);
     
     switch (sortType) {
         case 'newest':
-            return sortedIssues.sort((a, b) => {
-                const dateA = new Date(a.created_at || a.createdAt);
-                const dateB = new Date(b.created_at || b.createdAt);
-                console.log('Newest sorting:', {
-                    titleA: a.title?.substring(0, 20) + '...',
-                    titleB: b.title?.substring(0, 20) + '...',
-                    dateA: dateA.toISOString(),
-                    dateB: dateB.toISOString(),
-                    result: dateB - dateA
-                });
-                return dateB - dateA;
-            });
+            return sortedIssues.sort((a, b) => 
+                new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt)
+            );
         case 'popular':
             return sortedIssues.sort((a, b) => 
                 (b.total_volume || b.totalVolume || 0) - (a.total_volume || a.totalVolume || 0)
@@ -801,18 +780,9 @@ function sortIssues(issues, sortType) {
                 (b.total_volume || b.totalVolume || 0) - (a.total_volume || a.totalVolume || 0)
             );
         default:
-            return sortedIssues.sort((a, b) => {
-                const dateA = new Date(a.created_at || a.createdAt);
-                const dateB = new Date(b.created_at || b.createdAt);
-                console.log('Default sorting:', {
-                    titleA: a.title?.substring(0, 20) + '...',
-                    titleB: b.title?.substring(0, 20) + '...',
-                    dateA: dateA.toISOString(),
-                    dateB: dateB.toISOString(),
-                    result: dateB - dateA
-                });
-                return dateB - dateA;
-            });
+            return sortedIssues.sort((a, b) => 
+                new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt)
+            );
     }
 }
 

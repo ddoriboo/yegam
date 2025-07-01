@@ -673,7 +673,7 @@ router.post('/fix-timestamps', secureAdminMiddleware, async (req, res) => {
         const testResult = await query(`
             UPDATE issues 
             SET created_at = NOW(), updated_at = NOW()
-            WHERE title LIKE '%test%'
+            WHERE LOWER(title) LIKE '%test%'
             RETURNING id, title, created_at
         `);
         
@@ -681,7 +681,7 @@ router.post('/fix-timestamps', secureAdminMiddleware, async (req, res) => {
         const bitcoinResult = await query(`
             UPDATE issues 
             SET created_at = NOW() - INTERVAL '1 minute', updated_at = NOW()
-            WHERE title LIKE '%비트코인%'
+            WHERE LOWER(title) LIKE '%비트코인%' OR LOWER(title) LIKE '%bitcoin%'
             RETURNING id, title, created_at
         `);
         
@@ -691,6 +691,7 @@ router.post('/fix-timestamps', secureAdminMiddleware, async (req, res) => {
             FROM issues 
             WHERE status = 'active'
             ORDER BY created_at DESC
+            LIMIT 20
         `);
         
         res.json({
@@ -699,7 +700,11 @@ router.post('/fix-timestamps', secureAdminMiddleware, async (req, res) => {
             results: {
                 testUpdated: testResult.rows,
                 bitcoinUpdated: bitcoinResult.rows,
-                allIssues: allIssues.rows
+                allIssues: allIssues.rows.map(issue => ({
+                    id: issue.id,
+                    title: issue.title,
+                    created_at: issue.created_at
+                }))
             }
         });
         
@@ -708,6 +713,51 @@ router.post('/fix-timestamps', secureAdminMiddleware, async (req, res) => {
         res.status(500).json({ 
             success: false, 
             message: '타임스탬프 수정 중 오류가 발생했습니다.',
+            error: error.message 
+        });
+    }
+});
+
+// 특정 이슈를 최신으로 설정하는 API
+router.post('/make-issue-latest', secureAdminMiddleware, async (req, res) => {
+    try {
+        const { issueId, title } = req.body;
+        
+        let result;
+        if (issueId) {
+            // ID로 업데이트
+            result = await query(`
+                UPDATE issues 
+                SET created_at = NOW(), updated_at = NOW()
+                WHERE id = $1
+                RETURNING id, title, created_at
+            `, [issueId]);
+        } else if (title) {
+            // 제목으로 업데이트
+            result = await query(`
+                UPDATE issues 
+                SET created_at = NOW(), updated_at = NOW()
+                WHERE LOWER(title) LIKE $1
+                RETURNING id, title, created_at
+            `, [`%${title.toLowerCase()}%`]);
+        } else {
+            return res.status(400).json({
+                success: false,
+                message: 'issueId 또는 title 파라미터가 필요합니다.'
+            });
+        }
+        
+        res.json({
+            success: true,
+            message: '이슈가 최신으로 업데이트되었습니다.',
+            updated: result.rows
+        });
+        
+    } catch (error) {
+        console.error('이슈 업데이트 중 오류:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: '이슈 업데이트 중 오류가 발생했습니다.',
             error: error.message 
         });
     }
