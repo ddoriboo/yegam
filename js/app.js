@@ -364,11 +364,24 @@ async function initHomePage() {
         const data = await response.json();
         
         if (data.success) {
+            // 디버그: 백엔드에서 받은 원본 순서 로그
+            console.log('🔍 백엔드에서 받은 순서 (첫 3개):');
+            data.issues.slice(0, 3).forEach((issue, index) => {
+                console.log(`${index + 1}. "${issue.title}" - ${issue.created_at} (인기: ${issue.is_popular})`);
+            });
+            
             // 백엔드에서 정렬되어 오지만, 혹시 모르니 프론트엔드에서도 한 번 더 정렬
             allIssues = data.issues.sort((a, b) => 
                 new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt)
             );
             issues = allIssues; // Keep for backward compatibility
+            
+            // 디버그: 정렬 후 순서 로그
+            console.log('🔍 프론트엔드 정렬 후 순서 (첫 3개):');
+            allIssues.slice(0, 3).forEach((issue, index) => {
+                console.log(`${index + 1}. "${issue.title}" - ${issue.created_at} (인기: ${issue.is_popular || issue.isPopular})`);
+            });
+            
             console.log('Loaded', allIssues.length, 'issues');
             
             setupCategoryFilters();

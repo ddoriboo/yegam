@@ -10,6 +10,12 @@ router.get('/', async (req, res) => {
         const result = await query('SELECT * FROM issues WHERE status = $1 ORDER BY created_at DESC', ['active']);
         const issues = result.rows;
         
+        // 디버그: 첫 3개 이슈의 순서 로그
+        console.log('🔍 API 응답 순서 (첫 3개):');
+        issues.slice(0, 3).forEach((issue, index) => {
+            console.log(`${index + 1}. "${issue.title}" - ${issue.created_at} (인기: ${issue.is_popular})`);
+        });
+        
         res.json({
             success: true,
             issues: issues.map(issue => ({
@@ -175,7 +181,7 @@ router.post('/', authMiddleware, async (req, res) => {
         
         const insertQuery = `
             INSERT INTO issues (title, category, description, image_url, end_date, yes_price, is_popular, created_at, updated_at) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), NOW())
+            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW() AT TIME ZONE 'Asia/Seoul', NOW() AT TIME ZONE 'Asia/Seoul')
             RETURNING id
         `;
         

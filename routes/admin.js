@@ -84,7 +84,7 @@ router.get('/issues', secureAdminMiddleware, requirePermission('view_issues'), a
 // 이슈 생성
 router.post('/issues', secureAdminMiddleware, requirePermission('create_issue'), async (req, res) => {
     try {
-        const { title, category, description, image_url, yes_price = 50, end_date } = req.body;
+        const { title, category, description, image_url, yes_price = 50, end_date, is_popular = false } = req.body;
         
         if (!title || !category || !end_date) {
             return res.status(400).json({ 
@@ -95,9 +95,9 @@ router.post('/issues', secureAdminMiddleware, requirePermission('create_issue'),
         
         const result = await query(`
             INSERT INTO issues (title, category, description, image_url, yes_price, end_date, is_popular, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, false, NOW(), NOW())
+            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW() AT TIME ZONE 'Asia/Seoul', NOW() AT TIME ZONE 'Asia/Seoul')
             RETURNING *
-        `, [title, category, description, image_url, yes_price, end_date]);
+        `, [title, category, description, image_url, yes_price, end_date, is_popular]);
         
         const issue = result.rows[0];
         
@@ -672,7 +672,7 @@ router.post('/fix-timestamps', secureAdminMiddleware, async (req, res) => {
         // "test" 이슈를 가장 최신으로 설정 (현재 시간)
         const testResult = await query(`
             UPDATE issues 
-            SET created_at = NOW(), updated_at = NOW()
+            SET created_at = NOW() AT TIME ZONE 'Asia/Seoul', updated_at = NOW() AT TIME ZONE 'Asia/Seoul'
             WHERE LOWER(title) LIKE '%test%'
             RETURNING id, title, created_at
         `);
@@ -680,7 +680,7 @@ router.post('/fix-timestamps', secureAdminMiddleware, async (req, res) => {
         // "비트코인 up vs. down" 이슈를 두 번째로 최신으로 설정 (1분 전)
         const bitcoinResult = await query(`
             UPDATE issues 
-            SET created_at = NOW() - INTERVAL '1 minute', updated_at = NOW()
+            SET created_at = (NOW() AT TIME ZONE 'Asia/Seoul') - INTERVAL '1 minute', updated_at = NOW() AT TIME ZONE 'Asia/Seoul'
             WHERE LOWER(title) LIKE '%비트코인%' OR LOWER(title) LIKE '%bitcoin%'
             RETURNING id, title, created_at
         `);
@@ -728,7 +728,7 @@ router.post('/make-issue-latest', secureAdminMiddleware, async (req, res) => {
             // ID로 업데이트
             result = await query(`
                 UPDATE issues 
-                SET created_at = NOW(), updated_at = NOW()
+                SET created_at = NOW() AT TIME ZONE 'Asia/Seoul', updated_at = NOW() AT TIME ZONE 'Asia/Seoul'
                 WHERE id = $1
                 RETURNING id, title, created_at
             `, [issueId]);
@@ -736,7 +736,7 @@ router.post('/make-issue-latest', secureAdminMiddleware, async (req, res) => {
             // 제목으로 업데이트
             result = await query(`
                 UPDATE issues 
-                SET created_at = NOW(), updated_at = NOW()
+                SET created_at = NOW() AT TIME ZONE 'Asia/Seoul', updated_at = NOW() AT TIME ZONE 'Asia/Seoul'
                 WHERE LOWER(title) LIKE $1
                 RETURNING id, title, created_at
             `, [`%${title.toLowerCase()}%`]);
