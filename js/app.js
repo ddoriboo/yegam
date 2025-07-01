@@ -364,8 +364,11 @@ async function initHomePage() {
         const data = await response.json();
         
         if (data.success) {
-            allIssues = data.issues;
-            issues = data.issues; // Keep for backward compatibility
+            // 백엔드에서 정렬되어 오지만, 혹시 모르니 프론트엔드에서도 한 번 더 정렬
+            allIssues = data.issues.sort((a, b) => 
+                new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt)
+            );
+            issues = allIssues; // Keep for backward compatibility
             console.log('Loaded', allIssues.length, 'issues');
             
             setupCategoryFilters();
@@ -1944,8 +1947,10 @@ async function placeBetLegacy(issueId, choice) {
                     const response = await fetch(`/api/issues?_t=${Date.now()}`);
                     const data = await response.json();
                     if (data.success) {
-                        allIssues = data.issues;
-                        issues = data.issues;
+                        allIssues = data.issues.sort((a, b) => 
+                            new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt)
+                        );
+                        issues = allIssues;
                         console.log('Issues reloaded for issues.html, count:', allIssues.length);
                         
                         // renderAllIssuesOnPage 함수가 존재하는지 확인
@@ -3401,8 +3406,10 @@ async function initIssuesPage() {
         const data = await response.json();
         
         if (data.success) {
-            allIssues = data.issues;
-            issues = data.issues; // Keep for backward compatibility
+            allIssues = data.issues.sort((a, b) => 
+                new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt)
+            );
+            issues = allIssues; // Keep for backward compatibility
             console.log('Loaded', allIssues.length, 'issues on Issues page');
             
             setupIssuesPageEvents();
