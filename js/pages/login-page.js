@@ -44,11 +44,11 @@ function setupLoginForm() {
         const errorEl = document.getElementById('login-error');
 
         try {
-            const success = await auth.login(email, password);
-            if (success) {
+            const result = await auth.login(email, password);
+            if (result.success) {
                 window.location.href = 'index.html';
             } else {
-                showError(errorEl, MESSAGES.ERROR.INVALID_CREDENTIALS);
+                showError(errorEl, result.message || MESSAGES.ERROR.INVALID_CREDENTIALS);
             }
         } catch (error) {
             console.error('Login error:', error);

@@ -39,6 +39,9 @@ const healthCheck = new HealthCheck();
 // 버전 정보 - PostgreSQL 완전 통일 버전
 console.log('🚀 예겜 서버 v2.1 - 보안 및 모니터링 강화 버전');
 
+// Railway 프록시 신뢰 설정 (HTTPS 리다이렉션을 위해 필요)
+app.set('trust proxy', true);
+
 // 미들웨어 (개발/프로덕션 환경에 따라 보안 설정 조정)
 if (process.env.NODE_ENV === 'production') {
     app.use(helmet({
@@ -48,6 +51,10 @@ if (process.env.NODE_ENV === 'production') {
 } else {
     app.use(helmet({ contentSecurityPolicy: false }));
 }
+// www 리다이렉션 미들웨어 (프로덕션 환경에서만)
+const wwwRedirect = require('./middleware/www-redirect');
+app.use(wwwRedirect);
+
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname), {
