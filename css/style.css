@@ -1384,12 +1384,13 @@ html {
 
 .betting-modal-container {
     position: relative;
-    max-width: 480px;
-    width: 90%;
-    max-height: 90vh;
+    max-width: 520px;
+    width: 92%;
+    max-height: 85vh;
     overflow-y: auto;
     transform: translateY(50px) scale(0.9);
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin: 20px;
 }
 
 .betting-modal.show .betting-modal-container {
@@ -1422,7 +1423,7 @@ html {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 24px 24px 0;
+    padding: 28px 28px 16px;
 }
 
 .betting-modal-title {
@@ -1867,8 +1868,9 @@ html {
 /* 모바일 최적화 */
 @media (max-width: 640px) {
     .betting-modal-container {
-        width: 95%;
-        margin: 20px auto;
+        width: 96%;
+        margin: 15px auto;
+        max-height: 90vh;
     }
     
     .betting-modal-content {
@@ -1876,7 +1878,7 @@ html {
     }
     
     .betting-modal-header {
-        padding: 20px 20px 0;
+        padding: 24px 24px 12px;
     }
     
     .betting-issue-info,
@@ -1893,7 +1895,8 @@ html {
     }
     
     .betting-actions {
-        padding: 20px;
+        padding: 24px;
+        gap: 16px;
     }
     
     .amount-display span {
@@ -1906,5 +1909,33 @@ html {
     
     .success-icon {
         font-size: 60px;
+    }
+    
+    /* 이슈 신청 폼 모바일 최적화 */
+    #issue-request-form {
+        padding: 0 24px !important;
+    }
+    
+    #issue-request-form .form-group {
+        margin-bottom: 24px;
+    }
+    
+    #issue-request-form input,
+    #issue-request-form textarea,
+    #issue-request-form select {
+        padding: 16px !important;
+        font-size: 16px !important; /* iOS 줌 방지 */
+    }
+    
+    #issue-request-form textarea {
+        min-height: 120px;
+        resize: vertical;
+    }
+    
+    /* 모바일에서 키보드 대응 */
+    .mobile-keyboard-active .betting-modal-container {
+        max-height: 95vh !important;
+        margin-top: 5px !important;
+        margin-bottom: 5px !important;
     }
 }

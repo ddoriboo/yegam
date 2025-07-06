@@ -28,7 +28,7 @@ class IssueRequestModal {
                         </div>
                         
                         <!-- 안내 메시지 -->
-                        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 mb-6">
+                        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-5 mb-6 mx-7">
                             <div class="flex items-start space-x-3">
                                 <div class="flex-shrink-0">
                                     <i data-lucide="info" class="w-5 h-5 text-blue-600 mt-0.5"></i>
@@ -45,7 +45,7 @@ class IssueRequestModal {
                         </div>
                         
                         <!-- 이슈 신청 폼 -->
-                        <form id="issue-request-form" class="space-y-6">
+                        <form id="issue-request-form" class="space-y-8 px-7 pb-4">
                             <!-- 제목 -->
                             <div class="form-group">
                                 <label for="issue-title" class="block text-sm font-semibold text-gray-900 mb-2">
@@ -105,7 +105,7 @@ class IssueRequestModal {
                         </form>
                         
                         <!-- 버튼 -->
-                        <div class="betting-actions mt-8">
+                        <div class="betting-actions mt-8 px-7 pb-3">
                             <button class="betting-cancel-btn" id="issue-request-cancel">취소</button>
                             <button class="betting-confirm-btn" id="issue-request-submit">
                                 <div class="btn-content">
@@ -130,8 +130,8 @@ class IssueRequestModal {
         document.getElementById('issue-request-modal-close').addEventListener('click', () => this.close());
         document.getElementById('issue-request-cancel').addEventListener('click', () => this.close());
         
-        // 백드롭 클릭으로 닫기
-        this.modal.querySelector('.betting-modal-backdrop').addEventListener('click', () => this.close());
+        // 백드롭 클릭으로 닫기 (내용 확인 후)
+        this.modal.querySelector('.betting-modal-backdrop').addEventListener('click', () => this.closeWithConfirmation());
         
         // 폼 제출
         document.getElementById('issue-request-submit').addEventListener('click', (e) => {
@@ -139,10 +139,10 @@ class IssueRequestModal {
             this.submitRequest();
         });
         
-        // ESC 키로 닫기
+        // ESC 키로 닫기 (내용 확인 후)
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.isOpen) {
-                this.close();
+                this.closeWithConfirmation();
             }
         });
         
@@ -192,6 +192,31 @@ class IssueRequestModal {
         
         // 바디 스크롤 방지
         document.body.style.overflow = 'hidden';
+        
+        // 모바일 키보드 대응
+        this.setupMobileKeyboardHandling();
+    }
+    
+    // 폼 내용 확인
+    hasFormContent() {
+        const title = document.getElementById('issue-title').value.trim();
+        const category = document.getElementById('issue-category').value;
+        const description = document.getElementById('issue-description').value.trim();
+        const deadline = document.getElementById('issue-deadline').value;
+        
+        return title || category || description || deadline;
+    }
+    
+    // 확인 후 닫기
+    closeWithConfirmation() {
+        if (this.hasFormContent()) {
+            const confirmed = confirm('작성 중인 내용이 있습니다. 정말 닫으시겠습니까?\n\n작성한 내용은 저장되지 않습니다.');
+            if (confirmed) {
+                this.close();
+            }
+        } else {
+            this.close();
+        }
     }
     
     close() {
@@ -205,7 +230,93 @@ class IssueRequestModal {
             
             // 바디 스크롤 복원
             document.body.style.overflow = '';
+            
+            // 모바일 키보드 이벤트 정리
+            this.cleanupMobileKeyboardHandling();
         }, 300);
+    }
+    
+    // 모바일 키보드 대응 설정
+    setupMobileKeyboardHandling() {
+        if (!/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) return;
+        
+        const header = document.querySelector('header');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const modalContainer = this.modal.querySelector('.betting-modal-container');
+        
+        // 원래 상태 저장
+        this.originalHeaderState = {
+            display: header ? header.style.display : '',
+            position: header ? header.style.position : ''
+        };
+        
+        // 입력 포커스 시 헤더 숨기기
+        this.keyboardFocusHandler = () => {
+            if (header) {
+                header.style.display = 'none';
+            }
+            if (mobileMenu && !mobileMenu.classList.contains('hidden')) {
+                mobileMenu.classList.add('hidden');
+            }
+            
+            // 모달 높이 조정
+            modalContainer.style.maxHeight = '95vh';
+            modalContainer.style.marginTop = '10px';
+            modalContainer.style.marginBottom = '10px';
+        };
+        
+        // 입력 포커스 해제 시 헤더 복원
+        this.keyboardBlurHandler = () => {
+            setTimeout(() => {
+                if (header) {
+                    header.style.display = this.originalHeaderState.display;
+                }
+                
+                // 모달 높이 복원
+                modalContainer.style.maxHeight = '85vh';
+                modalContainer.style.marginTop = '';
+                modalContainer.style.marginBottom = '';
+            }, 300);
+        };
+        
+        // 모든 입력 필드에 이벤트 등록
+        const inputs = this.modal.querySelectorAll('input, textarea, select');
+        inputs.forEach(input => {
+            input.addEventListener('focus', this.keyboardFocusHandler);
+            input.addEventListener('blur', this.keyboardBlurHandler);
+        });
+        
+        // 뷰포트 변경 감지 (추가 안전장치)
+        this.viewportChangeHandler = () => {
+            const vh = window.innerHeight * 0.01;
+            modalContainer.style.setProperty('--vh', `${vh}px`);
+        };
+        
+        window.addEventListener('resize', this.viewportChangeHandler);
+        window.addEventListener('orientationchange', this.viewportChangeHandler);
+    }
+    
+    // 모바일 키보드 이벤트 정리
+    cleanupMobileKeyboardHandling() {
+        if (this.keyboardFocusHandler) {
+            const inputs = this.modal.querySelectorAll('input, textarea, select');
+            inputs.forEach(input => {
+                input.removeEventListener('focus', this.keyboardFocusHandler);
+                input.removeEventListener('blur', this.keyboardBlurHandler);
+            });
+        }
+        
+        if (this.viewportChangeHandler) {
+            window.removeEventListener('resize', this.viewportChangeHandler);
+            window.removeEventListener('orientationchange', this.viewportChangeHandler);
+        }
+        
+        // 헤더 복원
+        const header = document.querySelector('header');
+        if (header && this.originalHeaderState) {
+            header.style.display = this.originalHeaderState.display;
+            header.style.position = this.originalHeaderState.position;
+        }
     }
     
     async submitRequest() {
