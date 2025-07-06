@@ -92,7 +92,7 @@ const MESSAGES = {
     }
 };
 
-module.exports = {
+export {
     APP_CONFIG,
     STORAGE_KEYS,
     CATEGORIES,

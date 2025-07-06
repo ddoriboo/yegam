@@ -45,9 +45,9 @@ class InputValidator {
             return { valid: false, message: '사용자명에 허용되지 않은 문자가 포함되어 있습니다.' };
         }
         
-        // 금지된 단어 체크
-        const forbiddenWords = ['admin', 'administrator', 'root', 'system', 'test', 'null', 'undefined'];
-        if (forbiddenWords.some(word => trimmed.toLowerCase().includes(word))) {
+        // 금지된 단어 체크 (정확히 일치하는 경우만)
+        const forbiddenWords = ['admin', 'administrator', 'root', 'system', 'null', 'undefined'];
+        if (forbiddenWords.includes(trimmed.toLowerCase())) {
             return { valid: false, message: '사용할 수 없는 사용자명입니다.' };
         }
         
