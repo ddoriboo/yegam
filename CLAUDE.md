@@ -141,3 +141,104 @@ When adding new features:
 - Database schema supports OAuth (provider, provider_id, profile_image, verified columns)
 - Detailed setup guide: `/docs/GOOGLE-OAUTH-SETUP-GUIDE.md`
 - Only requires OAuth app creation in Google Cloud Console and environment variable setup
+
+## Recent Major Updates & Fixes
+
+### Critical Issues Resolved
+1. **JWT_SECRET Assignment Bug (CRITICAL)**
+   - **Issue**: JWT_SECRET was undefined in development, making all tokens invalid
+   - **Location**: `routes/auth.js` line 21
+   - **Fix**: Properly assign generated temporary secret to JWT_SECRET variable
+   - **Impact**: Fixed authentication persistence issues after login/signup
+
+2. **Authentication Persistence Issues**
+   - **Issue**: Users had to login again after successful signup/login
+   - **Root Cause**: JWT token structure inconsistency between OAuth and regular login
+   - **Fix**: Unified token payload structure to `{ id, username, email }`
+   - **Files**: `routes/auth.js`, `js/app.js`
+
+3. **Module System Conflicts**
+   - **Issue**: ES6 import/export conflicts with CommonJS
+   - **Fix**: Converted `config/constants.js` to ES6 exports
+   - **Impact**: Resolved signup form JavaScript errors
+
+### New Features Implemented
+
+1. **Username Change Functionality**
+   - **Location**: `/mypage.html` with edit button next to username
+   - **Backend APIs**: 
+     - `GET /api/user/check-username/:username` (duplicate check)
+     - `PUT /api/user/username` (change username)
+   - **Features**: Real-time duplicate checking, input validation, immediate UI sync
+   - **Security**: JWT auth, sanitization, SQL injection prevention
+
+2. **Complete OAuth Integration**
+   - **Providers**: Google and GitHub OAuth 2.0
+   - **Database**: Added OAuth support columns (provider, provider_id, profile_image, verified)
+   - **Frontend**: Working OAuth buttons with proper token handling
+   - **Callback URLs**: Environment-specific URLs for dev/production
+
+3. **Domain and SSL Setup**
+   - **Production Domain**: `yegam.ai.kr` (connected via 가비아)
+   - **SSL**: Let's Encrypt automatic certificate
+   - **Redirect**: www → non-www redirect middleware
+
+### Database Schema Updates
+
+**Added OAuth Support Columns to users table:**
+```sql
+ALTER TABLE users ADD COLUMN provider VARCHAR(20) DEFAULT 'local';
+ALTER TABLE users ADD COLUMN provider_id VARCHAR(255);
+ALTER TABLE users ADD COLUMN profile_image TEXT;
+ALTER TABLE users ADD COLUMN verified BOOLEAN DEFAULT false;
+ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL; -- For OAuth users
+```
+
+**Migration Script**: `scripts/add-oauth-columns.js`
+
+### Common Development Issues & Solutions
+
+1. **"redirect_uri_mismatch" OAuth Error**
+   - **Solution**: Use absolute URLs in OAuth callback configuration
+   - **Check**: Ensure Railway has `NODE_ENV=production` set
+   - **URLs**: Must exactly match Google Cloud Console settings
+
+2. **Username Validation Issues**
+   - **Previous**: Overly strict forbidden words (included partial matches)
+   - **Fixed**: Only exact matches for forbidden words
+   - **Location**: `utils/input-validation.js`
+
+3. **Password Requirements Mismatch**
+   - **Issue**: Frontend (6 chars) vs Backend (8 chars) requirements
+   - **Fixed**: Unified to 8 characters minimum with complexity rules
+   - **Location**: `login.html` and `utils/input-validation.js`
+
+### Environment Variables Requirements
+
+**Production (Railway):**
+```
+NODE_ENV=production
+JWT_SECRET=your-strong-jwt-secret
+SESSION_SECRET=your-session-secret
+DATABASE_URL=postgresql://... (Railway provided)
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GITHUB_CLIENT_ID=your-github-client-id (optional)
+GITHUB_CLIENT_SECRET=your-github-client-secret (optional)
+```
+
+### Development Workflow Updates
+
+1. **Always Auto-commit and Push**: All changes are automatically committed and pushed
+2. **JWT Secret Handling**: Temporary secrets auto-generated in development
+3. **OAuth Testing**: Use test users in Google Cloud Console development mode
+4. **Database**: All migrations are automatic via `add-oauth-columns.js`
+
+### Known Working Features
+- ✅ User registration/login with email
+- ✅ Google OAuth social login
+- ✅ Username change functionality
+- ✅ JWT authentication persistence
+- ✅ GAM currency system
+- ✅ Prediction betting system
+- ✅ Real-time user information sync
