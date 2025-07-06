@@ -135,3 +135,9 @@ When adding new features:
 - Auto-deployment: Railway automatically deploys from GitHub main branch
 - Local `.env` may not reflect production changes due to auto-deployment setup
 - **Important**: Always commit and push changes automatically when requested
+
+### OAuth Setup
+- Google/GitHub OAuth fully implemented in codebase
+- Database schema supports OAuth (provider, provider_id, profile_image, verified columns)
+- Detailed setup guide: `/docs/GOOGLE-OAUTH-SETUP-GUIDE.md`
+- Only requires OAuth app creation in Google Cloud Console and environment variable setup
