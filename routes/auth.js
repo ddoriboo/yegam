@@ -1,6 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const passport = require('passport');
 const { query } = require('../database/postgres');
 const InputValidator = require('../utils/input-validation');
 
@@ -400,5 +401,59 @@ router.get('/check-admin', async (req, res) => {
         });
     }
 });
+
+// OAuth 라우트들
+
+// Google OAuth 시작
+router.get('/google', 
+    passport.authenticate('google', { scope: ['profile', 'email'] })
+);
+
+// Google OAuth 콜백
+router.get('/google/callback', 
+    passport.authenticate('google', { failureRedirect: '/login.html?error=oauth' }),
+    async (req, res) => {
+        try {
+            // OAuth 성공 시 JWT 토큰 생성
+            const token = jwt.sign(
+                { userId: req.user.id, username: req.user.username },
+                JWT_SECRET,
+                { expiresIn: '7d' }
+            );
+            
+            // 클라이언트에 토큰 전달 (URL 파라미터 또는 쿠키)
+            res.redirect(`/?token=${token}&oauth=success`);
+        } catch (error) {
+            console.error('OAuth 콜백 처리 오류:', error);
+            res.redirect('/login.html?error=callback');
+        }
+    }
+);
+
+// GitHub OAuth 시작
+router.get('/github',
+    passport.authenticate('github', { scope: ['user:email'] })
+);
+
+// GitHub OAuth 콜백
+router.get('/github/callback',
+    passport.authenticate('github', { failureRedirect: '/login.html?error=oauth' }),
+    async (req, res) => {
+        try {
+            // OAuth 성공 시 JWT 토큰 생성
+            const token = jwt.sign(
+                { userId: req.user.id, username: req.user.username },
+                JWT_SECRET,
+                { expiresIn: '7d' }
+            );
+            
+            // 클라이언트에 토큰 전달
+            res.redirect(`/?token=${token}&oauth=success`);
+        } catch (error) {
+            console.error('OAuth 콜백 처리 오류:', error);
+            res.redirect('/login.html?error=callback');
+        }
+    }
+);
 
 module.exports = router;

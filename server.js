@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const path = require('path');
+const session = require('express-session');
+const passport = require('passport');
 require('dotenv').config();
 
 // 환경변수 검증 (서버 시작 전 실행)
@@ -30,6 +32,9 @@ const issueScheduler = require('./services/scheduler');
 const { errorHandler } = require('./middleware/errorHandler');
 const HealthCheck = require('./utils/health-check');
 
+// Passport 설정 로드
+require('./config/passport');
+
 const app = express();
 const PORT = envConfig.port || 3000;
 
@@ -54,6 +59,22 @@ if (process.env.NODE_ENV === 'production') {
 // www 리다이렉션 미들웨어 (프로덕션 환경에서만)
 const wwwRedirect = require('./middleware/www-redirect');
 app.use(wwwRedirect);
+
+// 세션 설정
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'fallback-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production', // HTTPS에서만 secure
+        httpOnly: true,
+        maxAge: 24 * 60 * 60 * 1000 // 24시간
+    }
+}));
+
+// Passport 초기화
+app.use(passport.initialize());
+app.use(passport.session());
 
 app.use(cors());
 app.use(express.json());

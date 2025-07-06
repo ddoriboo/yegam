@@ -98,6 +98,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         lucide.createIcons();
     }
     
+    // OAuth 토큰 처리 (URL 파라미터에서)
+    handleOAuthCallback();
+    
     // Check authentication
     await checkAuthentication();
     
@@ -3383,11 +3386,53 @@ function showSuccess(message) {
 
 // OAuth functions (placeholder)
 function loginWithGoogle() {
-    alert('Google 로그인은 현재 설정 중입니다. 이메일로 로그인해주세요.');
+    // Google OAuth 로그인 시작
+    window.location.href = '/api/auth/google';
 }
 
 function loginWithGithub() {
-    alert('GitHub 로그인은 현재 설정 중입니다. 이메일로 로그인해주세요.');
+    // GitHub OAuth 로그인 시작
+    window.location.href = '/api/auth/github';
+}
+
+function handleOAuthCallback() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+    const oauth = urlParams.get('oauth');
+    const error = urlParams.get('error');
+    
+    if (error) {
+        let errorMessage = 'OAuth 로그인 중 오류가 발생했습니다.';
+        switch (error) {
+            case 'oauth':
+                errorMessage = 'OAuth 인증에 실패했습니다. 다시 시도해주세요.';
+                break;
+            case 'callback':
+                errorMessage = '로그인 처리 중 오류가 발생했습니다.';
+                break;
+        }
+        alert(errorMessage);
+        // URL에서 에러 파라미터 제거
+        window.history.replaceState({}, document.title, window.location.pathname);
+        return;
+    }
+    
+    if (token && oauth === 'success') {
+        // OAuth 로그인 성공 - 토큰 저장
+        localStorage.setItem('authToken', token);
+        console.log('OAuth 로그인 성공');
+        
+        // URL에서 토큰 파라미터 제거 (보안)
+        window.history.replaceState({}, document.title, window.location.pathname);
+        
+        // 성공 메시지 표시
+        showSuccess('로그인이 완료되었습니다!');
+        
+        // 페이지 새로고침으로 인증 상태 업데이트
+        setTimeout(() => {
+            window.location.reload();
+        }, 1000);
+    }
 }
 
 function showInfo(message, title = '알림') {
