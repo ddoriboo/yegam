@@ -98,6 +98,93 @@ export {
 // CommonJS module.exports 사용하지 말것
 ```
 
+## 📱 Mobile UX Issues
+
+### Issue Request Modal Mobile Problems
+
+#### **문제**: 모바일에서 이슈 신청 모달이 사용하기 어려움
+**증상**: 
+- 키보드가 올라오면 상단 헤더가 화면을 가림
+- 모달이 빡빡해서 여백이 부족함
+- 외부 클릭 시 작성 중인 내용이 사라짐
+
+**진단 체크리스트**:
+1. **모바일 기기에서 테스트**
+   - iPhone/Android에서 이슈 신청 모달 열기
+   - 텍스트 입력 시 키보드 반응 확인
+2. **여백 및 레이아웃 확인**
+   - 모달 내부 요소 간 간격 확인
+   - 터치 타겟 크기 적정성 확인
+3. **외부 클릭 동작 확인**
+   - 백드롭 클릭 시 동작 확인
+   - ESC 키 동작 확인
+
+**해결방법**:
+```javascript
+// 1. 모바일 키보드 대응 기능
+setupMobileKeyboardHandling() {
+    if (!/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) return;
+    
+    // 입력 포커스 시 헤더 숨기기
+    this.keyboardFocusHandler = () => {
+        if (header) header.style.display = 'none';
+        modalContainer.style.maxHeight = '95vh';
+    };
+    
+    // 모든 입력 필드에 이벤트 등록
+    inputs.forEach(input => {
+        input.addEventListener('focus', this.keyboardFocusHandler);
+        input.addEventListener('blur', this.keyboardBlurHandler);
+    });
+}
+
+// 2. 안전한 모달 닫기
+closeWithConfirmation() {
+    if (this.hasFormContent()) {
+        const confirmed = confirm('작성 중인 내용이 있습니다. 정말 닫으시겠습니까?');
+        if (confirmed) this.close();
+    } else {
+        this.close();
+    }
+}
+
+// 3. 폼 내용 확인
+hasFormContent() {
+    const title = document.getElementById('issue-title').value.trim();
+    const category = document.getElementById('issue-category').value;
+    const description = document.getElementById('issue-description').value.trim();
+    return title || category || description;
+}
+```
+
+**모바일 최적화 CSS**:
+```css
+@media (max-width: 640px) {
+    .betting-modal-container {
+        width: 96%;
+        margin: 15px auto;
+        max-height: 90vh;
+    }
+    
+    #issue-request-form input,
+    #issue-request-form textarea {
+        padding: 16px !important;
+        font-size: 16px !important; /* iOS 줌 방지 */
+    }
+    
+    .mobile-keyboard-active .betting-modal-container {
+        max-height: 95vh !important;
+        margin-top: 5px !important;
+    }
+}
+```
+
+**검증 방법**:
+- ✅ 모바일에서 키보드 올라올 때 헤더 자동 숨김 확인
+- ✅ 작성 중 외부 클릭 시 확인 다이얼로그 표시 확인  
+- ✅ 모달 내부 여백이 충분한지 확인
+- ✅ iOS에서 입력 시 줌이 발생하지 않는지 확인
+
 ## 🔧 Feature-Specific Issues
 
 ### Username Change Issues
