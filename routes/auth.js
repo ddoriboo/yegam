@@ -8,7 +8,7 @@ const InputValidator = require('../utils/input-validation');
 const router = express.Router();
 
 // JWT_SECRET 보안 강화 - 프로덕션에서 환경변수 필수
-const JWT_SECRET = process.env.JWT_SECRET;
+let JWT_SECRET = process.env.JWT_SECRET;
 
 if (!JWT_SECRET) {
     console.error('❌ JWT_SECRET 환경변수가 필수입니다.');
@@ -18,7 +18,10 @@ if (!JWT_SECRET) {
     } else {
         console.warn('⚠️ 개발 환경: JWT_SECRET이 설정되지 않았습니다. 임시 키를 생성합니다.');
         // 개발 환경에서만 임시 키 생성
-        require('crypto').randomBytes(32).toString('hex');
+        const tempSecret = require('crypto').randomBytes(32).toString('hex');
+        process.env.JWT_SECRET = tempSecret;
+        JWT_SECRET = tempSecret;
+        console.log('✅ 임시 JWT_SECRET 생성 완료');
     }
 }
 
@@ -416,7 +419,7 @@ router.get('/google/callback',
         try {
             // OAuth 성공 시 JWT 토큰 생성
             const token = jwt.sign(
-                { userId: req.user.id, username: req.user.username },
+                { id: req.user.id, username: req.user.username, email: req.user.email },
                 JWT_SECRET,
                 { expiresIn: '7d' }
             );
@@ -442,7 +445,7 @@ router.get('/github/callback',
         try {
             // OAuth 성공 시 JWT 토큰 생성
             const token = jwt.sign(
-                { userId: req.user.id, username: req.user.username },
+                { id: req.user.id, username: req.user.username, email: req.user.email },
                 JWT_SECRET,
                 { expiresIn: '7d' }
             );

@@ -3418,8 +3418,8 @@ function handleOAuthCallback() {
     }
     
     if (token && oauth === 'success') {
-        // OAuth 로그인 성공 - 토큰 저장
-        localStorage.setItem('authToken', token);
+        // OAuth 로그인 성공 - 토큰 저장 (일관된 키 사용)
+        localStorage.setItem('yegame-token', token);
         console.log('OAuth 로그인 성공');
         
         // URL에서 토큰 파라미터 제거 (보안)
