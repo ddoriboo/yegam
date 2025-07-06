@@ -76,6 +76,9 @@ export async function renderMyPage() {
     // 사용자 기본 정보 표시
     updateUserProfile(freshUserData);
     
+    // 닉네임 변경 기능 초기화
+    initUsernameChange();
+    
     // 실시간 GAM 표시 시작
     startRealtimeGamDisplay();
     
@@ -140,6 +143,12 @@ function updateUserProfile(user) {
 
     if (userNameEl) userNameEl.textContent = user.username;
     if (userEmailEl) userEmailEl.textContent = user.email;
+    
+    // 편집 버튼 표시
+    const editUsernameBtn = document.getElementById('edit-username-btn');
+    if (editUsernameBtn) {
+        editUsernameBtn.classList.remove('hidden');
+    }
     if (userCoinsEl) {
         // Use same default as server (10000) to ensure consistency
         const gamBalance = user.gam_balance ?? 10000;
@@ -1238,4 +1247,188 @@ function formatNotificationTime(timestamp) {
     if (diffInDays < 7) return `${diffInDays}일 전`;
     
     return time.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+}
+
+// 닉네임 변경 기능
+export function initUsernameChange() {
+    const editBtn = document.getElementById('edit-username-btn');
+    const modal = document.getElementById('username-modal');
+    const closeBtn = document.getElementById('close-username-modal');
+    const cancelBtn = document.getElementById('cancel-username-change');
+    const confirmBtn = document.getElementById('confirm-username-change');
+    const currentUsernameInput = document.getElementById('current-username');
+    const newUsernameInput = document.getElementById('new-username');
+    const validationMessage = document.getElementById('username-validation-message');
+    
+    let debounceTimer;
+    let isUsernameValid = false;
+    
+    // 편집 버튼 클릭 시 모달 열기
+    editBtn?.addEventListener('click', () => {
+        const currentUser = auth.getCurrentUser();
+        if (currentUser) {
+            currentUsernameInput.value = currentUser.username;
+            newUsernameInput.value = '';
+            validationMessage.classList.add('hidden');
+            confirmBtn.disabled = true;
+            isUsernameValid = false;
+            
+            modal.classList.remove('hidden');
+            newUsernameInput.focus();
+        }
+    });
+    
+    // 모달 닫기
+    const closeModal = () => {
+        modal.classList.add('hidden');
+        newUsernameInput.value = '';
+        validationMessage.classList.add('hidden');
+    };
+    
+    closeBtn?.addEventListener('click', closeModal);
+    cancelBtn?.addEventListener('click', closeModal);
+    
+    // 모달 외부 클릭 시 닫기
+    modal?.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeModal();
+        }
+    });
+    
+    // 실시간 닉네임 검증
+    newUsernameInput?.addEventListener('input', (e) => {
+        const newUsername = e.target.value.trim();
+        
+        clearTimeout(debounceTimer);
+        
+        if (!newUsername) {
+            hideValidationMessage();
+            confirmBtn.disabled = true;
+            isUsernameValid = false;
+            return;
+        }
+        
+        // 현재 닉네임과 동일한지 확인
+        const currentUser = auth.getCurrentUser();
+        if (currentUser && newUsername.toLowerCase() === currentUser.username.toLowerCase()) {
+            showValidationMessage('현재 닉네임과 동일합니다.', 'error');
+            confirmBtn.disabled = true;
+            isUsernameValid = false;
+            return;
+        }
+        
+        // 디바운스로 실시간 검증
+        debounceTimer = setTimeout(async () => {
+            await checkUsernameAvailability(newUsername);
+        }, 500);
+    });
+    
+    // 닉네임 변경 확인
+    confirmBtn?.addEventListener('click', async () => {
+        if (!isUsernameValid) return;
+        
+        const newUsername = newUsernameInput.value.trim();
+        if (!newUsername) return;
+        
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = '변경 중...';
+        
+        try {
+            const token = auth.getToken();
+            const response = await fetch('/api/user/username', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ newUsername })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                // 로컬 사용자 정보 업데이트
+                auth.updateCurrentUser(data.user);
+                
+                // UI 업데이트
+                document.getElementById('user-name').textContent = data.user.username;
+                
+                // 성공 메시지
+                showSuccess('닉네임이 변경되었습니다!');
+                
+                // 모달 닫기
+                closeModal();
+            } else {
+                showValidationMessage(data.message, 'error');
+            }
+        } catch (error) {
+            console.error('닉네임 변경 오류:', error);
+            showValidationMessage('닉네임 변경 중 오류가 발생했습니다.', 'error');
+        } finally {
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = '변경';
+        }
+    });
+    
+    // 닉네임 중복 검사
+    async function checkUsernameAvailability(username) {
+        try {
+            const token = auth.getToken();
+            const response = await fetch(`/api/user/check-username/${encodeURIComponent(username)}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                if (data.available) {
+                    showValidationMessage(data.message, 'success');
+                    confirmBtn.disabled = false;
+                    isUsernameValid = true;
+                } else {
+                    showValidationMessage(data.message, 'error');
+                    confirmBtn.disabled = true;
+                    isUsernameValid = false;
+                }
+            } else {
+                showValidationMessage(data.message, 'error');
+                confirmBtn.disabled = true;
+                isUsernameValid = false;
+            }
+        } catch (error) {
+            console.error('닉네임 검증 오류:', error);
+            showValidationMessage('닉네임 확인 중 오류가 발생했습니다.', 'error');
+            confirmBtn.disabled = true;
+            isUsernameValid = false;
+        }
+    }
+    
+    // 검증 메시지 표시
+    function showValidationMessage(message, type) {
+        validationMessage.textContent = message;
+        validationMessage.classList.remove('hidden', 'text-green-600', 'text-red-600');
+        
+        if (type === 'success') {
+            validationMessage.classList.add('text-green-600');
+        } else {
+            validationMessage.classList.add('text-red-600');
+        }
+    }
+    
+    // 검증 메시지 숨기기
+    function hideValidationMessage() {
+        validationMessage.classList.add('hidden');
+    }
+}
+
+// 성공 메시지 표시 (기존 시스템 활용)
+function showSuccess(message) {
+    // 기존 showSuccess 함수가 있다면 사용, 없다면 간단한 alert
+    if (window.showSuccess) {
+        window.showSuccess(message);
+    } else {
+        alert(message);
+    }
 }
