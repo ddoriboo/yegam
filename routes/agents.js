@@ -43,6 +43,59 @@ const requireAdmin = (req, res, next) => {
   next();
 };
 
+// AI 에이전트의 user ID를 가져오는 함수
+async function getAIAgentUserId(agentId) {
+  try {
+    // 매운맛 버전 AI 에이전트 매핑
+    const agentUserMapping = {
+      'clien-style': '이성적지성인',
+      'oyu-style': '오늘도슬퍼요',
+      'slr-style': 'L렌즈아재',
+      'ppomppu-style': '호구는되지말자',
+      'cook-style': '이럴땐어떻하죠',
+      'mpark-style': '반박시니말이틀림',
+      'bobae-style': '상품권보내드림',
+      'inven-style': '밸런스패치좀',
+      'ruliweb-style': '남궁루리',
+      'funny-style': '닉값못함',
+      'ddanzi-style': '나꼼수키드',
+      'femco-style': '알빠노인',
+      'eto-style': '포인트쌓는재미',
+      // 기존 AI 에이전트 매핑 (호환성 유지)
+      'data-kim': 'data_kim',
+      'chart-king': 'chart_king',
+      'tech-guru': 'tech_guru',
+      'hipster-choi': 'hipster_choi',
+      'social-lover': 'social_lover',
+      'medical-doctor': 'medical_doctor',
+      'positive-one': 'positive_one',
+      'cautious-one': 'cautious_one',
+      'humor-king': 'humor_king',
+      'observer': 'observer'
+    };
+
+    const username = agentUserMapping[agentId];
+    if (!username) {
+      console.error(`❌ ${agentId}에 대한 사용자 매핑을 찾을 수 없습니다`);
+      return null;
+    }
+
+    const userResult = await get(`
+      SELECT id FROM users WHERE username = $1
+    `, [username]);
+
+    if (!userResult) {
+      console.error(`❌ ${username} 사용자를 찾을 수 없습니다`);
+      return null;
+    }
+
+    return userResult.id;
+  } catch (error) {
+    console.error(`❌ AI 에이전트 사용자 ID 조회 실패:`, error);
+    return null;
+  }
+}
+
 // 모든 AI 에이전트 상태 조회
 router.get('/status', requireAdmin, async (req, res) => {
   try {
@@ -424,7 +477,7 @@ router.post('/:agentId/post-to-discussions', requireAdmin, async (req, res) => {
     }
 
     const { agentId } = req.params;
-    const { prompt, categoryId, title } = req.body;
+    const { prompt, categoryId, title, keywords } = req.body;
 
     // 에이전트 확인
     const agent = await get(`
@@ -438,7 +491,8 @@ router.post('/:agentId/post-to-discussions', requireAdmin, async (req, res) => {
     // AI 콘텐츠 생성
     const context = {
       prompt: prompt || '오늘의 주제에 대해 전문가적 분석을 해주세요',
-      type: 'post'
+      type: 'post',
+      keywords: keywords || []
     };
     
     const generatedContent = await agentManager.generatePost(agentId, context);
@@ -456,6 +510,21 @@ router.post('/:agentId/post-to-discussions', requireAdmin, async (req, res) => {
     // 에이전트별 기본 카테고리 매핑
     const getDefaultCategory = (agentId) => {
       const categoryMap = {
+        // 매운맛 버전 AI 에이전트 카테고리
+        'clien-style': 6,      // 테크 (IT/기술 중심)
+        'oyu-style': 1,        // 일반 (일상/감성)
+        'slr-style': 7,        // 엔터 (카메라/사진)
+        'ppomppu-style': 4,    // 경제 (할인/가격)
+        'cook-style': 1,       // 일반 (가정/육아)
+        'mpark-style': 3,      // 스포츠 (축구 중심)
+        'bobae-style': 1,      // 일반 (사회정의)
+        'inven-style': 3,      // 스포츠 (게임/e스포츠)
+        'ruliweb-style': 7,    // 엔터 (서브컬처)
+        'funny-style': 7,      // 엔터 (유머)
+        'ddanzi-style': 2,     // 정치 (시사/음모론)
+        'femco-style': 1,      // 일반 (세상사)
+        'eto-style': 1,        // 일반 (자료공유)
+        // 기존 AI 에이전트 카테고리 (호환성 유지)
         'data-kim': 4,      // 경제
         'chart-king': 5,    // 코인  
         'tech-guru': 6,     // 테크
@@ -515,6 +584,11 @@ router.post('/:agentId/post-to-discussions', requireAdmin, async (req, res) => {
 
     // AI 에이전트의 고유 사용자 ID 가져오기
     const authorId = await getAIAgentUserId(agentId);
+    
+    if (!authorId) {
+      console.error(`❌ ${agentId}에 대한 사용자 ID를 찾을 수 없습니다`);
+      return res.status(500).json({ error: 'AI agent user ID not found' });
+    }
 
     // 분석방에 게시물 생성
     const postResult = await query(`
