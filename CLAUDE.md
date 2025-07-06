@@ -196,22 +196,18 @@ ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL; -- For OAuth users
 
 **Migration Script**: `scripts/add-oauth-columns.js`
 
-### Common Development Issues & Solutions
+### 🔧 문제 해결 가이드
 
-1. **"redirect_uri_mismatch" OAuth Error**
-   - **Solution**: Use absolute URLs in OAuth callback configuration
-   - **Check**: Ensure Railway has `NODE_ENV=production` set
-   - **URLs**: Must exactly match Google Cloud Console settings
+**📋 상세 문제 해결 방법**: [docs/TROUBLESHOOTING-GUIDE.md](docs/TROUBLESHOOTING-GUIDE.md)
 
-2. **Username Validation Issues**
-   - **Previous**: Overly strict forbidden words (included partial matches)
-   - **Fixed**: Only exact matches for forbidden words
-   - **Location**: `utils/input-validation.js`
+앞으로 발생하는 모든 이슈와 해결책은 `docs/TROUBLESHOOTING-GUIDE.md`에 계속 업데이트됩니다.
 
-3. **Password Requirements Mismatch**
-   - **Issue**: Frontend (6 chars) vs Backend (8 chars) requirements
-   - **Fixed**: Unified to 8 characters minimum with complexity rules
-   - **Location**: `login.html` and `utils/input-validation.js`
+**핵심 해결책 요약:**
+- **JWT_SECRET 할당 버그** → `routes/auth.js:37` 수정
+- **사용자명 검증 로직** → `utils/input-validation.js:15` 개선  
+- **OAuth 리디렉션 URL** → `config/passport.js:25` 환경별 분리
+- **ES6 모듈 충돌** → `config/constants.js` export 수정
+- **닉네임 변경 기능** → 완전 구현 (`mypage.html`, `js/pages/mypage.js`)
 
 ### Environment Variables Requirements
 
