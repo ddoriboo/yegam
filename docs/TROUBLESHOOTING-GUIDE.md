@@ -173,6 +173,48 @@ ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;
 UPDATE users SET gam_balance = 10000 WHERE gam_balance IS NULL OR gam_balance = 0;
 ```
 
+## 🖼️ Static Asset Issues
+
+### GitHub Repository Privacy Change Impact
+
+#### **문제**: GitHub을 public에서 private으로 변경 후 로고 이미지가 안 보임
+**증상**: 웹사이트에서 예겜 로고가 표시되지 않고 깨진 이미지로 나타남
+
+**진단 체크리스트**:
+1. **GitHub raw URL 사용 확인**
+   ```html
+   <!-- 문제가 되는 URL 형태 -->
+   <img src="https://github.com/ddoriboo/yegam/raw/refs/heads/main/logo.png">
+   ```
+2. **브라우저 개발자 도구에서 이미지 로딩 오류 확인**
+   - 네트워크 탭에서 403 Forbidden 또는 404 오류 확인
+3. **GitHub 레포지토리 접근 권한 확인**
+
+**해결방법**:
+```html
+<!-- Before: GitHub raw URL (private 레포에서 접근 불가) -->
+<img src="https://github.com/ddoriboo/yegam/raw/refs/heads/main/logo.png">
+
+<!-- After: 로컬 파일 경로 (항상 접근 가능) -->
+<img src="logo.png">
+```
+
+**일괄 변경 스크립트**:
+```bash
+# 모든 HTML 파일에서 GitHub raw URL을 로컬 경로로 변경
+find . -name "*.html" -exec sed -i 's|https://github.com/ddoriboo/yegam/raw/refs/heads/main/logo.png|logo.png|g' {} +
+```
+
+**검증 방법**:
+- 웹사이트에서 로고가 정상적으로 표시되는지 확인
+- 브라우저 개발자 도구에서 이미지 로딩 오류가 없는지 확인
+- GitHub 레포지토리 공개/비공개 상태 변경해도 로고 표시 확인
+
+**예방책**:
+- 외부 이미지는 항상 로컬 파일이나 CDN 사용
+- GitHub raw URL 직접 사용 지양
+- Cloudinary 등 전용 이미지 호스팅 서비스 활용
+
 ## 🌐 Production Deployment Issues
 
 ### Railway Deployment
