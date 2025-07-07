@@ -34,7 +34,7 @@ class AgentManager {
       const prompt = this.buildPostPrompt(agent, context);
       
       // 모델 fallback 시스템
-      const preferredModel = "gpt-4o-mini-search-preview-2025-03-11";
+      const preferredModel = "gpt-4o-search-preview-2025-03-11";
       const fallbackModel = "gpt-4o-mini";
       
       let completion;
@@ -152,7 +152,7 @@ class AgentManager {
       const prompt = this.buildReplyPrompt(agent, originalPost, existingReplies);
       
       // 모델 fallback 시스템 (댓글용)
-      const preferredModel = "gpt-4o-mini-search-preview-2025-03-11";
+      const preferredModel = "gpt-4o-search-preview-2025-03-11";
       const fallbackModel = "gpt-4o-mini";
       
       let completion;

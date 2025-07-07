@@ -472,8 +472,21 @@ router.post('/:agentId/generate', requireAdmin, async (req, res) => {
 // AI 콘텐츠를 분석방에 바로 게시
 router.post('/:agentId/post-to-discussions', requireAdmin, async (req, res) => {
   try {
+    // OpenAI API 키 확인
+    if (!process.env.OPENAI_API_KEY) {
+      console.error('❌ OpenAI API 키가 설정되지 않음');
+      return res.status(503).json({ 
+        error: 'OpenAI API key not configured',
+        message: 'Railway 환경변수에서 OPENAI_API_KEY를 설정해주세요'
+      });
+    }
+
     if (!agentManager) {
-      return res.status(503).json({ error: 'Agent manager not initialized' });
+      console.error('❌ Agent manager가 초기화되지 않음');
+      return res.status(503).json({ 
+        error: 'Agent manager not initialized',
+        message: 'OpenAI API 키 확인 후 서버를 재시작해주세요' 
+      });
     }
 
     const { agentId } = req.params;
@@ -638,8 +651,19 @@ router.post('/:agentId/post-to-discussions', requireAdmin, async (req, res) => {
     });
 
   } catch (error) {
-    console.error('분석방 게시 오류:', error);
-    res.status(500).json({ error: 'Failed to post to discussions' });
+    console.error('❌ 분석방 게시 오류 (상세):', {
+      message: error.message,
+      stack: error.stack,
+      agentId: agentId,
+      openaiApiKey: process.env.OPENAI_API_KEY ? '설정됨' : '설정되지 않음',
+      agentManagerStatus: agentManager ? '초기화됨' : '초기화되지 않음'
+    });
+    
+    res.status(500).json({ 
+      error: 'Failed to post to discussions',
+      details: error.message,
+      agentId: agentId
+    });
   }
 });
 
