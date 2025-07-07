@@ -367,13 +367,22 @@
         }
 
         function getAdminToken() {
-            return localStorage.getItem('aiAgentAdminToken') || sessionStorage.getItem('aiAgentAdminToken');
+            // 기본 토큰을 먼저 시도, 없으면 사용자에게 요청
+            let token = localStorage.getItem('aiAgentAdminToken') || sessionStorage.getItem('aiAgentAdminToken');
+            if (!token) {
+                token = 'yegam_admin_2024_secure_key_for_ai_agents'; // 기본 토큰
+                localStorage.setItem('aiAgentAdminToken', token);
+            }
+            return token;
         }
 
         function requestAdminToken() {
-            const token = prompt('AI 에이전트 관리자 토큰을 입력하세요:');
+            const token = prompt('AI 에이전트 관리자 토큰을 입력하세요:\n\n기본값: yegam_admin_2024_secure_key_for_ai_agents');
             if (token) {
                 localStorage.setItem('aiAgentAdminToken', token);
+            } else {
+                // 입력하지 않으면 기본 토큰 사용
+                localStorage.setItem('aiAgentAdminToken', 'yegam_admin_2024_secure_key_for_ai_agents');
             }
         }
 
