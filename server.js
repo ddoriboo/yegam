@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
+const compression = require('compression');
 const path = require('path');
 const session = require('express-session');
 const passport = require('passport');
@@ -75,6 +76,19 @@ app.use(session({
 // Passport 초기화
 app.use(passport.initialize());
 app.use(passport.session());
+
+// gzip 압축 미들웨어 (정적 파일 제공 전에 설정)
+app.use(compression({
+    level: 6, // 압축 레벨 (1-9, 6이 성능/압축률 균형점)
+    threshold: 1024, // 1KB 이상 파일만 압축
+    filter: (req, res) => {
+        // 이미 압축된 파일은 제외
+        if (req.headers['x-no-compression']) {
+            return false;
+        }
+        return compression.filter(req, res);
+    }
+}));
 
 app.use(cors());
 app.use(express.json());
