@@ -129,6 +129,29 @@ function setupCreateIssueModal() {
 
     // Form submission
     form.addEventListener('submit', handleCreateIssue);
+    
+    // Setup edit modal
+    setupEditIssueModal();
+}
+
+function setupEditIssueModal() {
+    const editModal = document.getElementById('edit-issue-modal');
+    const closeEditBtn = document.getElementById('close-edit-modal-btn');
+    const cancelEditBtn = document.getElementById('edit-cancel-btn');
+    const editForm = document.getElementById('edit-issue-form');
+
+    if (!editModal || !editForm) return;
+
+    // Modal controls
+    closeEditBtn?.addEventListener('click', () => closeModal(editModal, editForm));
+    cancelEditBtn?.addEventListener('click', () => closeModal(editModal, editForm));
+    
+    editModal.addEventListener('click', (e) => {
+        if (e.target === editModal) closeModal(editModal, editForm);
+    });
+
+    // Form submission
+    editForm.addEventListener('submit', handleEditIssue);
 }
 
 function openModal(modal) {
@@ -146,9 +169,9 @@ async function handleCreateIssue(e) {
     e.preventDefault();
     const formData = new FormData(e.target);
     
-    // 한국 시간대로 마감일 처리
+    // 한국 시간대로 마감일 처리 (datetime-local은 이미 로컬 시간)
     const endDateLocal = formData.get('endDate');
-    const endDateKST = endDateLocal ? new Date(endDateLocal + '+09:00').toISOString() : null;
+    const endDateKST = endDateLocal ? new Date(endDateLocal).toISOString() : null;
     
     const issueData = {
         title: formData.get('title'),
@@ -180,6 +203,50 @@ async function handleCreateIssue(e) {
             showAdminLogin();
         } else {
             alert('이슈 생성 중 오류가 발생했습니다.');
+        }
+    }
+}
+
+async function handleEditIssue(e) {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    
+    // 한국 시간대로 마감일 처리 (datetime-local은 이미 로컬 시간)
+    const endDateLocal = formData.get('endDate');
+    const endDateKST = endDateLocal ? new Date(endDateLocal).toISOString() : null;
+    
+    const issueData = {
+        title: formData.get('title'),
+        category: formData.get('category'),
+        description: formData.get('description') || '',
+        end_date: endDateKST,
+        yes_price: parseInt(formData.get('yesPrice')) || 50,
+        is_popular: formData.get('isPopular') === 'on'
+    };
+
+    const issueId = formData.get('id');
+
+    try {
+        const response = await window.adminFetch(`/api/admin/issues/${issueId}`, {
+            method: 'PUT',
+            body: JSON.stringify(issueData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert('이슈가 성공적으로 수정되었습니다!');
+            closeModal(document.getElementById('edit-issue-modal'), e.target);
+            await renderAdminIssueTable();
+        } else {
+            alert(`이슈 수정에 실패했습니다: ${result.message}`);
+        }
+    } catch (error) {
+        console.error('이슈 수정 오류:', error);
+        if (error.message && error.message.includes('인증')) {
+            showAdminLogin();
+        } else {
+            alert('이슈 수정 중 오류가 발생했습니다.');
         }
     }
 }
@@ -268,16 +335,49 @@ window.deleteIssue = async function(issueId) {
 
 window.editIssue = async function(issueId) {
     try {
-        const issues = backend.getIssues();
-        const issue = issues.find(i => i.id === issueId);
-        if (issue) {
-            issue.isPopular = !issue.isPopular;
-            sessionStorage.setItem('poli-view-issues', JSON.stringify(issues));
-            await renderAdminIssueTable();
-            alert(`이슈가 ${issue.isPopular ? '인기' : '일반'} 이슈로 변경되었습니다.`);
+        // 이슈 정보 조회
+        const response = await window.adminFetch(`/api/admin/issues/${issueId}`);
+        const data = await response.json();
+        
+        if (!data.success) {
+            alert(`이슈 조회에 실패했습니다: ${data.message}`);
+            return;
         }
+        
+        const issue = data.issue;
+        
+        // 수정 모달 폼에 데이터 채우기
+        document.getElementById('edit-issue-id').value = issue.id;
+        document.getElementById('edit-issue-title').value = issue.title || '';
+        document.getElementById('edit-issue-category').value = issue.category || '';
+        document.getElementById('edit-issue-description').value = issue.description || '';
+        document.getElementById('edit-issue-yes-price').value = issue.yes_price || 50;
+        document.getElementById('edit-issue-popular').checked = issue.is_popular || false;
+        
+        // 마감일 설정 (데이터베이스 시간을 로컬 시간으로 변환)
+        if (issue.end_date) {
+            const endDate = new Date(issue.end_date);
+            // datetime-local은 사용자의 로컬 시간대 기준이므로
+            // 한국 시간으로 저장된 값을 그대로 표시 (YYYY-MM-DDTHH:MM)
+            const year = endDate.getFullYear();
+            const month = String(endDate.getMonth() + 1).padStart(2, '0');
+            const day = String(endDate.getDate()).padStart(2, '0');
+            const hours = String(endDate.getHours()).padStart(2, '0');
+            const minutes = String(endDate.getMinutes()).padStart(2, '0');
+            const localDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+            document.getElementById('edit-issue-end-date').value = localDateTime;
+        }
+        
+        // 수정 모달 열기
+        openModal(document.getElementById('edit-issue-modal'));
+        
     } catch (error) {
-        alert('이슈 수정에 실패했습니다: ' + error.message);
+        console.error('이슈 수정 모달 열기 오류:', error);
+        if (error.message && error.message.includes('인증')) {
+            showAdminLogin();
+        } else {
+            alert('이슈 정보를 불러오는 중 오류가 발생했습니다.');
+        }
     }
 };
 

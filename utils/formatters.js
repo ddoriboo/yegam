@@ -37,15 +37,17 @@ function timeUntil(date) {
 }
 
 /**
- * Format date for display
+ * Format date for display (Korean timezone)
  * @param {string|Date} date - The date to format
  * @returns {string} Formatted date string
  */
 function formatDate(date) {
+    if (!date) return '';
+    
     const d = new Date(date);
     if (isNaN(d.getTime())) return '';
     
-    // 한국 시간대로 강제 설정하여 관리자 페이지와 시간 일치
+    // 한국 시간대 (Asia/Seoul)로 일관되게 표시
     return d.toLocaleDateString('ko-KR', {
         year: 'numeric',
         month: '2-digit', 

@@ -116,48 +116,47 @@ router.post('/issues', secureAdminMiddleware, requirePermission('create_issue'),
 });
 
 // 이슈 수정
-router.put('/issues/:id', secureAdminMiddleware, (req, res) => {
-    const { id } = req.params;
-    const { title, category, description, image_url, yes_price, end_date, is_popular } = req.body;
-    
-    if (!title || !category || !end_date) {
-        return res.status(400).json({ 
-            success: false, 
-            message: '제목, 카테고리, 마감일은 필수입니다.' 
-        });
-    }
-    
-    const db = getDB();
-    
-    db.run(`
-        UPDATE issues 
-        SET title = ?, category = ?, description = ?, image_url = ?, 
-            yes_price = ?, end_date = ?, is_popular = ?
-        WHERE id = ?
-    `, [title, category, description, image_url, yes_price, end_date, is_popular ? 1 : 0, id], function(err) {
-        if (err) {
-            console.error('이슈 수정 실패:', err);
-            return res.status(500).json({ success: false, message: '이슈 수정에 실패했습니다.' });
+router.put('/issues/:id', secureAdminMiddleware, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { title, category, description, image_url, yes_price, end_date, is_popular } = req.body;
+        
+        if (!title || !category || !end_date) {
+            return res.status(400).json({ 
+                success: false, 
+                message: '제목, 카테고리, 마감일은 필수입니다.' 
+            });
         }
         
-        if (this.changes === 0) {
+        // PostgreSQL 방식으로 직접 수정 (한국 시간대 적용)
+        const result = await query(`
+            UPDATE issues 
+            SET title = $1, category = $2, description = $3, image_url = $4, 
+                yes_price = $5, end_date = $6, is_popular = $7, 
+                updated_at = NOW() AT TIME ZONE 'Asia/Seoul'
+            WHERE id = $8
+            RETURNING *
+        `, [title, category, description, image_url, yes_price, end_date, is_popular ? true : false, id]);
+        
+        if (result.rows.length === 0) {
             return res.status(404).json({ success: false, message: '이슈를 찾을 수 없습니다.' });
         }
         
-        // 수정된 이슈 정보 반환
-        db.get('SELECT * FROM issues WHERE id = ?', [id], (err, issue) => {
-            if (err) {
-                console.error('수정된 이슈 조회 실패:', err);
-                return res.json({ success: true, message: '이슈가 수정되었습니다.' });
+        const issue = result.rows[0];
+        
+        res.json({
+            success: true,
+            message: '이슈가 성공적으로 수정되었습니다.',
+            issue: {
+                ...issue,
+                isPopular: Boolean(issue.is_popular)
             }
-            
-            res.json({
-                success: true,
-                message: '이슈가 성공적으로 수정되었습니다.',
-                issue: issue
-            });
         });
-    });
+        
+    } catch (error) {
+        console.error('이슈 수정 실패:', error);
+        res.status(500).json({ success: false, message: '이슈 수정에 실패했습니다.' });
+    }
 });
 
 // 이슈 삭제
