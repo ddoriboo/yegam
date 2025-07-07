@@ -170,8 +170,8 @@
                     <button id="discussions-tab" class="admin-tab pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium whitespace-nowrap">
                         분석방 관리
                     </button>
-                    <button id="issue-requests-tab" class="admin-tab pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium whitespace-nowrap">
-                        이슈 신청 관리
+                    <button id="visitor-stats-tab" class="admin-tab pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium whitespace-nowrap">
+                        방문자 통계
                     </button>
                 </nav>
             </div>
@@ -864,6 +864,67 @@
                     </div>
                 </div>
             </div>
+
+            <!-- 방문자 통계 섹션 -->
+            <div id="visitor-stats-section" class="hidden bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">방문자 통계</h3>
+                            <p class="text-sm text-gray-600 mt-1">사이트 방문자 현황과 DAU를 확인할 수 있습니다</p>
+                        </div>
+                        <div class="flex space-x-2">
+                            <button id="refresh-visitor-stats" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                                새로고침
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="p-6">
+                    <!-- 방문자 통계 카드 -->
+                    <div id="visitor-stats-cards" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-blue-50 p-4 rounded-lg">
+                            <div class="text-2xl font-bold text-blue-600" id="today-unique-visitors">-</div>
+                            <div class="text-sm text-gray-600">오늘 순방문자</div>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <div class="text-2xl font-bold text-green-600" id="today-page-views">-</div>
+                            <div class="text-sm text-gray-600">오늘 페이지뷰</div>
+                        </div>
+                        <div class="bg-purple-50 p-4 rounded-lg">
+                            <div class="text-2xl font-bold text-purple-600" id="total-unique-visitors">-</div>
+                            <div class="text-sm text-gray-600">총 순방문자</div>
+                        </div>
+                        <div class="bg-yellow-50 p-4 rounded-lg">
+                            <div class="text-2xl font-bold text-yellow-600" id="total-page-views">-</div>
+                            <div class="text-sm text-gray-600">총 페이지뷰</div>
+                        </div>
+                    </div>
+
+                    <!-- 일별 방문자 차트 -->
+                    <div class="bg-gray-50 p-6 rounded-lg mb-6">
+                        <h4 class="text-lg font-semibold text-gray-900 mb-4">최근 7일간 방문자 현황</h4>
+                        <div id="visitor-chart" class="h-64">
+                            <!-- 차트가 여기에 로드됩니다 -->
+                            <div class="flex items-center justify-center h-full text-gray-500">
+                                <div class="text-center">
+                                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                                    <div>차트를 로드하는 중...</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 실시간 방문자 정보 -->
+                    <div class="bg-gray-50 p-6 rounded-lg">
+                        <h4 class="text-lg font-semibold text-gray-900 mb-4">실시간 방문자 정보</h4>
+                        <div id="realtime-visitors" class="space-y-2">
+                            <!-- 실시간 방문자 목록이 여기에 표시됩니다 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
         </main>
 
         <!-- Footer -->
@@ -1269,6 +1330,15 @@
                     showDiscussionsSection();
                     loadDiscussionStats();
                     loadDiscussionPosts();
+                });
+            }
+
+            // 방문자 통계 탭
+            const visitorStatsTab = document.getElementById('visitor-stats-tab');
+            if (visitorStatsTab) {
+                visitorStatsTab.addEventListener('click', () => {
+                    showVisitorStatsSection();
+                    loadVisitorStats();
                 });
             }
             
@@ -2215,6 +2285,107 @@
         window.approveIssueRequest = approveIssueRequest;
         window.rejectIssueRequest = rejectIssueRequest;
         window.changeIssueRequestsPage = changeIssueRequestsPage;
+        
+        // 방문자 통계 관리 함수들
+        function showVisitorStatsSection() {
+            // 모든 섹션 숨기기
+            document.querySelectorAll('[id$="-section"]').forEach(section => {
+                section.classList.add('hidden');
+            });
+            
+            // 모든 탭 비활성화
+            document.querySelectorAll('.admin-tab').forEach(tab => {
+                tab.classList.remove('active', 'border-blue-500', 'text-blue-600');
+                tab.classList.add('border-transparent', 'text-gray-500');
+            });
+            
+            // 방문자 통계 섹션 표시
+            const section = document.getElementById('visitor-stats-section');
+            if (section) {
+                section.classList.remove('hidden');
+            }
+            
+            // 방문자 통계 탭 활성화
+            const tab = document.getElementById('visitor-stats-tab');
+            if (tab) {
+                tab.classList.add('active', 'border-blue-500', 'text-blue-600');
+                tab.classList.remove('border-transparent', 'text-gray-500');
+            }
+            
+            // 새 이슈 생성 버튼 숨기기
+            const createBtn = document.getElementById('create-issue-btn');
+            if (createBtn) {
+                createBtn.classList.add('hidden');
+            }
+        }
+        
+        async function loadVisitorStats() {
+            try {
+                const response = await fetch('/api/visitors/stats/admin');
+                const data = await response.json();
+                
+                if (data.success) {
+                    // 통계 카드 업데이트
+                    document.getElementById('today-unique-visitors').textContent = data.today.unique_visitors.toLocaleString();
+                    document.getElementById('today-page-views').textContent = data.today.total_page_views.toLocaleString();
+                    document.getElementById('total-unique-visitors').textContent = data.total.unique_visitors.toLocaleString();
+                    document.getElementById('total-page-views').textContent = data.total.total_page_views.toLocaleString();
+                    
+                    // 7일간 차트 데이터 렌더링
+                    if (data.recent_7_days) {
+                        renderVisitorChart(data.recent_7_days);
+                    }
+                } else {
+                    console.error('방문자 통계 로드 실패:', data.error);
+                }
+            } catch (error) {
+                console.error('방문자 통계 로드 오류:', error);
+            }
+        }
+        
+        function renderVisitorChart(chartData) {
+            const chartContainer = document.getElementById('visitor-chart');
+            if (!chartContainer || !chartData || chartData.length === 0) return;
+            
+            // 간단한 막대 차트 렌더링
+            const maxVisitors = Math.max(...chartData.map(d => d.unique_visitors));
+            const chartHeight = 200;
+            
+            let chartHTML = '<div class="flex items-end justify-between h-full p-4">';
+            
+            chartData.reverse().forEach(day => {
+                const barHeight = (day.unique_visitors / maxVisitors) * chartHeight;
+                const date = new Date(day.visit_date);
+                const dayLabel = `${date.getMonth() + 1}/${date.getDate()}`;
+                
+                chartHTML += `
+                    <div class="flex flex-col items-center flex-1">
+                        <div class="flex flex-col items-center justify-end" style="height: ${chartHeight}px;">
+                            <div class="bg-blue-500 rounded-t-sm w-8 flex items-end justify-center text-white text-xs" 
+                                 style="height: ${barHeight}px; min-height: 20px;">
+                                ${day.unique_visitors > 0 ? day.unique_visitors : ''}
+                            </div>
+                        </div>
+                        <div class="text-xs text-gray-600 mt-2">${dayLabel}</div>
+                    </div>
+                `;
+            });
+            
+            chartHTML += '</div>';
+            chartContainer.innerHTML = chartHTML;
+        }
+        
+        // 방문자 통계 새로고침 이벤트 리스너
+        document.addEventListener('DOMContentLoaded', function() {
+            const refreshBtn = document.getElementById('refresh-visitor-stats');
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', loadVisitorStats);
+            }
+        });
+        
+        // 전역 함수들 노출
+        window.showVisitorStatsSection = showVisitorStatsSection;
+        window.loadVisitorStats = loadVisitorStats;
     </script>
     
     <script src="utils/tierSystem.js"></script>
