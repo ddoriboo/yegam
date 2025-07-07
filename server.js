@@ -95,6 +95,10 @@ app.use(compression({
 
 app.use(cors());
 app.use(express.json());
+
+// 방문자 트래킹 미들웨어 (정적 파일 제공 전에 실행)
+app.use(visitorTrackingMiddleware);
+
 app.use(express.static(path.join(__dirname), {
     setHeaders: (res, path) => {
         if (path.endsWith('.css')) {
@@ -105,9 +109,6 @@ app.use(express.static(path.join(__dirname), {
         }
     }
 }));
-
-// 방문자 트래킹 미들웨어 (정적 파일 제외하고 모든 페이지 방문 기록)
-app.use(visitorTrackingMiddleware);
 
 // 헬스체크 및 모니터링 라우트
 app.get('/health', async (req, res) => {

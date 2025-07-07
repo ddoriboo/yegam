@@ -91,6 +91,17 @@ export async function verifyToken() {
 export function logout() {
     storage.removeItem(USER_KEY);
     storage.removeItem(TOKEN_KEY);
+    
+    // 알림 인터벌 정리
+    try {
+        import('./ui/header.js').then(header => {
+            if (header.clearNotificationInterval) {
+                header.clearNotificationInterval();
+            }
+        });
+    } catch (error) {
+        console.log('알림 인터벌 정리 중 오류:', error);
+    }
 }
 
 export function isLoggedIn() {

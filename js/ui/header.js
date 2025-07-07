@@ -79,6 +79,18 @@ export function updateUserWallet() {
     }
 }
 
+// 알림 인터벌 정리 함수
+export function clearNotificationInterval() {
+    if (notificationInterval) {
+        clearInterval(notificationInterval);
+        notificationInterval = null;
+        console.log('Notification interval cleared');
+    }
+}
+
+// 전역 알림 인터벌 변수
+let notificationInterval = null;
+
 // 알림 관련 이벤트 설정
 function setupNotificationEvents() {
     const notificationButton = document.getElementById('notification-button');
@@ -216,11 +228,27 @@ function setupNotificationEvents() {
     // 모두 읽기 버튼
     markAllReadButton?.addEventListener('click', markAllNotificationsAsRead);
     
+    // 기존 인터벌 정리
+    if (notificationInterval) {
+        clearInterval(notificationInterval);
+        notificationInterval = null;
+    }
+    
     // 페이지 로드 시 읽지 않은 알림 개수 확인
     updateNotificationCount();
     
-    // 주기적으로 알림 개수 업데이트 (30초마다)
-    setInterval(updateNotificationCount, 30000);
+    // 주기적으로 알림 개수 업데이트 (30초마다) - 로그인된 사용자만
+    if (auth.isLoggedIn()) {
+        notificationInterval = setInterval(() => {
+            if (auth.isLoggedIn()) {
+                updateNotificationCount();
+            } else {
+                // 로그아웃된 경우 인터벌 정리
+                clearInterval(notificationInterval);
+                notificationInterval = null;
+            }
+        }, 30000);
+    }
 }
 
 // 읽지 않은 알림 개수 업데이트

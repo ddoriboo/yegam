@@ -16,6 +16,11 @@ const visitorTrackingMiddleware = async (req, res, next) => {
         return next();
     }
     
+    // 디버깅을 위한 로그 (개발 환경에서만)
+    if (process.env.NODE_ENV === 'development') {
+        console.log('방문자 트래킹:', req.method, req.path, req.originalUrl);
+    }
+    
     try {
         const user_id = req.user?.id || null;
         const ip_address = req.ip || req.connection.remoteAddress || 'unknown';
