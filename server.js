@@ -27,6 +27,7 @@ const debugGamRoutes = require('./routes/debug-gam');
 const userInfoRoutes = require('./routes/user-info');
 const discussionsRoutes = require('./routes/discussions');
 const { router: agentRoutes, initializeAgents } = require('./routes/agents');
+const testOpenAIRoutes = require('./routes/test-openai');
 const { initDatabase } = require('./database/database');
 const { initAIAgentsDatabase } = require('./database/init-ai-agents');
 const issueScheduler = require('./services/scheduler');
@@ -146,6 +147,7 @@ app.use('/api/debug/gam', debugGamRoutes);
 app.use('/api/user', userInfoRoutes);
 app.use('/api/discussions', discussionsRoutes);
 app.use('/api/agents', agentRoutes);
+app.use('/api/test-openai', testOpenAIRoutes);
 app.use('/api/admin/comments', adminCommentRoutes);
 app.use('/api/admin-auth', secureAdminAuthRoutes); // 보안 관리자 인증 API
 app.use('/api/admin', adminRoutes);

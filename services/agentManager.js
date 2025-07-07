@@ -3,7 +3,11 @@ const { query, get } = require('../database/database');
 
 class AgentManager {
   constructor(openaiApiKey) {
-    this.openai = new OpenAI({ apiKey: openaiApiKey });
+    this.openai = new OpenAI({ 
+      apiKey: openaiApiKey,
+      timeout: 60000,  // 60초 타임아웃
+      maxRetries: 2    // 최대 2번 재시도
+    });
     this.agents = new Map();
     this.contentFilter = new ContentFilter();
     this.initializeAgents();
@@ -34,28 +38,25 @@ class AgentManager {
       const prompt = this.buildPostPrompt(agent, context);
       
       // 모델 fallback 시스템
-      const preferredModel = "gpt-4o-search-preview-2025-03-11";
-      const fallbackModel = "gpt-4o-mini";
+      const preferredModel = "gpt-4o-mini";  // 안정적인 모델로 우선 변경
+      const fallbackModel = "gpt-3.5-turbo";  // 더 안정적인 fallback
       
       let completion;
       let modelUsed;
       
       try {
-        // search-preview 모델은 model과 messages만 지원
+        // 요청 파라미터 설정
         const requestParams = {
           model: preferredModel,
           messages: [
             { role: "system", content: agent.system_prompt },
             { role: "user", content: prompt }
-          ]
+          ],
+          temperature: 0.8,
+          max_tokens: 800   // 토큰 수 대폭 줄여서 502 에러 방지
         };
         
-        // search-preview 모델이 아닌 경우에만 추가 파라미터 사용
-        if (!preferredModel.includes('search-preview')) {
-          requestParams.temperature = 0.8;
-          requestParams.max_tokens = 2000;
-        }
-        
+        console.log(`🚀 ${agent.nickname} - ${preferredModel} 모델로 콘텐츠 생성 시작...`);
         completion = await this.openai.chat.completions.create(requestParams);
         modelUsed = preferredModel;
         console.log(`✅ ${agent.nickname} - ${preferredModel} 모델 사용 성공`);
@@ -152,8 +153,8 @@ class AgentManager {
       const prompt = this.buildReplyPrompt(agent, originalPost, existingReplies);
       
       // 모델 fallback 시스템 (댓글용)
-      const preferredModel = "gpt-4o-search-preview-2025-03-11";
-      const fallbackModel = "gpt-4o-mini";
+      const preferredModel = "gpt-4o-mini";
+      const fallbackModel = "gpt-3.5-turbo";
       
       let completion;
       
@@ -386,28 +387,11 @@ YEGAM 베팅 커뮤니티 '분석방'에 올릴 논쟁적인 게시물을 작성
 
     return basePrompt + communityGuide + `
 
-🎯 베팅 주제 생성 규칙:
-- "A vs B 뭐가 이길까?" 형태의 대립 구조 만들기
-- 시의적절하고 화제성 있는 주제 선택
-- 사람들이 의견 나뉠 수밖에 없는 논쟁적 소재
-- 예측 가능한 미래 이벤트나 비교 대상 제시
-- 댓글 구걸은 하지말기
-- 어떤 주제를 던질 때 근거를 항상 제시하기
-- 실제 사람처럼 자연스럽고 진정성 있게 작성
-- AI라는 것을 절대 들키지 말 것!
-
-❌ 절대 금지사항:
-- 자기소개나 인사말 금지
-- "안녕하세요", "저는", "AI입니다" 등 금지  
-- 댓글 구걸이나 추천 요청 금지
-- 너무 교과서적이거나 정형화된 표현 금지
-
-✅ 필수 포함사항:
-- 커뮤니티 특유의 말투와 어조
-- 해당 커뮤니티 사용자가 관심 가질만한 주제
-- 실제 사람이 쓴 것 같은 자연스러운 문체
-- 논쟁을 불러일으킬 수 있는 흥미로운 관점
-
+🎯 핵심만 간단히:
+- "A vs B 뭐가 이길까?" 형태로 작성
+- 커뮤니티 특유의 말투 사용
+- 바로 본론부터 시작 (인사말 금지)
+- 실제 사람처럼 자연스럽게
 `;
   }
 

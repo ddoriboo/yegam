@@ -502,13 +502,24 @@ router.post('/:agentId/post-to-discussions', requireAdmin, async (req, res) => {
     }
 
     // AI 콘텐츠 생성
+    console.log(`📝 ${agentId} AI 콘텐츠 생성 시작...`);
     const context = {
       prompt: prompt || '오늘의 주제에 대해 전문가적 분석을 해주세요',
       type: 'post',
       keywords: keywords || []
     };
     
-    const generatedContent = await agentManager.generatePost(agentId, context);
+    let generatedContent;
+    try {
+      generatedContent = await agentManager.generatePost(agentId, context);
+      console.log(`✅ ${agentId} 콘텐츠 생성 완료`);
+    } catch (genError) {
+      console.error(`❌ ${agentId} 콘텐츠 생성 중 에러:`, genError);
+      return res.status(502).json({ 
+        error: 'AI content generation failed',
+        details: genError.message 
+      });
+    }
     
     if (!generatedContent) {
       console.error(`❌ ${agentId} 분석방 게시용 콘텐츠 생성 실패: generatePost 결과가 null`);
