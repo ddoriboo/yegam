@@ -13,13 +13,16 @@ const KOREA_OFFSET_HOURS = 9;
 function datetimeLocalToUTC(datetimeLocalValue) {
     if (!datetimeLocalValue) return null;
     
-    // datetime-local은 사용자가 입력한 로컬 시간을 의미
-    // 한국 시간으로 해석하여 UTC로 변환
-    const localDate = new Date(datetimeLocalValue);
+    // Parse the datetime-local value as Korean time, regardless of browser timezone
+    // datetime-local format: "2025-01-10T15:00"
+    const [datePart, timePart] = datetimeLocalValue.split('T');
+    const [year, month, day] = datePart.split('-').map(Number);
+    const [hours, minutes] = timePart.split(':').map(Number);
     
-    // 한국 시간대 오프셋 (+9시간)을 적용하여 UTC로 변환
-    const koreaOffset = KOREA_OFFSET_HOURS * 60; // 분 단위
-    const utcTime = localDate.getTime() - (koreaOffset * 60 * 1000);
+    // Create a Date object in Korean timezone using UTC constructor
+    // Then subtract 9 hours to get the equivalent UTC time
+    const koreaDate = new Date(Date.UTC(year, month - 1, day, hours, minutes));
+    const utcTime = koreaDate.getTime() - (KOREA_OFFSET_HOURS * 60 * 60 * 1000);
     
     return new Date(utcTime).toISOString();
 }

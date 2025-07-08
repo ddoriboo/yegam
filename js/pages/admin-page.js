@@ -9,9 +9,16 @@ const timezoneUtils = {
     datetimeLocalToUTC(datetimeLocalValue) {
         if (!datetimeLocalValue) return null;
         
-        const localDate = new Date(datetimeLocalValue);
-        const koreaOffset = 9 * 60; // 분 단위 (+9시간)
-        const utcTime = localDate.getTime() - (koreaOffset * 60 * 1000);
+        // Parse the datetime-local value as Korean time, regardless of browser timezone
+        // datetime-local format: "2025-01-10T15:00"
+        const [datePart, timePart] = datetimeLocalValue.split('T');
+        const [year, month, day] = datePart.split('-').map(Number);
+        const [hours, minutes] = timePart.split(':').map(Number);
+        
+        // Create a Date object in Korean timezone using UTC constructor
+        // Then subtract 9 hours to get the equivalent UTC time
+        const koreaDate = new Date(Date.UTC(year, month - 1, day, hours, minutes));
+        const utcTime = koreaDate.getTime() - (9 * 60 * 60 * 1000);
         
         return new Date(utcTime).toISOString();
     },
