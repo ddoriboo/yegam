@@ -5,6 +5,7 @@ export function setupLoginPage() {
     setupTabSwitching();
     setupLoginForm();
     setupSignupForm();
+    setupInputFields();
 }
 
 function setupTabSwitching() {
@@ -101,4 +102,79 @@ function showError(errorElement, message) {
         errorElement.textContent = message;
         errorElement.classList.remove('hidden');
     }
+}
+
+function setupInputFields() {
+    // 로그인 필드 초기화 및 개선된 UX
+    const loginEmailField = document.getElementById('login-email');
+    const loginPasswordField = document.getElementById('login-password');
+    
+    // 입력 필드 초기화 및 클릭 시 즉시 입력 가능하도록 설정
+    if (loginEmailField) {
+        // 페이지 로드 시 필드가 비어있는지 확인하고 포커스 시 선택
+        loginEmailField.addEventListener('focus', function() {
+            this.select(); // 기존 내용이 있으면 모두 선택하여 덮어쓸 수 있게 함
+        });
+        
+        // 클릭 시에도 같은 동작
+        loginEmailField.addEventListener('click', function() {
+            this.select();
+        });
+        
+        // 입력 시작하면 placeholder 효과 개선
+        loginEmailField.addEventListener('input', function() {
+            if (this.value.length > 0) {
+                this.classList.add('has-value');
+            } else {
+                this.classList.remove('has-value');
+            }
+        });
+    }
+    
+    if (loginPasswordField) {
+        loginPasswordField.addEventListener('focus', function() {
+            this.select();
+        });
+        
+        loginPasswordField.addEventListener('click', function() {
+            this.select();
+        });
+        
+        loginPasswordField.addEventListener('input', function() {
+            if (this.value.length > 0) {
+                this.classList.add('has-value');
+            } else {
+                this.classList.remove('has-value');
+            }
+        });
+    }
+    
+    // 회원가입 필드들도 같은 방식으로 처리
+    const signupFields = [
+        'signup-username',
+        'signup-email', 
+        'signup-password',
+        'signup-confirm-password'
+    ];
+    
+    signupFields.forEach(fieldId => {
+        const field = document.getElementById(fieldId);
+        if (field) {
+            field.addEventListener('focus', function() {
+                this.select();
+            });
+            
+            field.addEventListener('click', function() {
+                this.select();
+            });
+            
+            field.addEventListener('input', function() {
+                if (this.value.length > 0) {
+                    this.classList.add('has-value');
+                } else {
+                    this.classList.remove('has-value');
+                }
+            });
+        }
+    });
 }

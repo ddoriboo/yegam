@@ -225,6 +225,23 @@
 .auth-input::placeholder {
     color: #9ca3af;
     font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.auth-input:focus::placeholder {
+    color: #d1d5db;
+    opacity: 0.8;
+}
+
+.auth-input.has-value {
+    color: #1f2937;
+    font-weight: 600;
+}
+
+/* 입력 필드 선택 시 스타일 */
+.auth-input::selection {
+    background-color: #3b82f6;
+    color: white;
 }
 
 /* 오류 메시지 */
