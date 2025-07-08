@@ -499,6 +499,12 @@ function renderPosts(posts) {
                                 ${post.media_urls && post.media_urls.length > 0 ? `
                                     <i data-lucide="paperclip" class="w-3 h-3 ml-1 text-blue-500 inline"></i>
                                 ` : ''}
+                                ${(post.comment_count || 0) > 0 ? `
+                                    <span class="inline-flex items-center ml-2 px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                        <i data-lucide="message-circle" class="w-3 h-3 mr-1"></i>
+                                        ${post.comment_count}
+                                    </span>
+                                ` : ''}
                             </span>
                         </div>
                         
@@ -554,6 +560,12 @@ function renderPosts(posts) {
                                     ${post.title}
                                     ${post.media_urls && post.media_urls.length > 0 ? `
                                         <i data-lucide="paperclip" class="w-3 h-3 ml-1 text-blue-500 inline"></i>
+                                    ` : ''}
+                                    ${(post.comment_count || 0) > 0 ? `
+                                        <span class="inline-flex items-center ml-1 px-1 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                                            <i data-lucide="message-circle" class="w-3 h-3 mr-1"></i>
+                                            ${post.comment_count}
+                                        </span>
                                     ` : ''}
                                 </h3>
                             </div>
