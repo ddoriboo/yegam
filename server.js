@@ -20,6 +20,7 @@ const adminCommentRoutes = require('./routes/admin-comments');
 const adminRoutes = require('./routes/admin');
 const { router: secureAdminAuthRoutes } = require('./routes/admin-auth-secure');
 const adminAuditRoutes = require('./routes/admin-audit');
+const issueLogsRoutes = require('./routes/issue-logs');
 const uploadRoutes = require('./routes/upload');
 const notificationRoutes = require('./routes/notifications');
 const testNotificationRoutes = require('./routes/test-notifications');
@@ -159,6 +160,7 @@ app.use('/api/test-openai', testOpenAIRoutes);
 app.use('/api/admin/comments', adminCommentRoutes);
 app.use('/api/admin-auth', secureAdminAuthRoutes); // 보안 관리자 인증 API
 app.use('/api/admin/audit', adminAuditRoutes); // 감사 로그 및 보안 모니터링 API
+app.use('/api/admin/logs', issueLogsRoutes); // 이슈 수정 로그 API
 app.use('/api/admin', adminRoutes);
 app.use('/api/upload', uploadRoutes);
 
@@ -181,6 +183,10 @@ app.get('/admin-login', (req, res) => {
 
 app.get('/ai-agents', (req, res) => {
     res.sendFile(path.join(__dirname, 'ai-agents-dashboard.html'));
+});
+
+app.get('/admin-issue-logs', (req, res) => {
+    res.sendFile(path.join(__dirname, 'admin-issue-logs.html'));
 });
 
 // 테이블 구조 진단 엔드포인트

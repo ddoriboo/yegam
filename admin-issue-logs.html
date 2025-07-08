@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>이슈 수정 로그 - 예겜 관리자</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .glass-morphism {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .log-entry {
+            transition: all 0.2s ease;
+        }
+        
+        .log-entry:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateY(-1px);
+        }
+        
+        .severity-high { border-left: 4px solid #ef4444; }
+        .severity-medium { border-left: 4px solid #f59e0b; }
+        .severity-low { border-left: 4px solid #10b981; }
+        
+        .alert-entry {
+            border-left: 4px solid #dc2626;
+            background: rgba(220, 38, 38, 0.1);
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900">
+    <!-- Header -->
+    <header class="glass-morphism shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-6">
+                <div class="flex items-center">
+                    <h1 class="text-2xl font-bold text-white">📝 이슈 수정 로그</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button onclick="refreshLogs()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                        🔄 새로고침
+                    </button>
+                    <a href="/admin" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors">
+                        ← 관리자 홈
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="glass-morphism rounded-lg p-6">
+                <div class="text-white text-center">
+                    <div class="text-3xl font-bold" id="totalLogs">-</div>
+                    <div class="text-sm opacity-80">총 로그</div>
+                </div>
+            </div>
+            <div class="glass-morphism rounded-lg p-6">
+                <div class="text-white text-center">
+                    <div class="text-3xl font-bold" id="last24Hours">-</div>
+                    <div class="text-sm opacity-80">24시간 내</div>
+                </div>
+            </div>
+            <div class="glass-morphism rounded-lg p-6">
+                <div class="text-white text-center">
+                    <div class="text-3xl font-bold" id="deadlineChanges">-</div>
+                    <div class="text-sm opacity-80">마감일 변경</div>
+                </div>
+            </div>
+            <div class="glass-morphism rounded-lg p-6">
+                <div class="text-white text-center">
+                    <div class="text-3xl font-bold" id="totalAlerts">-</div>
+                    <div class="text-sm opacity-80">보안 알림</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="glass-morphism rounded-lg p-6 mb-8">
+            <h3 class="text-white text-lg font-semibold mb-4">🔍 필터</h3>
+            <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
+                <select id="actionFilter" class="bg-gray-700 text-white rounded-lg px-3 py-2">
+                    <option value="">모든 액션</option>
+                    <option value="CREATE">생성</option>
+                    <option value="UPDATE">수정</option>
+                    <option value="DELETE">삭제</option>
+                    <option value="end_date">마감일 변경</option>
+                </select>
+                <select id="severityFilter" class="bg-gray-700 text-white rounded-lg px-3 py-2">
+                    <option value="">모든 심각도</option>
+                    <option value="HIGH">높음</option>
+                    <option value="MEDIUM">보통</option>
+                    <option value="LOW">낮음</option>
+                </select>
+                <input type="text" id="userIdFilter" placeholder="사용자 ID" class="bg-gray-700 text-white rounded-lg px-3 py-2">
+                <input type="text" id="issueIdFilter" placeholder="이슈 ID" class="bg-gray-700 text-white rounded-lg px-3 py-2">
+                <input type="text" id="ipFilter" placeholder="IP 주소" class="bg-gray-700 text-white rounded-lg px-3 py-2">
+                <button onclick="applyFilters()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors">
+                    필터 적용
+                </button>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="glass-morphism rounded-lg mb-8">
+            <div class="flex border-b border-gray-600">
+                <button onclick="showTab('logs')" id="logsTab" class="px-6 py-3 text-white font-medium border-b-2 border-blue-500 bg-blue-600 bg-opacity-20">
+                    📋 수정 로그
+                </button>
+                <button onclick="showTab('alerts')" id="alertsTab" class="px-6 py-3 text-white font-medium hover:bg-white hover:bg-opacity-10 transition-colors">
+                    🚨 보안 알림
+                </button>
+            </div>
+        </div>
+
+        <!-- Logs Tab -->
+        <div id="logsContent" class="space-y-4">
+            <!-- Logs will be inserted here -->
+        </div>
+
+        <!-- Alerts Tab -->
+        <div id="alertsContent" class="space-y-4 hidden">
+            <!-- Alerts will be inserted here -->
+        </div>
+
+        <!-- Loading State -->
+        <div id="loadingState" class="text-center py-12">
+            <div class="text-white text-lg">📡 로그를 불러오는 중...</div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="text-center py-12 hidden">
+            <div class="text-white text-lg">📭 표시할 로그가 없습니다.</div>
+        </div>
+    </div>
+
+    <script>
+        let currentTab = 'logs';
+        let allLogs = [];
+        let allAlerts = [];
+
+        // Tab switching
+        function showTab(tab) {
+            currentTab = tab;
+            
+            // Update tab buttons
+            document.getElementById('logsTab').className = tab === 'logs' 
+                ? 'px-6 py-3 text-white font-medium border-b-2 border-blue-500 bg-blue-600 bg-opacity-20'
+                : 'px-6 py-3 text-white font-medium hover:bg-white hover:bg-opacity-10 transition-colors';
+                
+            document.getElementById('alertsTab').className = tab === 'alerts' 
+                ? 'px-6 py-3 text-white font-medium border-b-2 border-blue-500 bg-blue-600 bg-opacity-20'
+                : 'px-6 py-3 text-white font-medium hover:bg-white hover:bg-opacity-10 transition-colors';
+            
+            // Show/hide content
+            document.getElementById('logsContent').style.display = tab === 'logs' ? 'block' : 'none';
+            document.getElementById('alertsContent').style.display = tab === 'alerts' ? 'block' : 'none';
+        }
+
+        // Load statistics
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/admin/logs/stats');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const stats = data.stats;
+                    document.getElementById('totalLogs').textContent = stats.totalLogs || 0;
+                    document.getElementById('last24Hours').textContent = stats.last24Hours || 0;
+                    document.getElementById('deadlineChanges').textContent = stats.deadlineChanges || 0;
+                    document.getElementById('totalAlerts').textContent = stats.totalAlerts || 0;
+                }
+            } catch (error) {
+                console.error('Failed to load stats:', error);
+            }
+        }
+
+        // Load logs
+        async function loadLogs() {
+            try {
+                const response = await fetch('/api/admin/logs/modifications?limit=200');
+                const data = await response.json();
+                
+                if (data.success) {
+                    allLogs = data.logs;
+                    displayLogs(allLogs);
+                }
+            } catch (error) {
+                console.error('Failed to load logs:', error);
+                showError('로그 로딩 실패');
+            }
+        }
+
+        // Load alerts
+        async function loadAlerts() {
+            try {
+                const response = await fetch('/api/admin/logs/alerts?limit=100');
+                const data = await response.json();
+                
+                if (data.success) {
+                    allAlerts = data.alerts;
+                    displayAlerts(allAlerts);
+                }
+            } catch (error) {
+                console.error('Failed to load alerts:', error);
+                showError('알림 로딩 실패');
+            }
+        }
+
+        // Display logs
+        function displayLogs(logs) {
+            const container = document.getElementById('logsContent');
+            const loadingState = document.getElementById('loadingState');
+            const emptyState = document.getElementById('emptyState');
+            
+            loadingState.style.display = 'none';
+            
+            if (logs.length === 0) {
+                container.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            
+            container.innerHTML = logs.map(log => `
+                <div class="log-entry glass-morphism rounded-lg p-4 severity-${log.severity?.toLowerCase() || 'low'}">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex items-center space-x-2">
+                            <span class="text-white font-semibold">${getActionIcon(log.action)} ${log.action}</span>
+                            <span class="text-sm text-gray-300">이슈 #${log.issueId}</span>
+                            ${log.severity ? `<span class="px-2 py-1 text-xs rounded bg-gray-700 text-${getSeverityColor(log.severity)}">${log.severity}</span>` : ''}
+                        </div>
+                        <div class="text-xs text-gray-400">
+                            ${formatDateTime(log.timestamp)}
+                        </div>
+                    </div>
+                    
+                    ${log.fieldName ? `
+                        <div class="text-sm text-gray-300 mb-2">
+                            <span class="font-medium">필드:</span> ${log.fieldName}
+                            ${log.oldValue && log.newValue ? `
+                                <br><span class="font-medium">변경:</span> 
+                                <span class="text-red-300">${log.oldValue}</span> → 
+                                <span class="text-green-300">${log.newValue}</span>
+                            ` : ''}
+                        </div>
+                    ` : ''}
+                    
+                    <div class="text-xs text-gray-400 grid grid-cols-2 gap-4">
+                        <div>
+                            ${log.userId ? `사용자 ID: ${log.userId}` : ''}
+                            ${log.adminId ? `관리자 ID: ${log.adminId}` : ''}
+                        </div>
+                        <div>
+                            ${log.ipAddress ? `IP: ${log.ipAddress}` : ''}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Display alerts
+        function displayAlerts(alerts) {
+            const container = document.getElementById('alertsContent');
+            
+            if (alerts.length === 0) {
+                container.innerHTML = '<div class="text-center py-12 text-white">🎉 보안 알림이 없습니다.</div>';
+                return;
+            }
+            
+            container.innerHTML = alerts.map(alert => `
+                <div class="alert-entry glass-morphism rounded-lg p-4">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="text-white font-semibold">🚨 보안 알림</div>
+                        <div class="text-xs text-gray-400">
+                            ${formatDateTime(alert.timestamp)}
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        ${alert.alerts.map(a => `
+                            <div class="bg-red-900 bg-opacity-50 rounded p-2 text-sm">
+                                <div class="text-red-200 font-medium">${a.type}</div>
+                                <div class="text-red-100">${a.message}</div>
+                                <div class="text-xs text-red-300 mt-1">심각도: ${a.severity}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="text-xs text-gray-400 mt-3 grid grid-cols-2 gap-4">
+                        <div>사용자: ${alert.userKey}</div>
+                        <div>IP: ${alert.ipAddress || 'N/A'}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Apply filters
+        async function applyFilters() {
+            const action = document.getElementById('actionFilter').value;
+            const severity = document.getElementById('severityFilter').value;
+            const userId = document.getElementById('userIdFilter').value;
+            const issueId = document.getElementById('issueIdFilter').value;
+            const ip = document.getElementById('ipFilter').value;
+            
+            const params = new URLSearchParams();
+            if (action) params.append('action', action);
+            if (severity) params.append('severity', severity);
+            if (userId) params.append('userId', userId);
+            if (issueId) params.append('issueId', issueId);
+            if (ip) params.append('ipAddress', ip);
+            
+            try {
+                const response = await fetch(`/api/admin/logs/search?${params}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayLogs(data.logs);
+                }
+            } catch (error) {
+                console.error('Failed to apply filters:', error);
+                showError('필터 적용 실패');
+            }
+        }
+
+        // Refresh all data
+        function refreshLogs() {
+            document.getElementById('loadingState').style.display = 'block';
+            Promise.all([loadStats(), loadLogs(), loadAlerts()]);
+        }
+
+        // Utility functions
+        function getActionIcon(action) {
+            const icons = {
+                'CREATE': '➕',
+                'UPDATE': '✏️',
+                'DELETE': '🗑️',
+                'CREATE_FROM_REQUEST_APPROVAL': '✅',
+                'TOGGLE_POPULAR': '⭐',
+                'FIELD_UPDATE': '🔄',
+                'DEADLINE_CHANGE_WARNING': '⚠️',
+                'RATE_LIMIT_EXCEEDED': '🚫'
+            };
+            return icons[action] || '📝';
+        }
+
+        function getSeverityColor(severity) {
+            const colors = {
+                'HIGH': 'red-300',
+                'MEDIUM': 'yellow-300',
+                'LOW': 'green-300'
+            };
+            return colors[severity] || 'gray-300';
+        }
+
+        function formatDateTime(timestamp) {
+            return new Date(timestamp).toLocaleString('ko-KR');
+        }
+
+        function showError(message) {
+            const container = document.getElementById('logsContent');
+            container.innerHTML = `<div class="text-center py-12 text-red-300">❌ ${message}</div>`;
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            refreshLogs();
+        });
+    </script>
+</body>
+</html>

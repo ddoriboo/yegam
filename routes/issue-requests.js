@@ -2,6 +2,17 @@ const express = require('express');
 const { query } = require('../database/postgres');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 const NotificationService = require('../services/notificationService');
+const {
+    logIssueModification,
+    validateDeadlineChange,
+    rateLimitIssueModifications
+} = require('../middleware/simple-issue-audit');
+const {
+    logDeadlineChange,
+    logIssueCreation,
+    logStatusChange,
+    detectRapidDeadlineChanges
+} = require('../utils/issue-logger');
 
 // 임시 관리자 미들웨어
 const tempAdminMiddleware = (req, res, next) => {
@@ -385,6 +396,20 @@ router.put('/:id/approve', tempAdminMiddleware, async (req, res) => {
                 actual_end_date: actualEndDate
             });
             
+            // 이슈 승인 로깅
+            logIssueCreation(
+                issueId, 
+                request.title, 
+                request.deadline, 
+                req.user?.id || 'temp_admin', 
+                'admin', 
+                req.ip || '127.0.0.1', 
+                'request_approval'
+            );
+            
+            // 의심스러운 패턴 감지 (승인 프로세스에서도 확인)
+            detectRapidDeadlineChanges(issueId);
+            
             // 2. 신청 상태 업데이트 (approved_by는 NULL로 설정)
             await query(`
                 UPDATE issue_requests 
@@ -538,10 +563,30 @@ router.post('/ai-generate/:agentId', async (req, res) => {
             RETURNING id
         `, [aiUserId, issueData.title, issueData.description, issueData.category, deadline.toISOString(), agentId]);
         
+        const requestId = result.rows[0].id;
+        
+        // AI 이슈 생성 로깅
+        logIssueCreation(
+            requestId, 
+            issueData.title, 
+            deadline.toISOString(), 
+            agentId, 
+            'ai_agent', 
+            req.ip || '127.0.0.1', 
+            'ai_auto_generation'
+        );
+        
+        console.log('🤖 AI 이슈 생성 완료 및 로그 기록:', {
+            requestId,
+            agentId,
+            title: issueData.title,
+            deadline: deadline.toISOString()
+        });
+        
         res.json({
             success: true,
             message: 'AI 이슈가 생성되어 관리자 승인 대기 중입니다.',
-            requestId: result.rows[0].id,
+            requestId,
             issueData: {
                 ...issueData,
                 deadline: deadline.toISOString(),

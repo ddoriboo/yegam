@@ -7,12 +7,16 @@ const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 const { secureAdminMiddleware, requireAdminRole, requirePermission } = require('../middleware/admin-auth-secure');
 const NotificationService = require('../services/notificationService');
 const {
-    validateIssueChangeMiddleware,
-    auditIssueChangeMiddleware,
-    auditSpecificFieldMiddleware,
-    logFieldChangeMiddleware,
-    IssueAuditService
-} = require('../middleware/issue-audit');
+    logIssueModification,
+    validateDeadlineChange,
+    rateLimitIssueModifications
+} = require('../middleware/simple-issue-audit');
+const {
+    logDeadlineChange,
+    logIssueCreation,
+    logStatusChange,
+    detectRapidDeadlineChanges
+} = require('../utils/issue-logger');
 
 // ⚠️ 위험한 tempAdminMiddleware 제거됨 - secureAdminMiddleware로 대체됨
 const issueScheduler = require('../services/scheduler');
@@ -92,7 +96,8 @@ router.get('/issues', secureAdminMiddleware, requirePermission('view_issues'), a
 router.post('/issues', 
     secureAdminMiddleware, 
     requirePermission('create_issue'),
-    auditIssueChangeMiddleware('ADMIN_CREATE_ISSUE'),
+    rateLimitIssueModifications(),
+    logIssueModification('ADMIN_CREATE_ISSUE'),
     async (req, res) => {
     try {
         const { title, category, description, image_url, yes_price = 50, end_date, is_popular = false } = req.body;
@@ -130,12 +135,9 @@ router.post('/issues',
 // 이슈 수정
 router.put('/issues/:id', 
     secureAdminMiddleware,
-    validateIssueChangeMiddleware('end_date'),
-    auditSpecificFieldMiddleware('end_date'),
-    auditSpecificFieldMiddleware('title'),
-    auditSpecificFieldMiddleware('status'),
-    auditIssueChangeMiddleware('ADMIN_UPDATE_ISSUE'),
-    logFieldChangeMiddleware(),
+    rateLimitIssueModifications(),
+    validateDeadlineChange(),
+    logIssueModification('ADMIN_UPDATE_ISSUE'),
     async (req, res) => {
     try {
         const { id } = req.params;
@@ -163,6 +165,12 @@ router.put('/issues/:id',
         }
         
         const issue = result.rows[0];
+        
+        // 이슈 수정 로깅
+        logIssueCreation(issue.id, issue.title, issue.end_date, req.user?.id, 'admin', req.ip, 'admin_update');
+        
+        // 빠른 변경 패턴 감지
+        detectRapidDeadlineChanges(issue.id);
         
         res.json({
             success: true,
