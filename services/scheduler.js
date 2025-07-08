@@ -14,9 +14,21 @@ class IssueScheduler {
     // 자동 이슈 마감 처리
     async closeExpiredIssues() {
         try {
-            console.log('🔄 자동 이슈 마감 검사 시작...');
-            
             const { query: dbQuery, run: dbRun } = require('../database/database');
+            
+            // 먼저 활성 이슈가 있는지 간단히 확인
+            const activeCheckResult = await dbQuery(`
+                SELECT COUNT(*) as count 
+                FROM issues 
+                WHERE status = 'active'
+            `);
+            
+            const activeCount = parseInt(activeCheckResult.rows[0].count || 0);
+            
+            // 활성 이슈가 없으면 로그 없이 종료
+            if (activeCount === 0) {
+                return;
+            }
             
             // 마감 시간이 지났지만 아직 마감되지 않은 이슈들 조회
             const queryString = `
@@ -31,9 +43,12 @@ class IssueScheduler {
             const expiredIssues = result.rows || [];
 
             if (expiredIssues.length === 0) {
-                console.log('✅ 마감할 이슈가 없습니다.');
+                // 마감할 이슈가 없을 때는 로그를 남기지 않음
                 return;
             }
+            
+            // 마감할 이슈가 있을 때만 로그 시작
+            console.log('🔄 자동 이슈 마감 처리 시작...');
 
             console.log(`📋 ${expiredIssues.length}개의 만료된 이슈를 마감 처리합니다.`);
 
@@ -109,8 +124,8 @@ class IssueScheduler {
             return;
         }
 
-        // 매 분마다 실행 (운영환경에서는 5분 또는 10분으로 변경 권장)
-        this.cronJob = cron.schedule('* * * * *', async () => {
+        // 매 5분마다 실행 (프로덕션 환경에 적합)
+        this.cronJob = cron.schedule('*/5 * * * *', async () => {
             await this.closeExpiredIssues();
         }, {
             scheduled: false,
@@ -120,7 +135,7 @@ class IssueScheduler {
         this.cronJob.start();
         this.isRunning = true;
         
-        console.log('🚀 이슈 자동 마감 스케줄러가 시작되었습니다. (매 분마다 실행)');
+        console.log('🚀 이슈 자동 마감 스케줄러가 시작되었습니다. (매 5분마다 실행)');
         console.log('🕐 현재 시간:', new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }));
     }
 
@@ -137,7 +152,7 @@ class IssueScheduler {
     getStatus() {
         return {
             isRunning: this.isRunning,
-            nextRun: this.cronJob ? new Date(Date.now() + 60000) : null // 매 분 실행이므로 1분 후로 표시
+            nextRun: this.cronJob ? new Date(Date.now() + 300000) : null // 매 5분 실행이므로 5분 후로 표시
         };
     }
 
