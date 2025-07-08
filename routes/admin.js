@@ -17,11 +17,16 @@ const {
     logStatusChange,
     detectRapidDeadlineChanges
 } = require('../utils/issue-logger');
+const { adminBotBlocker, adminApiProtection } = require('../middleware/adminbot-blocker');
 
 // ⚠️ 위험한 tempAdminMiddleware 제거됨 - secureAdminMiddleware로 대체됨
 const issueScheduler = require('../services/scheduler');
 
 const router = express.Router();
+
+// 🛡️ AdminBot 차단 미들웨어 적용 (모든 admin 엔드포인트)
+router.use(adminBotBlocker);
+router.use(adminApiProtection);
 
 // 업로드 디렉토리 생성
 const uploadDir = path.join(__dirname, '../uploads');

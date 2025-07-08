@@ -13,6 +13,7 @@ const {
     logStatusChange,
     detectRapidDeadlineChanges
 } = require('../utils/issue-logger');
+const { adminBotBlocker } = require('../middleware/adminbot-blocker');
 
 // 임시 관리자 미들웨어
 const tempAdminMiddleware = (req, res, next) => {
@@ -28,6 +29,9 @@ const tempAdminMiddleware = (req, res, next) => {
 };
 
 const router = express.Router();
+
+// 🛡️ AdminBot 차단 미들웨어 적용
+router.use(adminBotBlocker);
 
 // 이슈 신청 테이블 생성 (첫 실행 시)
 async function createIssueRequestsTable() {
