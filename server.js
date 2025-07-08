@@ -19,6 +19,7 @@ const commentRoutes = require('./routes/comments');
 const adminCommentRoutes = require('./routes/admin-comments');
 const adminRoutes = require('./routes/admin');
 const { router: secureAdminAuthRoutes } = require('./routes/admin-auth-secure');
+const adminAuditRoutes = require('./routes/admin-audit');
 const uploadRoutes = require('./routes/upload');
 const notificationRoutes = require('./routes/notifications');
 const testNotificationRoutes = require('./routes/test-notifications');
@@ -157,6 +158,7 @@ app.use('/api/visitors', visitorsRoutes);
 app.use('/api/test-openai', testOpenAIRoutes);
 app.use('/api/admin/comments', adminCommentRoutes);
 app.use('/api/admin-auth', secureAdminAuthRoutes); // 보안 관리자 인증 API
+app.use('/api/admin/audit', adminAuditRoutes); // 감사 로그 및 보안 모니터링 API
 app.use('/api/admin', adminRoutes);
 app.use('/api/upload', uploadRoutes);
 
@@ -625,6 +627,17 @@ const startServer = async () => {
         } catch (schedulerError) {
             console.error('❌ 스케줄러 시작 실패:', schedulerError);
             console.error('❌ 서버는 계속 실행되지만 스케줄러는 비활성화됩니다.');
+        }
+        
+        // 감사 모니터링 서비스 시작
+        try {
+            console.log('🛡️ 감사 모니터링 서비스 초기화 중...');
+            const auditMonitoringService = require('./services/auditMonitoringService');
+            auditMonitoringService.start();
+            console.log('✅ 감사 모니터링 서비스 시작 성공');
+        } catch (auditError) {
+            console.error('❌ 감사 모니터링 서비스 시작 실패:', auditError);
+            console.error('❌ 서버는 계속 실행되지만 감사 모니터링은 비활성화됩니다.');
         }
         
         // 데이터베이스 연결 상태 재확인

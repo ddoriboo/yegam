@@ -1,6 +1,12 @@
 const express = require('express');
 const { query, run, get } = require('../database/database');
 const { authMiddleware } = require('../middleware/auth');
+const {
+    validateIssueChangeMiddleware,
+    auditIssueChangeMiddleware,
+    auditSpecificFieldMiddleware,
+    logFieldChangeMiddleware
+} = require('../middleware/issue-audit');
 
 const router = express.Router();
 
@@ -181,7 +187,10 @@ router.get('/:id', async (req, res) => {
 });
 
 // 새 이슈 생성 (관리자용)
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/', 
+    authMiddleware,
+    auditIssueChangeMiddleware('CREATE_ISSUE'),
+    async (req, res) => {
     try {
         const { title, category, description, imageUrl, endDate, yesPrice, isPopular } = req.body;
         
@@ -227,7 +236,15 @@ router.post('/', authMiddleware, async (req, res) => {
 });
 
 // 이슈 수정 (관리자용)
-router.put('/:id', authMiddleware, async (req, res) => {
+router.put('/:id', 
+    authMiddleware,
+    validateIssueChangeMiddleware('end_date'),
+    auditSpecificFieldMiddleware('end_date'),
+    auditSpecificFieldMiddleware('title'),
+    auditSpecificFieldMiddleware('status'),
+    auditIssueChangeMiddleware('UPDATE_ISSUE'),
+    logFieldChangeMiddleware(),
+    async (req, res) => {
     try {
         const issueId = req.params.id;
         const { title, category, description, imageUrl, endDate, yesPrice, isPopular } = req.body;
@@ -272,7 +289,10 @@ router.put('/:id', authMiddleware, async (req, res) => {
 });
 
 // 이슈 삭제 (관리자용)
-router.delete('/:id', authMiddleware, async (req, res) => {
+router.delete('/:id', 
+    authMiddleware,
+    auditIssueChangeMiddleware('DELETE_ISSUE'),
+    async (req, res) => {
     try {
         const issueId = req.params.id;
         
@@ -299,7 +319,12 @@ router.delete('/:id', authMiddleware, async (req, res) => {
 });
 
 // 인기 이슈 토글 (관리자용)
-router.patch('/:id/toggle-popular', authMiddleware, async (req, res) => {
+router.patch('/:id/toggle-popular', 
+    authMiddleware,
+    auditSpecificFieldMiddleware('is_popular'),
+    auditIssueChangeMiddleware('TOGGLE_POPULAR'),
+    logFieldChangeMiddleware(),
+    async (req, res) => {
     try {
         const issueId = req.params.id;
         

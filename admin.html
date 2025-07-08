@@ -164,6 +164,9 @@
                     <button id="scheduler-tab" class="admin-tab pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium whitespace-nowrap">
                         스케줄러 관리
                     </button>
+                    <button id="audit-tab" class="admin-tab pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium whitespace-nowrap">
+                        감사 로그
+                    </button>
                     <button id="popular-issues-tab" class="admin-tab pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium whitespace-nowrap">
                         인기 이슈 관리
                     </button>
@@ -707,6 +710,81 @@
                         <div id="scheduler-logs" class="bg-white p-3 rounded border max-h-48 overflow-y-auto">
                             <div class="text-sm text-gray-500">로그가 없습니다.</div>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 감사 로그 섹션 -->
+            <div id="audit-section" class="hidden bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">감사 로그 및 보안 모니터링</h3>
+                            <p class="text-sm text-gray-600 mt-1">이슈 변경사항 추적 및 의심스러운 활동 모니터링</p>
+                        </div>
+                        <a href="/admin-audit.html" target="_blank" 
+                           class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                            <i data-lucide="external-link" class="w-4 h-4 mr-2 inline"></i>
+                            상세 페이지 열기
+                        </a>
+                    </div>
+                </div>
+                <div class="p-6 space-y-6">
+                    <!-- 시스템 상태 요약 -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h4 class="text-md font-medium text-gray-900 mb-3">시스템 상태</h4>
+                        <div id="audit-status" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div class="bg-white p-3 rounded border">
+                                <div class="text-sm text-gray-600">총 감사 로그</div>
+                                <div id="total-audit-logs" class="text-lg font-semibold text-gray-900">-</div>
+                            </div>
+                            <div class="bg-white p-3 rounded border">
+                                <div class="text-sm text-gray-600">미해결 알림</div>
+                                <div id="open-security-alerts" class="text-lg font-semibold text-red-600">-</div>
+                            </div>
+                            <div class="bg-white p-3 rounded border">
+                                <div class="text-sm text-gray-600">활성 규칙</div>
+                                <div id="active-audit-rules" class="text-lg font-semibold text-green-600">-</div>
+                            </div>
+                            <div class="bg-white p-3 rounded border">
+                                <div class="text-sm text-gray-600">오늘 활동</div>
+                                <div id="today-audit-logs" class="text-lg font-semibold text-blue-600">-</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 최근 보안 알림 -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h4 class="text-md font-medium text-gray-900 mb-3">최근 보안 알림</h4>
+                        <div id="recent-security-alerts" class="space-y-2 max-h-48 overflow-y-auto">
+                            <div class="text-sm text-gray-500 text-center py-4">알림을 불러오는 중...</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 최근 감사 로그 -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h4 class="text-md font-medium text-gray-900 mb-3">최근 변경사항</h4>
+                        <div id="recent-audit-logs" class="space-y-2 max-h-48 overflow-y-auto">
+                            <div class="text-sm text-gray-500 text-center py-4">로그를 불러오는 중...</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 보안 작업 -->
+                    <div class="bg-gray-50 p-4 rounded-lg">
+                        <h4 class="text-md font-medium text-gray-900 mb-3">보안 작업</h4>
+                        <div class="flex space-x-3">
+                            <button id="detect-suspicious-patterns" class="btn-primary">
+                                <i data-lucide="search" class="w-4 h-4 mr-2"></i>
+                                패턴 감지 실행
+                            </button>
+                            <button id="refresh-audit-status" class="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors">
+                                <i data-lucide="refresh-cw" class="w-4 h-4 mr-2"></i>
+                                상태 새로고침
+                            </button>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-2">
+                            의심스러운 활동 패턴을 수동으로 감지하거나 시스템 상태를 새로고침할 수 있습니다.
+                        </p>
                     </div>
                 </div>
             </div>

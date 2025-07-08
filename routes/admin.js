@@ -6,6 +6,13 @@ const { getDB, getCurrentTimeSQL, query, get, run } = require('../database/datab
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 const { secureAdminMiddleware, requireAdminRole, requirePermission } = require('../middleware/admin-auth-secure');
 const NotificationService = require('../services/notificationService');
+const {
+    validateIssueChangeMiddleware,
+    auditIssueChangeMiddleware,
+    auditSpecificFieldMiddleware,
+    logFieldChangeMiddleware,
+    IssueAuditService
+} = require('../middleware/issue-audit');
 
 // ⚠️ 위험한 tempAdminMiddleware 제거됨 - secureAdminMiddleware로 대체됨
 const issueScheduler = require('../services/scheduler');
@@ -82,7 +89,11 @@ router.get('/issues', secureAdminMiddleware, requirePermission('view_issues'), a
 });
 
 // 이슈 생성
-router.post('/issues', secureAdminMiddleware, requirePermission('create_issue'), async (req, res) => {
+router.post('/issues', 
+    secureAdminMiddleware, 
+    requirePermission('create_issue'),
+    auditIssueChangeMiddleware('ADMIN_CREATE_ISSUE'),
+    async (req, res) => {
     try {
         const { title, category, description, image_url, yes_price = 50, end_date, is_popular = false } = req.body;
         
@@ -117,7 +128,15 @@ router.post('/issues', secureAdminMiddleware, requirePermission('create_issue'),
 });
 
 // 이슈 수정
-router.put('/issues/:id', secureAdminMiddleware, async (req, res) => {
+router.put('/issues/:id', 
+    secureAdminMiddleware,
+    validateIssueChangeMiddleware('end_date'),
+    auditSpecificFieldMiddleware('end_date'),
+    auditSpecificFieldMiddleware('title'),
+    auditSpecificFieldMiddleware('status'),
+    auditIssueChangeMiddleware('ADMIN_UPDATE_ISSUE'),
+    logFieldChangeMiddleware(),
+    async (req, res) => {
     try {
         const { id } = req.params;
         const { title, category, description, image_url, yes_price, end_date, is_popular } = req.body;

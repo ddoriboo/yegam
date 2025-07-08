@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>감사 로그 및 보안 모니터링 - Yegam 관리자</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .security-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .severity-critical { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+        .severity-high { background: rgba(245, 101, 101, 0.2); color: #fed7d7; }
+        .severity-medium { background: rgba(251, 191, 36, 0.2); color: #fde68a; }
+        .severity-low { background: rgba(34, 197, 94, 0.2); color: #bbf7d0; }
+        
+        .action-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        
+        .action-create { background: rgba(34, 197, 94, 0.2); color: #86efac; }
+        .action-update { background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
+        .action-delete { background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+        .action-deadline { background: rgba(168, 85, 247, 0.2); color: #d8b4fe; }
+        
+        .tab-button {
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        
+        .tab-button.active {
+            background: rgba(59, 130, 246, 0.2);
+            color: #93c5fd;
+        }
+        
+        .tab-button:not(.active) {
+            color: #9ca3af;
+        }
+        
+        .tab-button:not(.active):hover {
+            background: rgba(75, 85, 99, 0.2);
+            color: #d1d5db;
+        }
+        
+        .log-entry {
+            padding: 16px;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 12px;
+        }
+        
+        .alert-card {
+            padding: 20px;
+            border-radius: 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 16px;
+        }
+        
+        .stats-card {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-800 min-h-screen text-white">
+    
+    <!-- Header -->
+    <header class="glass-effect border-b border-gray-700/50 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <a href="/admin-page.html" class="flex items-center space-x-2 text-white hover:text-blue-300 transition-colors">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>관리자 페이지로 돌아가기</span>
+                    </a>
+                </div>
+                
+                <h1 class="text-xl font-bold">감사 로그 및 보안 모니터링</h1>
+                
+                <div class="flex items-center space-x-4">
+                    <button onclick="refreshData()" class="p-2 text-gray-300 hover:text-white transition-colors">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                    <div id="realTimeStatus" class="text-sm text-green-400">
+                        <i class="fas fa-circle animate-pulse mr-1"></i>
+                        실시간 모니터링
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        
+        <!-- 시스템 상태 대시보드 -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="stats-card">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">총 감사 로그</p>
+                        <p id="totalLogs" class="text-2xl font-bold text-white">-</p>
+                    </div>
+                    <i class="fas fa-file-alt text-blue-400 text-2xl"></i>
+                </div>
+            </div>
+            
+            <div class="stats-card">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">미해결 알림</p>
+                        <p id="openAlerts" class="text-2xl font-bold text-red-400">-</p>
+                    </div>
+                    <i class="fas fa-exclamation-triangle text-red-400 text-2xl"></i>
+                </div>
+            </div>
+            
+            <div class="stats-card">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">활성 규칙</p>
+                        <p id="activeRules" class="text-2xl font-bold text-green-400">-</p>
+                    </div>
+                    <i class="fas fa-shield-alt text-green-400 text-2xl"></i>
+                </div>
+            </div>
+            
+            <div class="stats-card">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-sm">오늘 활동</p>
+                        <p id="todayLogs" class="text-2xl font-bold text-purple-400">-</p>
+                    </div>
+                    <i class="fas fa-chart-line text-purple-400 text-2xl"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- 탭 네비게이션 -->
+        <div class="mb-6">
+            <div class="flex space-x-4">
+                <button class="tab-button active" onclick="switchTab('logs')">
+                    <i class="fas fa-list-ul mr-2"></i>감사 로그
+                </button>
+                <button class="tab-button" onclick="switchTab('alerts')">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>보안 알림
+                </button>
+                <button class="tab-button" onclick="switchTab('rules')">
+                    <i class="fas fa-cog mr-2"></i>변경 규칙
+                </button>
+                <button class="tab-button" onclick="switchTab('stats')">
+                    <i class="fas fa-chart-bar mr-2"></i>통계
+                </button>
+            </div>
+        </div>
+
+        <!-- 감사 로그 탭 -->
+        <div id="logsTab" class="tab-content">
+            <div class="glass-effect rounded-lg p-6 mb-6">
+                <h2 class="text-lg font-semibold mb-4">
+                    <i class="fas fa-filter mr-2"></i>필터 옵션
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">액션 타입</label>
+                        <select id="actionFilter" class="w-full p-2 bg-gray-800 border border-gray-600 rounded text-white">
+                            <option value="">전체</option>
+                            <option value="CREATE">생성</option>
+                            <option value="UPDATE">수정</option>
+                            <option value="DELETE">삭제</option>
+                            <option value="DEADLINE_CHANGE">마감시간 변경</option>
+                            <option value="STATUS_CHANGE">상태 변경</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">필드명</label>
+                        <select id="fieldFilter" class="w-full p-2 bg-gray-800 border border-gray-600 rounded text-white">
+                            <option value="">전체</option>
+                            <option value="end_date">마감시간</option>
+                            <option value="title">제목</option>
+                            <option value="status">상태</option>
+                            <option value="result">결과</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">시작일</label>
+                        <input type="date" id="startDateFilter" class="w-full p-2 bg-gray-800 border border-gray-600 rounded text-white">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">종료일</label>
+                        <input type="date" id="endDateFilter" class="w-full p-2 bg-gray-800 border border-gray-600 rounded text-white">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-300 mb-1">이슈 ID</label>
+                        <input type="number" id="issueIdFilter" placeholder="이슈 ID" class="w-full p-2 bg-gray-800 border border-gray-600 rounded text-white">
+                    </div>
+                    
+                    <div class="flex items-end">
+                        <button onclick="applyLogFilters()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition-colors">
+                            필터 적용
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="glass-effect rounded-lg p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold">감사 로그 목록</h2>
+                    <div class="text-sm text-gray-400" id="logsTotal">총 0개</div>
+                </div>
+                
+                <div id="logsList" class="space-y-4">
+                    <!-- 로그 항목들이 여기에 동적으로 추가됩니다 -->
+                </div>
+                
+                <div id="logsLoading" class="text-center py-8 text-gray-400 hidden">
+                    <i class="fas fa-spinner fa-spin mr-2"></i>로딩 중...
+                </div>
+                
+                <div id="logsPagination" class="mt-6 flex justify-center space-x-2">
+                    <!-- 페이지네이션 버튼들이 여기에 추가됩니다 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 보안 알림 탭 -->
+        <div id="alertsTab" class="tab-content hidden">
+            <div class="glass-effect rounded-lg p-6 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold">의심스러운 활동 알림</h2>
+                    <div class="flex space-x-2">
+                        <button onclick="detectSuspiciousPatterns()" class="bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded transition-colors">
+                            <i class="fas fa-search mr-1"></i>패턴 감지 실행
+                        </button>
+                        <select id="alertStatusFilter" onchange="loadAlerts()" class="p-2 bg-gray-800 border border-gray-600 rounded text-white">
+                            <option value="open">미해결</option>
+                            <option value="resolved">해결됨</option>
+                            <option value="investigating">조사 중</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div id="alertsList" class="space-y-4">
+                    <!-- 알림 항목들이 여기에 동적으로 추가됩니다 -->
+                </div>
+                
+                <div id="alertsLoading" class="text-center py-8 text-gray-400 hidden">
+                    <i class="fas fa-spinner fa-spin mr-2"></i>로딩 중...
+                </div>
+            </div>
+        </div>
+
+        <!-- 변경 규칙 탭 -->
+        <div id="rulesTab" class="tab-content hidden">
+            <div class="glass-effect rounded-lg p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold">이슈 변경 제한 규칙</h2>
+                    <button onclick="showCreateRuleModal()" class="bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded transition-colors">
+                        <i class="fas fa-plus mr-1"></i>새 규칙 추가
+                    </button>
+                </div>
+                
+                <div id="rulesList" class="space-y-4">
+                    <!-- 규칙 항목들이 여기에 동적으로 추가됩니다 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 통계 탭 -->
+        <div id="statsTab" class="tab-content hidden">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="glass-effect rounded-lg p-6">
+                    <h3 class="text-lg font-semibold mb-4">액션별 통계</h3>
+                    <div id="actionStatsChart" class="h-64">
+                        <!-- 차트가 여기에 렌더링됩니다 -->
+                    </div>
+                </div>
+                
+                <div class="glass-effect rounded-lg p-6">
+                    <h3 class="text-lg font-semibold mb-4">필드별 변경 통계</h3>
+                    <div id="fieldStatsChart" class="h-64">
+                        <!-- 차트가 여기에 렌더링됩니다 -->
+                    </div>
+                </div>
+                
+                <div class="glass-effect rounded-lg p-6">
+                    <h3 class="text-lg font-semibold mb-4">일별 활동</h3>
+                    <div id="dailyActivityChart" class="h-64">
+                        <!-- 차트가 여기에 렌더링됩니다 -->
+                    </div>
+                </div>
+                
+                <div class="glass-effect rounded-lg p-6">
+                    <h3 class="text-lg font-semibold mb-4">상위 활동 사용자</h3>
+                    <div id="topActorsChart" class="h-64">
+                        <!-- 차트가 여기에 렌더링됩니다 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 알림 해결 모달 -->
+    <div id="resolveModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="glass-effect rounded-lg p-6 w-full max-w-md mx-4">
+            <h3 class="text-lg font-semibold mb-4">알림 해결 처리</h3>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-300 mb-2">해결 사유</label>
+                <textarea id="resolutionNotes" rows="4" placeholder="해결 사유를 입력하세요..." 
+                    class="w-full p-3 bg-gray-800 border border-gray-600 rounded text-white resize-none"></textarea>
+            </div>
+            <div class="flex justify-end space-x-3">
+                <button onclick="closeResolveModal()" class="px-4 py-2 text-gray-400 hover:text-white transition-colors">
+                    취소
+                </button>
+                <button onclick="resolveAlert()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors">
+                    해결 완료
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/pages/admin-audit.js"></script>
+    
+</body>
+</html>
