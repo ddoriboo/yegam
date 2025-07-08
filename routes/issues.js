@@ -7,7 +7,19 @@ const router = express.Router();
 // 모든 이슈 조회
 router.get('/', async (req, res) => {
     try {
-        const result = await query('SELECT * FROM issues WHERE status = $1 ORDER BY created_at DESC', ['active']);
+        const result = await query(`
+            SELECT 
+                i.*,
+                COALESCE(c.comment_count, 0) as comment_count
+            FROM issues i
+            LEFT JOIN (
+                SELECT issue_id, COUNT(*) as comment_count
+                FROM comments
+                GROUP BY issue_id
+            ) c ON i.id = c.issue_id
+            WHERE i.status = $1 
+            ORDER BY i.created_at DESC
+        `, ['active']);
         const issues = result.rows;
         
         // 디버그: 첫 3개 이슈의 순서 로그
@@ -20,7 +32,8 @@ router.get('/', async (req, res) => {
             success: true,
             issues: issues.map(issue => ({
                 ...issue,
-                isPopular: Boolean(issue.is_popular)
+                isPopular: Boolean(issue.is_popular),
+                commentCount: parseInt(issue.comment_count) || 0
             }))
         });
     } catch (error) {
