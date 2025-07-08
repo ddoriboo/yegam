@@ -3368,11 +3368,54 @@ function formatEndDate(endDate) {
 
 function formatVolume(volume) {
     if (volume >= 100000000) {
-        return `${(volume / 100000000).toFixed(1)}억`;
+        // 억 단위: 1억 이상
+        const eok = Math.floor(volume / 100000000);
+        const remainder = volume % 100000000;
+        if (remainder >= 10000000) {
+            const cheonMan = Math.floor(remainder / 10000000);
+            return `${eok}억 ${cheonMan}천만`;
+        }
+        return `${eok}억`;
     }
+    
+    if (volume >= 10000000) {
+        // 천만 단위: 1천만 이상
+        const cheonMan = Math.floor(volume / 10000000);
+        const remainder = volume % 10000000;
+        if (remainder >= 1000000) {
+            const baekMan = Math.floor(remainder / 1000000);
+            return `${cheonMan}천${baekMan}백만`;
+        }
+        return `${cheonMan}천만`;
+    }
+    
     if (volume >= 10000) {
-        return `${(volume / 10000).toFixed(0)}만`;
+        // 만 단위: 1만 이상
+        const man = Math.floor(volume / 10000);
+        const remainder = volume % 10000;
+        
+        if (remainder >= 1000) {
+            const cheon = Math.floor(remainder / 1000);
+            return `${man}만 ${cheon}천`;
+        }
+        
+        return `${man}만`;
     }
+    
+    if (volume >= 1000) {
+        // 천 단위: 1000 이상
+        const cheon = Math.floor(volume / 1000);
+        const remainder = volume % 1000;
+        
+        if (remainder >= 100) {
+            const baek = Math.floor(remainder / 100);
+            return `${cheon}천 ${baek}백`;
+        }
+        
+        return `${cheon}천`;
+    }
+    
+    // 1000 미만은 그대로 표시
     return volume.toLocaleString();
 }
 
