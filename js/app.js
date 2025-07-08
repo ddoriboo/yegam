@@ -1899,7 +1899,7 @@ function createIssueCard(issue) {
             <div class="pt-4 border-t border-gray-200 mt-4">
                 <button class="comments-toggle-btn w-full flex items-center justify-center space-x-2 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors" data-issue-id="${issue.id}">
                     <i data-lucide="message-circle" class="w-4 h-4 text-gray-600"></i>
-                    <span class="text-sm font-medium text-gray-700">토론 참여하기</span>
+                    <span class="text-sm font-medium text-gray-700">토론 참여하기 <span class="text-xs text-gray-500">(${issue.commentCount || issue.comment_count || 0})</span></span>
                     <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 transform transition-transform"></i>
                 </button>
                 <div class="comments-section hidden mt-4" data-issue-id="${issue.id}">
