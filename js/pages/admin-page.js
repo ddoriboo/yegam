@@ -3,6 +3,37 @@ import { APP_CONFIG, MESSAGES } from '../../config/constants.js';
 import { getCategoryBadgeStyle } from '../ui/issue-card.js';
 import { formatVolume, timeUntil, formatDate } from '../../utils/formatters.js';
 
+// Timezone utility functions for consistent handling
+const timezoneUtils = {
+    // Convert datetime-local input to UTC ISO string for storage
+    datetimeLocalToUTC(datetimeLocalValue) {
+        if (!datetimeLocalValue) return null;
+        
+        const localDate = new Date(datetimeLocalValue);
+        const koreaOffset = 9 * 60; // 분 단위 (+9시간)
+        const utcTime = localDate.getTime() - (koreaOffset * 60 * 1000);
+        
+        return new Date(utcTime).toISOString();
+    },
+    
+    // Convert UTC ISO string to datetime-local format for display
+    utcToDatetimeLocal(utcIsoString) {
+        if (!utcIsoString) return '';
+        
+        const utcDate = new Date(utcIsoString);
+        const koreaOffset = 9 * 60; // 분 단위 (+9시간)
+        const koreaTime = new Date(utcDate.getTime() + (koreaOffset * 60 * 1000));
+        
+        const year = koreaTime.getFullYear();
+        const month = String(koreaTime.getMonth() + 1).padStart(2, '0');
+        const day = String(koreaTime.getDate()).padStart(2, '0');
+        const hours = String(koreaTime.getHours()).padStart(2, '0');
+        const minutes = String(koreaTime.getMinutes()).padStart(2, '0');
+        
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+    }
+};
+
 export async function renderAdminPage() {
     if (!checkAdminAccess()) {
         showAdminLogin();
@@ -169,9 +200,9 @@ async function handleCreateIssue(e) {
     e.preventDefault();
     const formData = new FormData(e.target);
     
-    // 한국 시간대로 마감일 처리 (datetime-local은 이미 로컬 시간)
+    // 한국 시간대로 마감일 처리
     const endDateLocal = formData.get('endDate');
-    const endDateKST = endDateLocal ? new Date(endDateLocal).toISOString() : null;
+    const endDateKST = timezoneUtils.datetimeLocalToUTC(endDateLocal);
     
     const issueData = {
         title: formData.get('title'),
@@ -211,9 +242,9 @@ async function handleEditIssue(e) {
     e.preventDefault();
     const formData = new FormData(e.target);
     
-    // 한국 시간대로 마감일 처리 (datetime-local은 이미 로컬 시간)
+    // 한국 시간대로 마감일 처리
     const endDateLocal = formData.get('endDate');
-    const endDateKST = endDateLocal ? new Date(endDateLocal).toISOString() : null;
+    const endDateKST = timezoneUtils.datetimeLocalToUTC(endDateLocal);
     
     const issueData = {
         title: formData.get('title'),
@@ -354,17 +385,9 @@ window.editIssue = async function(issueId) {
         document.getElementById('edit-issue-yes-price').value = issue.yes_price || 50;
         document.getElementById('edit-issue-popular').checked = issue.is_popular || false;
         
-        // 마감일 설정 (데이터베이스 시간을 로컬 시간으로 변환)
+        // 마감일 설정 (UTC 시간을 한국 시간으로 변환)
         if (issue.end_date) {
-            const endDate = new Date(issue.end_date);
-            // datetime-local은 사용자의 로컬 시간대 기준이므로
-            // 한국 시간으로 저장된 값을 그대로 표시 (YYYY-MM-DDTHH:MM)
-            const year = endDate.getFullYear();
-            const month = String(endDate.getMonth() + 1).padStart(2, '0');
-            const day = String(endDate.getDate()).padStart(2, '0');
-            const hours = String(endDate.getHours()).padStart(2, '0');
-            const minutes = String(endDate.getMinutes()).padStart(2, '0');
-            const localDateTime = `${year}-${month}-${day}T${hours}:${minutes}`;
+            const localDateTime = timezoneUtils.utcToDatetimeLocal(issue.end_date);
             document.getElementById('edit-issue-end-date').value = localDateTime;
         }
         
@@ -451,8 +474,8 @@ async function showAdminProfile() {
             alert(`관리자 정보:
 이름: ${admin.username}
 이메일: ${admin.email}
-가입일: ${new Date(admin.memberSince).toLocaleDateString()}
-관리자 등록일: ${new Date(admin.adminSince).toLocaleDateString()}`);
+가입일: ${new Date(admin.memberSince).toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' })}
+관리자 등록일: ${new Date(admin.adminSince).toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' })}`);}
         } else {
             alert('프로필 정보를 불러올 수 없습니다.');
         }

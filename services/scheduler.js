@@ -31,8 +31,11 @@ class IssueScheduler {
             }
             
             // 마감 시간이 지났지만 아직 마감되지 않은 이슈들 조회
+            // PostgreSQL의 NOW()는 UTC 시간을 반환하고, TIMESTAMPTZ 에 저장된 end_date도 UTC로 비교
             const queryString = `
-                SELECT id, title, end_date 
+                SELECT id, title, end_date, 
+                       end_date AT TIME ZONE 'Asia/Seoul' as end_date_kst,
+                       NOW() AT TIME ZONE 'Asia/Seoul' as current_time_kst
                 FROM issues 
                 WHERE end_date < ${getCurrentTimeSQL()} 
                 AND status = 'active'
@@ -56,7 +59,14 @@ class IssueScheduler {
             for (const issue of expiredIssues) {
                 try {
                     await dbRun('UPDATE issues SET status = $1 WHERE id = $2', ['closed', issue.id]);
+                    
+                    // 타임존 정보를 포함한 로깅
+                    const endDateKST = issue.end_date_kst ? new Date(issue.end_date_kst).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }) : 'N/A';
+                    const currentTimeKST = issue.current_time_kst ? new Date(issue.current_time_kst).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }) : 'N/A';
+                    
                     console.log(`✅ 이슈 "${issue.title}" (ID: ${issue.id}) 자동 마감 완료`);
+                    console.log(`   마감일: ${endDateKST} (한국시간)`);
+                    console.log(`   현재시간: ${currentTimeKST} (한국시간)`);
                     
                     // 해당 이슈에 베팅한 사용자들에게 알림 전송
                     await this.notifyBettorsAboutIssueClosure(issue.id, issue.title);

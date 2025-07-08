@@ -504,7 +504,7 @@ function formatNotificationTime(timestamp) {
     const diffInDays = Math.floor(diffInHours / 24);
     if (diffInDays < 7) return `${diffInDays}일 전`;
     
-    return time.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+    return time.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', timeZone: 'Asia/Seoul' });
 }
 
 // Lucide 아이콘 초기화 함수

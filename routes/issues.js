@@ -192,9 +192,11 @@ router.post('/', authMiddleware, async (req, res) => {
             });
         }
         
+        // endDate가 이미 UTC ISO string으로 전달되므로 직접 사용
+        // PostgreSQL TIMESTAMPTZ는 UTC로 저장하고 조회시 타임존 정보 제공
         const insertQuery = `
             INSERT INTO issues (title, category, description, image_url, end_date, yes_price, is_popular, created_at, updated_at) 
-            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW() AT TIME ZONE 'Asia/Seoul', NOW() AT TIME ZONE 'Asia/Seoul')
+            VALUES ($1, $2, $3, $4, $5::timestamptz, $6, $7, NOW(), NOW())
             RETURNING id
         `;
         
@@ -203,7 +205,7 @@ router.post('/', authMiddleware, async (req, res) => {
             category, 
             description || null, 
             imageUrl || null, 
-            endDate, 
+            endDate, // 이미 UTC ISO string
             yesPrice || 50, 
             isPopular ? true : false
         ]);
@@ -230,10 +232,11 @@ router.put('/:id', authMiddleware, async (req, res) => {
         const issueId = req.params.id;
         const { title, category, description, imageUrl, endDate, yesPrice, isPopular } = req.body;
         
+        // endDate가 이미 UTC ISO string으로 전달되므로 직접 사용
         const updateQuery = `
             UPDATE issues 
             SET title = $1, category = $2, description = $3, image_url = $4, 
-                end_date = $5, yes_price = $6, is_popular = $7, updated_at = CURRENT_TIMESTAMP 
+                end_date = $5::timestamptz, yes_price = $6, is_popular = $7, updated_at = CURRENT_TIMESTAMP 
             WHERE id = $8
         `;
         
@@ -242,7 +245,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
             category, 
             description || null, 
             imageUrl || null, 
-            endDate, 
+            endDate, // 이미 UTC ISO string
             yesPrice, 
             isPopular ? true : false, 
             issueId

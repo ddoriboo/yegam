@@ -574,7 +574,7 @@ function formatTimeAgo(date) {
     if (hours < 24) return `${hours}시간 전`;
     if (days < 7) return `${days}일 전`;
     
-    return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+    return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', timeZone: 'Asia/Seoul' });
 }
 
 // 큰 티어 표시용 스타일 추가
@@ -1246,7 +1246,7 @@ function formatNotificationTime(timestamp) {
     const diffInDays = Math.floor(diffInHours / 24);
     if (diffInDays < 7) return `${diffInDays}일 전`;
     
-    return time.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+    return time.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', timeZone: 'Asia/Seoul' });
 }
 
 // 닉네임 변경 기능

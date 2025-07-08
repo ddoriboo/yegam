@@ -113,7 +113,8 @@ function renderPost(post) {
             month: 'long',
             day: 'numeric',
             hour: '2-digit',
-            minute: '2-digit'
+            minute: '2-digit',
+            timeZone: 'Asia/Seoul'
         });
     }
     
@@ -241,7 +242,8 @@ function renderComments(comments) {
                                         month: 'short',
                                         day: 'numeric',
                                         hour: '2-digit',
-                                        minute: '2-digit'
+                                        minute: '2-digit',
+                                        timeZone: 'Asia/Seoul'
                                     })}
                                 </span>
                                 ${comment.updated_at !== comment.created_at ? 

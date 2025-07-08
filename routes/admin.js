@@ -93,9 +93,10 @@ router.post('/issues', secureAdminMiddleware, requirePermission('create_issue'),
             });
         }
         
+        // end_date가 이미 UTC ISO string으로 전달되므로 직접 사용
         const result = await query(`
             INSERT INTO issues (title, category, description, image_url, yes_price, end_date, is_popular, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, NOW() AT TIME ZONE 'Asia/Seoul', NOW() AT TIME ZONE 'Asia/Seoul')
+            VALUES ($1, $2, $3, $4, $5, $6::timestamptz, $7, NOW(), NOW())
             RETURNING *
         `, [title, category, description, image_url, yes_price, end_date, is_popular]);
         
@@ -128,12 +129,12 @@ router.put('/issues/:id', secureAdminMiddleware, async (req, res) => {
             });
         }
         
-        // PostgreSQL 방식으로 직접 수정 (한국 시간대 적용)
+        // end_date가 이미 UTC ISO string으로 전달되므로 직접 사용
         const result = await query(`
             UPDATE issues 
             SET title = $1, category = $2, description = $3, image_url = $4, 
-                yes_price = $5, end_date = $6, is_popular = $7, 
-                updated_at = NOW() AT TIME ZONE 'Asia/Seoul'
+                yes_price = $5, end_date = $6::timestamptz, is_popular = $7, 
+                updated_at = NOW()
             WHERE id = $8
             RETURNING *
         `, [title, category, description, image_url, yes_price, end_date, is_popular ? true : false, id]);

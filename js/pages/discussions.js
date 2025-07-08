@@ -461,7 +461,7 @@ function renderPosts(posts) {
         
         // 날짜와 시간 분리
         const date = new Date(post.created_at);
-        const postDate = date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
+        const postDate = date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', timeZone: 'Asia/Seoul' });
         const postTime = date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
         
         // 티어 아이콘과 닉네임

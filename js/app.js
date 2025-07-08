@@ -3354,14 +3354,15 @@ function formatEndDate(endDate) {
     const date = new Date(endDate);
     if (isNaN(date.getTime())) return '';
     
-    // 한국 시간대로 표시 (사용자 페이지와 동일)
+    // 한국 시간대로 표시
     return date.toLocaleDateString('ko-KR', {
         year: 'numeric',
         month: '2-digit', 
         day: '2-digit',
         hour: '2-digit',
         minute: '2-digit',
-        hour12: false
+        hour12: false,
+        timeZone: 'Asia/Seoul'
     }).replace(/\. /g, '.').replace(/\.$/, '').replace(/ /g, ' ');
 }
 
@@ -4077,7 +4078,7 @@ async function loadIssueRequests() {
                         </span>
                     </td>
                     <td class="px-6 py-4 text-sm text-gray-900">
-                        ${new Date(request.deadline).toLocaleDateString('ko-KR')}
+                        ${new Date(request.deadline).toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' })}
                     </td>
                     <td class="px-6 py-4">
                         ${getStatusBadge(request.status)}
@@ -4616,7 +4617,7 @@ if (window.isAdminPage) {
                         </div>
                         <h4 class="text-sm font-medium text-gray-900 truncate">${issue.title}</h4>
                         <p class="text-xs text-gray-500 mt-1">
-                            ${new Date(issue.end_date).toLocaleDateString('ko-KR')} 마감
+                            ${new Date(issue.end_date).toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' })} 마감
                         </p>
                     </div>
                 </div>
