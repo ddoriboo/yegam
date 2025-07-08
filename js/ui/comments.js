@@ -430,6 +430,11 @@ async function handleCommentSubmit(form, issueId, parentId = null) {
             // 댓글 목록 새로고침
             await loadComments(issueId);
             
+            // 이슈 목록 새로고침 (댓글 수 업데이트)
+            if (window.refreshIssueList) {
+                await window.refreshIssueList();
+            }
+            
             // 폼 리셋
             form.reset();
             
@@ -529,6 +534,11 @@ async function handleCommentDelete(commentId) {
             
             // 댓글 목록 새로고침
             await loadComments(issueId);
+            
+            // 이슈 목록 새로고침 (댓글 수 업데이트)
+            if (window.refreshIssueList) {
+                await window.refreshIssueList();
+            }
             
             showNotification('댓글이 삭제되었습니다.', 'success');
         } else {

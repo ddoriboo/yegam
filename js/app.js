@@ -21,6 +21,33 @@ window.updateCurrentUser = (newUserData) => {
     updateIssueRequestButtons(true);
 };
 
+// 이슈 목록 새로고침 함수
+window.refreshIssueList = async () => {
+    try {
+        const response = await fetch(`/api/issues?_t=${Date.now()}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            allIssues = data.issues.sort((a, b) => 
+                new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt)
+            );
+            issues = allIssues;
+            
+            // 현재 페이지에 따라 다시 렌더링
+            if (document.getElementById('all-issues-section')) {
+                renderAllIssues();
+            }
+            if (document.getElementById('popular-issues-section')) {
+                renderPopularIssues();
+            }
+            
+            console.log('Issue list refreshed');
+        }
+    } catch (error) {
+        console.error('Failed to refresh issue list:', error);
+    }
+};
+
 // 헤더 강제 업데이트 함수 (베팅 후 호출용)
 window.forceUpdateHeader = () => {
     if (currentUser) {
