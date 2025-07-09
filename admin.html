@@ -84,18 +84,13 @@
                     <span class="text-xl font-bold tracking-tight text-gray-900 hidden sm:block">예겜</span>
                 </a>
                 
-                <!-- Desktop Navigation -->
+                <!-- Desktop Navigation - Only show admin indicator -->
                 <div class="hidden md:flex items-center space-x-6 text-sm font-medium text-gray-600">
-                    <a href="issues.html" class="hover:text-gray-900 transition-colors">전체 이슈</a>
-                    <button id="desktop-issue-request-btn" class="hidden hover:text-gray-900 transition-colors cursor-pointer bg-transparent border-none text-sm font-medium">이슈 신청</button>
-                    <a href="discussions.html" class="hover:text-gray-900 transition-colors">분석방</a>
-                    <a href="tier_guide.html" class="hover:text-gray-900 transition-colors">업적 안내</a>
-                    <a href="mypage.html" class="hover:text-gray-900 transition-colors">내 정보</a>
-                    <a href="admin.html" class="text-red-600 font-semibold">관리자</a>
+                    <span class="text-red-600 font-semibold">관리자</span>
                 </div>
                 
-                <!-- Mobile & User Actions Container -->
-                <div class="flex items-center space-x-1 sm:space-x-2">
+                <!-- Mobile & User Actions Container - Hidden for admin -->
+                <div class="hidden">
                     <!-- Mobile Menu Button -->
                     <button id="mobile-menu-btn" class="md:hidden p-2.5 rounded-md hover:bg-gray-100 transition-colors touch-manipulation">
                         <i data-lucide="menu" class="w-5 h-5 text-gray-600"></i>
@@ -108,8 +103,8 @@
                 </div>
             </nav>
             
-            <!-- Mobile Navigation Menu -->
-            <div id="mobile-menu" class="hidden md:hidden bg-white/95 backdrop-blur-sm border-t border-gray-200">
+            <!-- Mobile Navigation Menu - Hidden for admin -->
+            <div id="mobile-menu" class="hidden">
                 <div class="container mx-auto px-4 py-4 space-y-3">
                     <a href="issues.html" class="block px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
                         <i data-lucide="list" class="w-4 h-4 inline mr-2"></i>전체 이슈
