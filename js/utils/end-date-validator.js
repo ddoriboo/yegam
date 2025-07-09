@@ -431,15 +431,31 @@ window.getTimeLeft = function(endDate) {
     // UTC 시간으로 통일하여 계산 (브라우저 시간대 독립적)
     const diff = future.getTime() - now.getTime();
     
+    // 🔍 강화된 디버깅 로그
+    console.log('🔍 getTimeLeft 상세 디버깅:', {
+        endDate: endDate,
+        nowKST: now.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }),
+        futureKST: future.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }),
+        nowUTC: now.toISOString(),
+        futureUTC: future.toISOString(),
+        diffMs: diff,
+        diffHours: (diff / (1000 * 60 * 60)).toFixed(2),
+        diffDays: (diff / (1000 * 60 * 60 * 24)).toFixed(2)
+    });
+    
     if (diff <= 0) return "마감";
     
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
     const minutes = Math.floor((diff / 1000 / 60) % 60);
     
-    if (days > 0) return `${days}일 남음`;
-    if (hours > 0) return `${hours}시간 남음`;
-    return `${minutes}분 남음`;
+    let result;
+    if (days > 0) result = `${days}일 남음`;
+    else if (hours > 0) result = `${hours}시간 남음`;
+    else result = `${minutes}분 남음`;
+    
+    console.log('📊 최종 결과:', result);
+    return result;
 };
 
 window.formatEndDate = function(endDate) {

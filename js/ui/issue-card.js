@@ -3,8 +3,16 @@ import * as backend from '../backend.js';
 import { CATEGORY_COLORS, MESSAGES } from '../../config/constants.js';
 import { formatVolume, getCategoryImage } from '../../utils/formatters.js';
 
-// 전역 시간 함수 사용 (일관성 보장)
-const timeUntil = window.getTimeLeft || function(endDate) {
+// 🔧 동적 시간 함수 (로딩 순서 독립적)
+function timeUntil(endDate) {
+    // 전역 함수가 있으면 우선 사용
+    if (typeof window.getTimeLeft === 'function') {
+        console.log('🎯 전역 getTimeLeft 함수 사용');
+        return window.getTimeLeft(endDate);
+    }
+    
+    // fallback 함수
+    console.log('⚠️ fallback timeUntil 함수 사용');
     if (!endDate) return "마감";
     const now = new Date();
     const future = new Date(endDate);
@@ -16,9 +24,17 @@ const timeUntil = window.getTimeLeft || function(endDate) {
     if (days > 0) return `${days}일 남음`;
     if (hours > 0) return `${hours}시간 남음`;
     return `${minutes}분 남음`;
-};
+}
 
-const formatDate = window.formatEndDate || function(endDate) {
+function formatDate(endDate) {
+    // 전역 함수가 있으면 우선 사용
+    if (typeof window.formatEndDate === 'function') {
+        console.log('🎯 전역 formatEndDate 함수 사용');
+        return window.formatEndDate(endDate);
+    }
+    
+    // fallback 함수
+    console.log('⚠️ fallback formatDate 함수 사용');
     if (!endDate) return '';
     const d = new Date(endDate);
     if (isNaN(d.getTime())) return '';
@@ -27,7 +43,7 @@ const formatDate = window.formatEndDate || function(endDate) {
         hour: '2-digit', minute: '2-digit', hour12: false,
         timeZone: 'Asia/Seoul'
     }).replace(/\. /g, '.').replace(/\.$/, '').replace(/ /g, ' ');
-};
+}
 
 export function createIssueCard(issue) {
     const yesPrice = issue.yesPrice;
