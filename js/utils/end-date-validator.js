@@ -421,4 +421,43 @@ window.validateEndDates = () => window.endDateValidator.validateVisibleIssues();
 window.getValidationStats = () => window.endDateValidator.getValidationStats();
 window.toggleAutoRefresh = (enabled) => window.endDateValidator.setAutoRefresh(enabled);
 
+// 🔧 전역 시간 함수들 - formatters.js와 일관성 유지
+window.getTimeLeft = function(endDate) {
+    if (!endDate) return "마감";
+    
+    const now = new Date();
+    const future = new Date(endDate);
+    
+    // UTC 시간으로 통일하여 계산 (브라우저 시간대 독립적)
+    const diff = future.getTime() - now.getTime();
+    
+    if (diff <= 0) return "마감";
+    
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+    const minutes = Math.floor((diff / 1000 / 60) % 60);
+    
+    if (days > 0) return `${days}일 남음`;
+    if (hours > 0) return `${hours}시간 남음`;
+    return `${minutes}분 남음`;
+};
+
+window.formatEndDate = function(endDate) {
+    if (!endDate) return '';
+    
+    const d = new Date(endDate);
+    if (isNaN(d.getTime())) return '';
+    
+    // 한국 시간대 (Asia/Seoul)로 일관되게 표시
+    return d.toLocaleDateString('ko-KR', {
+        year: 'numeric',
+        month: '2-digit', 
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: 'Asia/Seoul'
+    }).replace(/\. /g, '.').replace(/\.$/, '').replace(/ /g, ' ');
+};
+
 console.log('🔧 End date validation system initialized');
