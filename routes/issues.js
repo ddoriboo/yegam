@@ -39,6 +39,11 @@ router.get('/', async (req, res) => {
         console.log('🔍 API 응답 순서 (첫 3개):');
         issues.slice(0, 3).forEach((issue, index) => {
             console.log(`${index + 1}. "${issue.title}" - ${issue.created_at} (인기: ${issue.is_popular})`);
+            if (issue.end_date) {
+                console.log(`   ⏰ 마감시간: ${issue.end_date} (UTC: ${new Date(issue.end_date).toISOString()})`);
+                console.log(`   🇰🇷 한국시간: ${new Date(issue.end_date).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`);
+                console.log(`   📊 남은시간: ${Math.floor((new Date(issue.end_date).getTime() - Date.now()) / (1000 * 60 * 60))}시간`);
+            }
         });
         
         res.json({
@@ -46,7 +51,13 @@ router.get('/', async (req, res) => {
             issues: issues.map(issue => ({
                 ...issue,
                 isPopular: Boolean(issue.is_popular),
-                commentCount: parseInt(issue.comment_count) || 0
+                commentCount: parseInt(issue.comment_count) || 0,
+                // 🔍 디버깅을 위한 시간 정보 추가
+                end_date_debug: {
+                    original: issue.end_date,
+                    iso: issue.end_date ? new Date(issue.end_date).toISOString() : null,
+                    utc_timestamp: issue.end_date ? new Date(issue.end_date).getTime() : null
+                }
             }))
         });
     } catch (error) {

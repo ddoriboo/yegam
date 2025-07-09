@@ -59,14 +59,36 @@ function formatVolume(volume) {
 }
 
 /**
- * Calculate time until a given date
+ * Calculate time until a given date (UTC consistent)
  * @param {string|Date} date - The target date
  * @returns {string} Formatted time string
  */
 function timeUntil(date) {
+    if (!date) return "마감";
+    
+    // 🔧 타임존 일관성 보장: 모든 시간 계산을 UTC 기준으로 통일
     const now = new Date();
     const future = new Date(date);
-    const diff = future - now;
+    
+    // UTC 시간으로 통일하여 계산 (브라우저 시간대 독립적)
+    const nowUTC = now.getTime();
+    const futureUTC = future.getTime();
+    
+    const diff = futureUTC - nowUTC;
+    
+    // 🔍 디버깅을 위한 상세 로그
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        console.log('⏰ timeUntil 디버깅:', {
+            originalDate: date,
+            nowISO: now.toISOString(),
+            futureISO: future.toISOString(),
+            nowUTC: nowUTC,
+            futureUTC: futureUTC,
+            diff: diff,
+            diffHours: diff / (1000 * 60 * 60),
+            result: diff <= 0 ? "마감" : `${Math.floor(diff / (1000 * 60 * 60 * 24))}일 ${Math.floor((diff / (1000 * 60 * 60)) % 24)}시간 ${Math.floor((diff / 1000 / 60) % 60)}분 남음`
+        });
+    }
     
     if (diff <= 0) return "마감";
     
