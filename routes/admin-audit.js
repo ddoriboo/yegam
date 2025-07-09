@@ -1,9 +1,9 @@
 const express = require('express');
-const pool = require('../database/connection');
+const { getPool } = require('../database/postgres');
 const { secureAdminMiddleware, requirePermission } = require('../middleware/admin-auth-secure');
 const { getRecentLogs, getIssueHistory } = require('../utils/issue-logger');
 const EndDateTracker = require('../utils/end-date-tracker');
-const { recoveryService } = require('../services/end-date-recovery');
+// const { recoveryService } = require('../services/end-date-recovery'); // Temporarily disabled
 const { aiRestrictions } = require('../middleware/ai-agent-restrictions');
 
 const router = express.Router();
@@ -170,6 +170,7 @@ router.get('/stats', secureAdminMiddleware, async (req, res) => {
  */
 router.get('/end-date-logs', requirePermission('view_audit'), async (req, res) => {
     try {
+        const pool = getPool();
         const {
             page = 1,
             limit = 50,
@@ -274,6 +275,7 @@ router.get('/end-date-logs', requirePermission('view_audit'), async (req, res) =
  */
 router.get('/dashboard', requirePermission('view_audit'), async (req, res) => {
     try {
+        const pool = getPool();
         const dashboardData = await Promise.all([
             // 최근 24시간 활동 요약
             pool.query(`
@@ -320,7 +322,8 @@ router.get('/dashboard', requirePermission('view_audit'), async (req, res) => {
         ]);
 
         // 복구 서비스 상태
-        const recoveryStatus = recoveryService.getServiceStatus();
+        // const recoveryStatus = recoveryService.getServiceStatus(); // Temporarily disabled
+        const recoveryStatus = { message: 'Recovery service temporarily disabled' };
         
         // AI 제한 시스템 상태
         const aiStats = aiRestrictions.getAIAgentStats();
@@ -378,7 +381,8 @@ router.post('/validate-consistency', requirePermission('manage_audit'), async (r
  */
 router.post('/trigger-recovery', requirePermission('manage_audit'), async (req, res) => {
     try {
-        const result = await recoveryService.performConsistencyCheck();
+        // const result = await recoveryService.performConsistencyCheck(); // Temporarily disabled
+        const result = { message: 'Recovery service temporarily disabled' };
         
         res.json({
             success: true,
@@ -401,6 +405,7 @@ router.post('/trigger-recovery', requirePermission('manage_audit'), async (req, 
  */
 router.post('/report-inconsistency', async (req, res) => {
     try {
+        const pool = getPool();
         const {
             type,
             issueId,
@@ -456,6 +461,7 @@ router.post('/report-inconsistency', async (req, res) => {
  */
 router.get('/alerts', requirePermission('view_audit'), async (req, res) => {
     try {
+        const pool = getPool();
         // 현재 활성 경고들 조회
         const alerts = await pool.query(`
             SELECT 

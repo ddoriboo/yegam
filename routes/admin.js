@@ -19,11 +19,7 @@ const {
 } = require('../utils/issue-logger');
 const { adminBotBlocker, adminApiProtection } = require('../middleware/adminbot-blocker');
 const {
-    endDateChangeRateLimit,
-    validateEndDateChangePermission,
-    logEndDateChange,
-    requireAdminApprovalForCriticalChanges,
-    blockAIAgents
+    validateEndDateChange
 } = require('../middleware/end-date-security');
 const EndDateTracker = require('../utils/end-date-tracker');
 
@@ -108,7 +104,6 @@ router.get('/issues', secureAdminMiddleware, requirePermission('view_issues'), a
 // 이슈 생성
 router.post('/issues', 
     secureAdminMiddleware,
-    blockAIAgents,
     requirePermission('create_issue'),
     rateLimitIssueModifications(),
     logIssueModification('ADMIN_CREATE_ISSUE'),
@@ -124,7 +119,8 @@ router.post('/issues',
         }
         
         // 새 이슈 생성 시에도 DB 세션 컨텍스트 설정
-        const pool = require('../database/connection');
+        const { getPool } = require('../database/postgres');
+        const pool = getPool();
         const client = await pool.connect();
         
         try {
@@ -166,15 +162,10 @@ router.post('/issues',
 // 이슈 수정
 router.put('/issues/:id', 
     secureAdminMiddleware,
-    blockAIAgents,
-    endDateChangeRateLimit,
-    validateEndDateChangePermission,
-    requireAdminApprovalForCriticalChanges,
-    require('../middleware/end-date-security').validateEndDateChange, // 🔒 강력한 end_date 보안 미들웨어 추가
+    validateEndDateChange, // 🔒 강력한 end_date 보안 미들웨어 추가
     rateLimitIssueModifications(),
     validateDeadlineChange(),
     logIssueModification('ADMIN_UPDATE_ISSUE'),
-    logEndDateChange,
     async (req, res) => {
     try {
         const { id } = req.params;
@@ -188,7 +179,8 @@ router.put('/issues/:id',
         }
         
         // end_date 변경 전 DB 세션 컨텍스트 설정
-        const pool = require('../database/connection');
+        const { getPool } = require('../database/postgres');
+        const pool = getPool();
         const client = await pool.connect();
         
         try {

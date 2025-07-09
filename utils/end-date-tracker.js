@@ -1,4 +1,4 @@
-const pool = require('../database/connection');
+const { getPool } = require('../database/postgres');
 const winston = require('winston');
 
 // end_date 변경 추적을 위한 전용 로거 설정
@@ -67,6 +67,7 @@ class EndDateTracker {
      * @returns {Object} 검증 결과
      */
     static async validateEndDateChange(issueId, username, newEndDate) {
+        const pool = getPool();
         const client = await pool.connect();
         
         try {
@@ -243,6 +244,7 @@ class EndDateTracker {
     static async sendSecurityAlert(alertInfo) {
         try {
             // 1. 데이터베이스 알림 기록
+            const pool = getPool();
             const client = await pool.connect();
             
             // 관리자들에게 알림 전송
@@ -279,6 +281,7 @@ class EndDateTracker {
      * @returns {Array} 변경 이력
      */
     static async getEndDateHistory(issueId, limit = 50) {
+        const pool = getPool();
         const client = await pool.connect();
         
         try {
@@ -314,6 +317,7 @@ class EndDateTracker {
      * @returns {Object} 패턴 분석 결과
      */
     static async analyzeSuspiciousPatterns(username = null, hours = 24) {
+        const pool = getPool();
         const client = await pool.connect();
         
         try {
@@ -360,6 +364,7 @@ class EndDateTracker {
      * @returns {Object} 검증 결과
      */
     static async validateAndRepairConsistency() {
+        const pool = getPool();
         const client = await pool.connect();
         
         try {

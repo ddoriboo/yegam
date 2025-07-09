@@ -1,1 +1,173 @@
-const EndDateTracker = require('../utils/end-date-tracker');\nconst winston = require('winston');\n\n// AI 에이전트 제한 전용 로거\nconst aiLogger = winston.createLogger({\n    level: 'info',\n    format: winston.format.combine(\n        winston.format.timestamp(),\n        winston.format.json()\n    ),\n    transports: [\n        new winston.transports.File({ \n            filename: 'logs/ai-agent-restrictions.log',\n            maxsize: 10485760, // 10MB\n            maxFiles: 5\n        }),\n        new winston.transports.Console({\n            format: winston.format.simple()\n        })\n    ]\n});\n\n/**\n * AI 에이전트 식별 및 차단 시스템\n */\nclass AIAgentRestrictions {\n    constructor() {\n        // AI 에이전트 식별 패턴\n        this.aiPatterns = {\n            usernames: [\n                /^ai[_\\-]?agent/i,\n                /^auto[_\\-]?admin/i,\n                /^deadline[_\\-]?bot/i,\n                /^issue[_\\-]?bot/i,\n                /^scheduler/i,\n                /^system[_\\-]?admin/i,\n                /^bot[_\\-]?user/i,\n                /^admin[_\\-]?bot/i,\n                /^test[_\\-]?bot/i,\n                /^automated/i\n            ],\n            userAgents: [\n                /bot/i,\n                /crawler/i,\n                /spider/i,\n                /automation/i,\n                /script/i,\n                /headless/i,\n                /phantom/i,\n                /selenium/i,\n                /puppeteer/i,\n                /playwright/i\n            ],\n            ips: [\n                // RFC 5737 테스트 IP 대역\n                '192.0.2.0/24',\n                '198.51.100.0/24', \n                '203.0.113.0/24',\n                // localhost 변형들\n                '127.0.0.1',\n                '::1',\n                '0.0.0.0'\n            ]\n        };\n\n        // 허용된 고정 마감시간 패턴 (시간 단위)\n        this.allowedEndDatePatterns = [\n            { hours: 24, description: '24시간 후' },\n            { hours: 48, description: '2일 후' },\n            { hours: 72, description: '3일 후' },\n            { hours: 168, description: '1주일 후' },\n            { hours: 336, description: '2주일 후' }\n        ];\n\n        // AI 에이전트 차단 기록\n        this.blockedAgents = new Map();\n    }\n\n    /**\n     * 요청이 AI 에이전트에서 온 것인지 감지\n     * @param {Object} req - Express 요청 객체\n     * @returns {Object} 감지 결과\n     */\n    detectAIAgent(req) {\n        const username = req.user?.username || '';\n        const userAgent = req.get('User-Agent') || '';\n        const ip = req.ip || req.connection.remoteAddress || '';\n        \n        const detectionResult = {\n            isAIAgent: false,\n            confidence: 0,\n            reasons: [],\n            username,\n            userAgent,\n            ip\n        };\n\n        // 1. 사용자명 패턴 검사\n        for (const pattern of this.aiPatterns.usernames) {\n            if (pattern.test(username)) {\n                detectionResult.isAIAgent = true;\n                detectionResult.confidence += 40;\n                detectionResult.reasons.push(`Username matches AI pattern: ${pattern}`);\n            }\n        }\n\n        // 2. User-Agent 패턴 검사\n        for (const pattern of this.aiPatterns.userAgents) {\n            if (pattern.test(userAgent)) {\n                detectionResult.isAIAgent = true;\n                detectionResult.confidence += 30;\n                detectionResult.reasons.push(`User-Agent matches AI pattern: ${pattern}`);\n            }\n        }\n\n        // 3. IP 주소 검사\n        if (this.isTestIP(ip)) {\n            detectionResult.isAIAgent = true;\n            detectionResult.confidence += 20;\n            detectionResult.reasons.push(`IP address is in test range: ${ip}`);\n        }\n\n        // 4. 추가 휴리스틱 검사\n        const suspiciousIndicators = this.checkSuspiciousIndicators(req);\n        if (suspiciousIndicators.length > 0) {\n            detectionResult.confidence += suspiciousIndicators.length * 10;\n            detectionResult.reasons.push(...suspiciousIndicators);\n        }\n\n        // 신뢰도가 50 이상이면 AI 에이전트로 판단\n        if (detectionResult.confidence >= 50) {\n            detectionResult.isAIAgent = true;\n        }\n\n        return detectionResult;\n    }\n\n    /**\n     * 테스트/개발용 IP인지 확인\n     * @param {string} ip - IP 주소\n     * @returns {boolean} 테스트 IP 여부\n     */\n    isTestIP(ip) {\n        const testRanges = [\n            { start: '192.0.2.0', end: '192.0.2.255' },\n            { start: '198.51.100.0', end: '198.51.100.255' },\n            { start: '203.0.113.0', end: '203.0.113.255' }\n        ];\n\n        const localhost = ['127.0.0.1', '::1', '0.0.0.0', 'localhost'];\n        \n        if (localhost.includes(ip)) return true;\n\n        // IP 범위 검사 (간단한 버전)\n        for (const range of testRanges) {\n            if (this.ipInRange(ip, range.start, range.end)) {\n                return true;\n            }\n        }\n\n        return false;\n    }\n\n    /**\n     * IP가 특정 범위에 있는지 확인\n     * @param {string} ip - 확인할 IP\n     * @param {string} start - 시작 IP\n     * @param {string} end - 끝 IP\n     * @returns {boolean} 범위 내 포함 여부\n     */\n    ipInRange(ip, start, end) {\n        const ipNum = this.ipToNumber(ip);\n        const startNum = this.ipToNumber(start);\n        const endNum = this.ipToNumber(end);\n        \n        return ipNum >= startNum && ipNum <= endNum;\n    }\n\n    /**\n     * IP 주소를 숫자로 변환\n     * @param {string} ip - IP 주소\n     * @returns {number} 숫자로 변환된 IP\n     */\n    ipToNumber(ip) {\n        const parts = ip.split('.');\n        if (parts.length !== 4) return 0;\n        \n        return parseInt(parts[0]) * 16777216 + \n               parseInt(parts[1]) * 65536 + \n               parseInt(parts[2]) * 256 + \n               parseInt(parts[3]);\n    }\n\n    /**\n     * 의심스러운 지표들 검사\n     * @param {Object} req - Express 요청 객체\n     * @returns {Array} 의심스러운 지표들\n     */\n    checkSuspiciousIndicators(req) {\n        const indicators = [];\n        const userAgent = req.get('User-Agent') || '';\n        const headers = req.headers;\n\n        // 1. User-Agent가 없거나 너무 짧음\n        if (!userAgent || userAgent.length < 10) {\n            indicators.push('Missing or suspiciously short User-Agent');\n        }\n\n        // 2. 일반적이지 않은 헤더 패턴\n        const suspiciousHeaders = ['x-automation', 'x-bot', 'x-script'];\n        for (const header of suspiciousHeaders) {\n            if (headers[header]) {\n                indicators.push(`Suspicious header: ${header}`);\n            }\n        }\n\n        // 3. 매우 빠른 요청 간격 (세션 기반)\n        const sessionId = req.sessionID;\n        if (sessionId && this.checkRapidRequests(sessionId)) {\n            indicators.push('Rapid successive requests detected');\n        }\n\n        // 4. 일반적이지 않은 Accept 헤더\n        const accept = headers.accept || '';\n        if (!accept.includes('text/html') && !accept.includes('application/json')) {\n            indicators.push('Unusual Accept header');\n        }\n\n        return indicators;\n    }\n\n    /**\n     * 빠른 연속 요청 확인\n     * @param {string} sessionId - 세션 ID\n     * @returns {boolean} 빠른 요청 여부\n     */\n    checkRapidRequests(sessionId) {\n        const now = Date.now();\n        const sessionRequests = this.blockedAgents.get(sessionId) || [];\n        \n        // 5초 내 요청만 유지\n        const recentRequests = sessionRequests.filter(time => now - time < 5000);\n        recentRequests.push(now);\n        \n        this.blockedAgents.set(sessionId, recentRequests);\n        \n        // 5초 내 5회 이상 요청시 의심스러움\n        return recentRequests.length >= 5;\n    }\n\n    /**\n     * AI 에이전트의 마감시간 변경 요청 검증\n     * @param {Object} req - Express 요청 객체\n     * @param {string} newEndDate - 새로운 마감시간\n     * @returns {Object} 검증 결과\n     */\n    validateAIAgentEndDate(req, newEndDate) {\n        const detection = this.detectAIAgent(req);\n        \n        if (!detection.isAIAgent) {\n            return { allowed: true, reason: 'Not an AI agent' };\n        }\n\n        // AI 에이전트는 마감시간 변경 완전 차단\n        aiLogger.warn('AI agent end date change blocked', {\n            detection,\n            requestedEndDate: newEndDate,\n            timestamp: new Date(),\n            ip: req.ip,\n            userAgent: req.get('User-Agent')\n        });\n\n        return {\n            allowed: false,\n            reason: 'AI_AGENT_BLOCKED',\n            message: 'AI 에이전트는 마감시간을 변경할 수 없습니다.',\n            detection\n        };\n    }\n\n    /**\n     * 허용된 마감시간 패턴인지 확인\n     * @param {string} endDate - 마감시간\n     * @returns {Object} 패턴 검증 결과\n     */\n    validateEndDatePattern(endDate) {\n        const now = new Date();\n        const endDateTime = new Date(endDate);\n        const diffHours = (endDateTime - now) / (1000 * 60 * 60);\n\n        for (const pattern of this.allowedEndDatePatterns) {\n            // ±1시간 오차 허용\n            if (Math.abs(diffHours - pattern.hours) <= 1) {\n                return {\n                    isValid: true,\n                    pattern: pattern.description,\n                    actualHours: diffHours\n                };\n            }\n        }\n\n        return {\n            isValid: false,\n            reason: 'Invalid end date pattern',\n            actualHours: diffHours,\n            allowedPatterns: this.allowedEndDatePatterns.map(p => p.description)\n        };\n    }\n\n    /**\n     * AI 에이전트 활동 통계 조회\n     * @returns {Object} 통계 정보\n     */\n    getAIAgentStats() {\n        const stats = {\n            totalDetections: 0,\n            blockedRequests: 0,\n            topUserAgents: new Map(),\n            topIPs: new Map(),\n            recentActivity: []\n        };\n\n        // 로그 파일 기반 통계는 실제 구현에서 파일 시스템 접근 필요\n        // 여기서는 메모리 기반 간단한 통계만 제공\n        \n        return stats;\n    }\n\n    /**\n     * AI 에이전트 패턴 업데이트\n     * @param {Object} newPatterns - 새로운 패턴들\n     */\n    updatePatterns(newPatterns) {\n        if (newPatterns.usernames) {\n            this.aiPatterns.usernames.push(...newPatterns.usernames);\n        }\n        if (newPatterns.userAgents) {\n            this.aiPatterns.userAgents.push(...newPatterns.userAgents);\n        }\n        if (newPatterns.ips) {\n            this.aiPatterns.ips.push(...newPatterns.ips);\n        }\n\n        aiLogger.info('AI agent patterns updated', { newPatterns });\n    }\n}\n\n// 전역 인스턴스 생성\nconst aiRestrictions = new AIAgentRestrictions();\n\n/**\n * AI 에이전트 차단 미들웨어\n */\nconst blockAIAgentsAdvanced = (req, res, next) => {\n    const detection = aiRestrictions.detectAIAgent(req);\n    \n    if (detection.isAIAgent && req.method !== 'GET') {\n        aiLogger.warn('AI agent request blocked', {\n            method: req.method,\n            path: req.path,\n            detection,\n            timestamp: new Date()\n        });\n\n        return res.status(403).json({\n            error: 'AI_AGENT_BLOCKED',\n            message: 'AI 에이전트의 데이터 변경 요청이 차단되었습니다.',\n            detection: {\n                confidence: detection.confidence,\n                reasons: detection.reasons\n            }\n        });\n    }\n\n    // 감지 정보를 req에 추가\n    req.aiDetection = detection;\n    next();\n};\n\n/**\n * AI 에이전트 마감시간 변경 검증 미들웨어\n */\nconst validateAIAgentEndDateChange = (req, res, next) => {\n    const { end_date } = req.body;\n    \n    if (!end_date) {\n        return next(); // 마감시간 변경이 아니면 통과\n    }\n\n    const validation = aiRestrictions.validateAIAgentEndDate(req, end_date);\n    \n    if (!validation.allowed) {\n        return res.status(403).json({\n            error: validation.reason,\n            message: validation.message,\n            detection: validation.detection\n        });\n    }\n\n    next();\n};\n\nmodule.exports = {\n    AIAgentRestrictions,\n    aiRestrictions,\n    blockAIAgentsAdvanced,\n    validateAIAgentEndDateChange\n};
+/**
+ * AI 에이전트 식별 및 차단 시스템
+ */
+
+const EndDateTracker = require('../utils/end-date-tracker');
+const winston = require('winston');
+
+// AI 에이전트 제한 전용 로거
+const aiLogger = winston.createLogger({
+    level: 'info',
+    format: winston.format.combine(
+        winston.format.timestamp(),
+        winston.format.json()
+    ),
+    transports: [
+        new winston.transports.File({ 
+            filename: 'logs/ai-agent-restrictions.log',
+            maxsize: 10485760, // 10MB
+            maxFiles: 5
+        }),
+        new winston.transports.Console({
+            format: winston.format.simple()
+        })
+    ]
+});
+
+/**
+ * AI 에이전트 식별 및 차단 시스템
+ */
+class AIAgentRestrictions {
+    constructor() {
+        // AI 에이전트 식별 패턴
+        this.aiPatterns = {
+            usernames: [
+                /^ai[_\-]?agent/i,
+                /^auto[_\-]?admin/i,
+                /^deadline[_\-]?bot/i,
+                /^issue[_\-]?bot/i,
+                /^scheduler/i,
+                /^system[_\-]?admin/i,
+                /^bot[_\-]?user/i,
+                /^admin[_\-]?bot/i,
+                /^test[_\-]?bot/i,
+                /^automated/i
+            ],
+            userAgents: [
+                /bot/i,
+                /crawler/i,
+                /spider/i,
+                /automation/i,
+                /script/i,
+                /headless/i,
+                /phantom/i,
+                /selenium/i,
+                /puppeteer/i,
+                /playwright/i
+            ],
+            ips: [
+                // RFC 5737 테스트 IP 대역
+                '192.0.2.0/24',
+                '198.51.100.0/24', 
+                '203.0.113.0/24',
+                // localhost 변형들
+                '127.0.0.1',
+                '::1',
+                '0.0.0.0'
+            ]
+        };
+
+        // AI 에이전트 차단 기록
+        this.blockedAgents = new Map();
+    }
+
+    /**
+     * 요청이 AI 에이전트에서 온 것인지 감지
+     * @param {Object} req - Express 요청 객체
+     * @returns {Object} 감지 결과
+     */
+    detectAIAgent(req) {
+        const username = req.user?.username || '';
+        const userAgent = req.get('User-Agent') || '';
+        const ip = req.ip || req.connection.remoteAddress || '';
+        
+        const detectionResult = {
+            isAIAgent: false,
+            confidence: 0,
+            reasons: [],
+            username,
+            userAgent,
+            ip
+        };
+
+        // 1. 사용자명 패턴 검사
+        for (const pattern of this.aiPatterns.usernames) {
+            if (pattern.test(username)) {
+                detectionResult.isAIAgent = true;
+                detectionResult.confidence += 40;
+                detectionResult.reasons.push(`Username matches AI pattern: ${pattern}`);
+            }
+        }
+
+        // 2. User-Agent 패턴 검사
+        for (const pattern of this.aiPatterns.userAgents) {
+            if (pattern.test(userAgent)) {
+                detectionResult.isAIAgent = true;
+                detectionResult.confidence += 30;
+                detectionResult.reasons.push(`User-Agent matches AI pattern: ${pattern}`);
+            }
+        }
+
+        // 3. IP 주소 검사
+        if (this.isTestIP(ip)) {
+            detectionResult.isAIAgent = true;
+            detectionResult.confidence += 20;
+            detectionResult.reasons.push(`IP address is in test range: ${ip}`);
+        }
+
+        // 신뢰도가 50 이상이면 AI 에이전트로 판단
+        if (detectionResult.confidence >= 50) {
+            detectionResult.isAIAgent = true;
+        }
+
+        return detectionResult;
+    }
+
+    /**
+     * 테스트/개발용 IP인지 확인
+     * @param {string} ip - IP 주소
+     * @returns {boolean} 테스트 IP 여부
+     */
+    isTestIP(ip) {
+        const localhost = ['127.0.0.1', '::1', '0.0.0.0', 'localhost'];
+        return localhost.includes(ip);
+    }
+}
+
+// 전역 인스턴스 생성
+const aiRestrictions = new AIAgentRestrictions();
+
+/**
+ * AI 에이전트 차단 미들웨어
+ */
+const blockAIAgentsAdvanced = (req, res, next) => {
+    const detection = aiRestrictions.detectAIAgent(req);
+    
+    if (detection.isAIAgent && req.method !== 'GET') {
+        aiLogger.warn('AI agent request blocked', {
+            method: req.method,
+            path: req.path,
+            detection,
+            timestamp: new Date()
+        });
+
+        return res.status(403).json({
+            error: 'AI_AGENT_BLOCKED',
+            message: 'AI 에이전트의 데이터 변경 요청이 차단되었습니다.',
+            detection: {
+                confidence: detection.confidence,
+                reasons: detection.reasons
+            }
+        });
+    }
+
+    // 감지 정보를 req에 추가
+    req.aiDetection = detection;
+    next();
+};
+
+module.exports = {
+    AIAgentRestrictions,
+    aiRestrictions,
+    blockAIAgentsAdvanced
+};

@@ -39,7 +39,7 @@ const visitorTrackingMiddleware = require('./middleware/visitor-tracking');
 const HealthCheck = require('./utils/health-check');
 
 // End Date 보안 시스템 모듈들
-const { recoveryService } = require('./services/end-date-recovery');
+// const { recoveryService } = require('./services/end-date-recovery'); // Temporarily disabled
 const { aiRestrictions } = require('./middleware/ai-agent-restrictions');
 
 // Passport 설정 로드

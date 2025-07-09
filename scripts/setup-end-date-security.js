@@ -12,7 +12,8 @@
 
 const fs = require('fs');
 const path = require('path');
-const pool = require('../database/connection');
+const { getPool } = require('../database/postgres');
+const pool = getPool();
 
 console.log('🔧 End Date 보안 시스템 초기화 시작...\n');
 
