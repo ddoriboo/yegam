@@ -162,7 +162,7 @@ router.post('/issues',
 // 이슈 수정
 router.put('/issues/:id', 
     secureAdminMiddleware,
-    validateEndDateChange, // 🔒 강력한 end_date 보안 미들웨어 추가
+    // validateEndDateChange 미들웨어 제거 - 어드민은 자유롭게 수정 가능
     rateLimitIssueModifications(),
     validateDeadlineChange(),
     logIssueModification('ADMIN_UPDATE_ISSUE'),
