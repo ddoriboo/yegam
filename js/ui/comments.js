@@ -451,10 +451,36 @@ async function handleCommentSubmit(form, issueId, parentId = null) {
     } catch (error) {
         console.error('댓글 작성 실패:', error);
         showNotification(error.message, 'error');
+        
+        // 쿨다운 에러인 경우 타이머 시작
+        if (error.message.includes('30초에 한 번만 가능')) {
+            const match = error.message.match(/(\d+)초 후에/);
+            if (match) {
+                const remainingTime = parseInt(match[1]);
+                startCooldownTimer(submitBtn, remainingTime, originalText);
+                return; // finally 블록 실행 안 함
+            }
+        }
     } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = originalText;
     }
+}
+
+// 쿨다운 타이머 함수
+function startCooldownTimer(button, seconds, originalText) {
+    button.disabled = true;
+    
+    const timer = setInterval(() => {
+        if (seconds > 0) {
+            button.textContent = `${seconds}초 후 다시 시도`;
+            seconds--;
+        } else {
+            clearInterval(timer);
+            button.disabled = false;
+            button.textContent = originalText;
+        }
+    }, 1000);
 }
 
 // 댓글 좋아요 처리

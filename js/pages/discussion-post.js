@@ -633,6 +633,17 @@ async function handleCommentSubmit(e) {
             }
         } else {
             alert(data.message || '댓글 작성 중 오류가 발생했습니다.');
+            
+            // 쿨다운 에러인 경우 타이머 시작
+            if (data.message && data.message.includes('30초에 한 번만 가능')) {
+                const match = data.message.match(/(\d+)초 후에/);
+                if (match) {
+                    const remainingTime = parseInt(match[1]);
+                    const submitBtn = e.target.querySelector('button[type="submit"]');
+                    startCooldownTimer(submitBtn, remainingTime, '댓글 작성');
+                    return; // finally 블록 실행 안 함
+                }
+            }
         }
         
     } catch (error) {
@@ -643,6 +654,22 @@ async function handleCommentSubmit(e) {
         submitBtn.disabled = false;
         submitBtn.textContent = '댓글 작성';
     }
+}
+
+// 쿨다운 타이머 함수
+function startCooldownTimer(button, seconds, originalText) {
+    button.disabled = true;
+    
+    const timer = setInterval(() => {
+        if (seconds > 0) {
+            button.textContent = `${seconds}초 후 다시 시도`;
+            seconds--;
+        } else {
+            clearInterval(timer);
+            button.disabled = false;
+            button.textContent = originalText;
+        }
+    }, 1000);
 }
 
 // 상태 표시 함수들

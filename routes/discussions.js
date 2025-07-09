@@ -697,6 +697,25 @@ router.post('/posts/:id/comments', authMiddleware, async (req, res) => {
             });
         }
         
+        // 30초 쿨다운 확인
+        const lastCommentQuery = 'SELECT created_at FROM discussion_comments WHERE author_id = $1 ORDER BY created_at DESC LIMIT 1';
+        const lastComment = await query(lastCommentQuery, [userId]);
+        
+        if (lastComment.rows.length > 0) {
+            const lastCommentTime = new Date(lastComment.rows[0].created_at);
+            const now = new Date();
+            const timeDiff = (now - lastCommentTime) / 1000; // 초 단위
+            
+            if (timeDiff < 30) {
+                const remainingTime = Math.ceil(30 - timeDiff);
+                return res.status(400).json({ 
+                    success: false,
+                    message: `댓글 작성은 30초에 한 번만 가능합니다. ${remainingTime}초 후에 다시 시도해주세요.`,
+                    cooldownRemaining: remainingTime
+                });
+            }
+        }
+        
         const result = await query(`
             INSERT INTO discussion_comments (post_id, author_id, content, parent_id)
             VALUES ($1, $2, $3, $4)

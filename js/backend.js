@@ -53,7 +53,7 @@ export async function placeBet(userId, issueId, choice, amount) {
             return { 
                 success: true, 
                 updatedUser: {
-                    coins: data.updatedUser.coins
+                    gam_balance: data.updatedUser.gam_balance
                 },
                 updatedIssue: data.updatedIssue
             };
