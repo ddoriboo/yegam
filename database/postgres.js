@@ -20,6 +20,15 @@ const initPostgreSQL = () => {
         
         console.log('✅ PostgreSQL 연결 설정 완료');
         
+        // 🇰🇷 PostgreSQL 타임존을 한국시간으로 설정
+        pool.query("SET timezone = 'Asia/Seoul'", (err) => {
+            if (err) {
+                console.warn('⚠️ 타임존 설정 실패:', err.message);
+            } else {
+                console.log('🇰🇷 PostgreSQL 타임존이 Asia/Seoul로 설정되었습니다.');
+            }
+        });
+        
         // 테이블 생성
         createTables()
             .then(() => {

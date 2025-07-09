@@ -220,8 +220,8 @@ router.post('/',
             });
         }
         
-        // endDate가 이미 UTC ISO string으로 전달되므로 직접 사용
-        // PostgreSQL TIMESTAMPTZ는 UTC로 저장하고 조회시 타임존 정보 제공
+        // 🇰🇷 KST 기준으로 시간 저장 (변환 없음)
+        // PostgreSQL 타임존이 Asia/Seoul로 설정되어 있음
         const insertQuery = `
             INSERT INTO issues (title, category, description, image_url, end_date, yes_price, is_popular, created_at, updated_at) 
             VALUES ($1, $2, $3, $4, $5::timestamptz, $6, $7, NOW(), NOW())
@@ -233,7 +233,7 @@ router.post('/',
             category, 
             description || null, 
             imageUrl || null, 
-            endDate, // 이미 UTC ISO string
+            endDate, // KST 기준 시간
             yesPrice || 50, 
             isPopular ? true : false
         ]);
@@ -266,7 +266,7 @@ router.put('/:id',
         const issueId = req.params.id;
         const { title, category, description, imageUrl, endDate, yesPrice, isPopular } = req.body;
         
-        // endDate가 이미 UTC ISO string으로 전달되므로 직접 사용
+        // 🇰🇷 KST 기준으로 시간 업데이트 (변환 없음)
         const updateQuery = `
             UPDATE issues 
             SET title = $1, category = $2, description = $3, image_url = $4, 
@@ -279,7 +279,7 @@ router.put('/:id',
             category, 
             description || null, 
             imageUrl || null, 
-            endDate, // 이미 UTC ISO string
+            endDate, // KST 기준 시간
             yesPrice, 
             isPopular ? true : false, 
             issueId

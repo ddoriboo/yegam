@@ -421,29 +421,24 @@ window.validateEndDates = () => window.endDateValidator.validateVisibleIssues();
 window.getValidationStats = () => window.endDateValidator.getValidationStats();
 window.toggleAutoRefresh = (enabled) => window.endDateValidator.setAutoRefresh(enabled);
 
-// 🔧 전역 시간 함수들 - formatters.js와 일관성 유지
+// 🔧 KST 기준 시간 함수 - 변환 없이 단순하게!
 window.getTimeLeft = function(endDate) {
     if (!endDate) return "마감";
     
+    // 🇰🇷 모든 시간을 KST 기준으로 처리 (변환 없음)
     const now = new Date();
     const future = new Date(endDate);
     
-    // UTC 시간으로 통일하여 계산 (브라우저 시간대 독립적)
+    // 단순 시간 차이 계산
     const diff = future.getTime() - now.getTime();
     
-    // 🔍 강화된 디버깅 로그
-    console.log('🔍 getTimeLeft 상세 디버깅:', {
+    // 🔍 단순화된 디버깅 로그
+    console.log('🇰🇷 KST 기준 시간 계산:', {
         endDate: endDate,
-        nowKST: now.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }),
-        futureKST: future.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }),
-        nowUTC: now.toISOString(),
-        futureUTC: future.toISOString(),
-        diffMs: diff,
+        now: now.toLocaleString('ko-KR'),
+        future: future.toLocaleString('ko-KR'),
         diffHours: (diff / (1000 * 60 * 60)).toFixed(2),
-        diffDays: (diff / (1000 * 60 * 60 * 24)).toFixed(2),
-        calculated_days: Math.floor(diff / (1000 * 60 * 60 * 24)),
-        calculated_hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
-        calculated_minutes: Math.floor((diff / 1000 / 60) % 60)
+        diffDays: (diff / (1000 * 60 * 60 * 24)).toFixed(2)
     });
     
     if (diff <= 0) return "마감";
@@ -457,7 +452,7 @@ window.getTimeLeft = function(endDate) {
     else if (hours > 0) result = `${hours}시간 남음`;
     else result = `${minutes}분 남음`;
     
-    console.log('📊 최종 결과:', result);
+    console.log('📊 KST 기준 결과:', result);
     return result;
 };
 
@@ -467,15 +462,14 @@ window.formatEndDate = function(endDate) {
     const d = new Date(endDate);
     if (isNaN(d.getTime())) return '';
     
-    // 한국 시간대 (Asia/Seoul)로 일관되게 표시
+    // 🇰🇷 KST 기준으로 단순 표시 (변환 없음)
     return d.toLocaleDateString('ko-KR', {
         year: 'numeric',
         month: '2-digit', 
         day: '2-digit',
         hour: '2-digit',
         minute: '2-digit',
-        hour12: false,
-        timeZone: 'Asia/Seoul'
+        hour12: false
     }).replace(/\. /g, '.').replace(/\.$/, '').replace(/ /g, ' ');
 };
 
