@@ -217,7 +217,8 @@ async function handleCreateIssue(e) {
         description: formData.get('description') || '',
         end_date: endDateKST,
         yes_price: parseInt(formData.get('yesPrice')) || 50,
-        image_url: formData.get('image_url') || null
+        image_url: formData.get('image_url') || null,
+        change_reason: 'Admin creation' // 어드민 생성 시 기본 사유
     };
 
     try {
@@ -259,7 +260,8 @@ async function handleEditIssue(e) {
         description: formData.get('description') || '',
         end_date: endDateKST,
         yes_price: parseInt(formData.get('yesPrice')) || 50,
-        is_popular: formData.get('isPopular') === 'on'
+        is_popular: formData.get('isPopular') === 'on',
+        change_reason: 'Admin modification' // 어드민 수정 시 기본 사유
     };
 
     const issueId = formData.get('id');

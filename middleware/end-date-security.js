@@ -68,8 +68,9 @@ async function validateEndDateChange(req, res, next) {
         // 3. end_date 변경 여부 확인
         if (currentEndDate.getTime() !== requestedEndDate.getTime()) {
             
-            // 4. 변경 사유 필수 확인
-            if (!change_reason || change_reason.trim().length < 10) {
+            // 4. 변경 사유 필수 확인 (어드민은 제외)
+            const isAdmin = req.user?.isAdmin || req.headers.authorization?.includes('admin-token');
+            if (!isAdmin && (!change_reason || change_reason.trim().length < 10)) {
                 return res.status(400).json({
                     success: false,
                     message: 'end_date 변경 시 변경 사유를 최소 10자 이상 입력해야 합니다.',
