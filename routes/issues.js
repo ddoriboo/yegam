@@ -246,6 +246,7 @@ router.post('/',
 // 이슈 수정 (관리자용)
 router.put('/:id', 
     authMiddleware,
+    require('../middleware/end-date-security').validateEndDateChange, // 🔒 강력한 end_date 보안 미들웨어 추가
     rateLimitIssueModifications(),
     validateDeadlineChange(),
     logIssueModification('UPDATE_ISSUE'),

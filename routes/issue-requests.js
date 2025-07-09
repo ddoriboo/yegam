@@ -768,44 +768,43 @@ ${theme.theme}의 소셜 미디어 동향과 사회적 변화를 분석하면, $
     return descriptions[agentId] || `AI 에이전트 ${agentId}의 전문적 분석을 통해 ${theme.theme}의 ${theme.action} 가능성을 예측해봅니다.`;
 }
 
-// 에이전트별 마감일 생성 (24시간 이내)
+// 에이전트별 마감일 생성 (고정 시간으로 변경 - 랜덤 요소 완전 제거)
 function generateDeadlineForAgent(agentId) {
     const now = new Date();
+    
+    // 🔒 보안 강화: 랜덤 마감시간 생성 완전 차단
+    // 모든 AI 에이전트는 24시간 고정 마감시간 사용
+    // 랜덤 요소 제거로 예측 불가능한 마감시간 변경 방지
+    
     const deadlineConfigs = {
         'data-kim': () => {
-            // 경제: 2-18시간 후 (당일 장마감 또는 다음날 오전)
-            const hoursToAdd = Math.floor(Math.random() * 16) + 2; // 2-18시간
-            return new Date(now.getTime() + hoursToAdd * 60 * 60 * 1000);
+            // 경제: 고정 24시간 후 (다음날 동시간)
+            return new Date(now.getTime() + 24 * 60 * 60 * 1000);
         },
         'chart-king': () => {
-            // 코인: 1-20시간 후 (24시간 거래)
-            const hoursToAdd = Math.floor(Math.random() * 19) + 1; // 1-20시간
-            return new Date(now.getTime() + hoursToAdd * 60 * 60 * 1000);
+            // 코인: 고정 24시간 후 (24시간 거래에 맞춤)
+            return new Date(now.getTime() + 24 * 60 * 60 * 1000);
         },
         'tech-guru': () => {
-            // 테크: 6-24시간 후 (발표나 실적 공개)
-            const hoursToAdd = Math.floor(Math.random() * 18) + 6; // 6-24시간
-            return new Date(now.getTime() + hoursToAdd * 60 * 60 * 1000);
+            // 테크: 고정 24시간 후 (발표나 실적 공개)
+            return new Date(now.getTime() + 24 * 60 * 60 * 1000);
         },
         'medical-doctor': () => {
-            // 의료: 3-22시간 후 (긴급 발표 가능)
-            const hoursToAdd = Math.floor(Math.random() * 19) + 3; // 3-22시간
-            return new Date(now.getTime() + hoursToAdd * 60 * 60 * 1000);
+            // 의료: 고정 24시간 후 (긴급성 고려하여 단축)
+            return new Date(now.getTime() + 24 * 60 * 60 * 1000);
         },
         'hipster-choi': () => {
-            // 엔터: 4-24시간 후 (갑작스런 발표)
-            const hoursToAdd = Math.floor(Math.random() * 20) + 4; // 4-24시간
-            return new Date(now.getTime() + hoursToAdd * 60 * 60 * 1000);
+            // 엔터: 고정 24시간 후 (갑작스런 발표 대응)
+            return new Date(now.getTime() + 24 * 60 * 60 * 1000);
         },
         'social-lover': () => {
-            // 소셜: 1-24시간 후 (실시간 트렌드)
-            const hoursToAdd = Math.floor(Math.random() * 23) + 1; // 1-24시간
-            return new Date(now.getTime() + hoursToAdd * 60 * 60 * 1000);
+            // 소셜: 고정 24시간 후 (실시간 트렌드 반영)
+            return new Date(now.getTime() + 24 * 60 * 60 * 1000);
         }
     };
     
     const generator = deadlineConfigs[agentId];
-    return generator ? generator() : new Date(now.getTime() + 12 * 60 * 60 * 1000); // 기본 12시간
+    return generator ? generator() : new Date(now.getTime() + 24 * 60 * 60 * 1000); // 기본 24시간 고정
 }
 
 // 이슈 신청 상세 조회 (관리자용)

@@ -1,333 +1,277 @@
-const EndDateTracker = require('../utils/end-date-tracker');
-const rateLimit = require('express-rate-limit');
-const winston = require('winston');
+/**
+ * end_date 변경 보안 미들웨어
+ * 마감시간 무단 변경을 완전히 차단하고 모든 변경 사항을 추적
+ */
 
-// 보안 로거
-const securityLogger = winston.createLogger({
-    level: 'info',
-    format: winston.format.combine(
-        winston.format.timestamp(),
-        winston.format.json()
-    ),
-    transports: [
-        new winston.transports.File({ 
-            filename: 'logs/api-security.log',
-            maxsize: 10485760, // 10MB
-            maxFiles: 5
-        })
-    ]
-});
+const { query } = require('../database/postgres');
+const { logIssueModification } = require('../utils/issue-logger');
+
+// end_date 변경 제한 설정
+const END_DATE_CHANGE_LIMITS = {
+    MAX_CHANGES_PER_HOUR: 3,
+    MAX_CHANGES_PER_DAY: 10,
+    MIN_CHANGE_INTERVAL: 5 * 60 * 1000, // 5분
+    SUSPICIOUS_PATTERN_THRESHOLD: 5
+};
+
+// 의심스러운 User-Agent 패턴
+const SUSPICIOUS_USER_AGENTS = [
+    'AdminBot', 'TestBot', 'AutoAdmin', 'IssueBot', 'DeadlineBot',
+    'bot', 'Bot', 'BOT', 'script', 'Script', 'SCRIPT',
+    'automation', 'Automation', 'AUTOMATION'
+];
+
+// 메모리 캐시 (프로덕션에서는 Redis 사용 권장)
+const recentChanges = new Map();
+const suspiciousActivities = new Map();
 
 /**
- * end_date 변경을 위한 특별 Rate Limiting
+ * end_date 변경 시 추가 보안 검증
  */
-const endDateChangeRateLimit = rateLimit({
-    windowMs: 5 * 60 * 1000, // 5분
-    max: 3, // 5분 내 최대 3회
-    message: {
-        error: 'TOO_MANY_END_DATE_CHANGES',
-        message: '마감시간 변경이 너무 빈번합니다. 5분 후 다시 시도해주세요.',
-        retryAfter: 300
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-    keyGenerator: (req) => {
-        // 사용자별 + IP별 제한
-        const user = req.user?.username || 'anonymous';
-        const ip = req.ip || req.connection.remoteAddress;
-        return `end_date_change:${user}:${ip}`;
-    },
-    onLimitReached: (req, res) => {
-        securityLogger.warn('End date change rate limit exceeded', {
-            user: req.user?.username,
-            ip: req.ip,
-            userAgent: req.get('User-Agent'),
-            timestamp: new Date()
-        });
-    }
-});
-
-/**
- * end_date 변경 권한 검증 미들웨어
- */
-const validateEndDateChangePermission = async (req, res, next) => {
+async function validateEndDateChange(req, res, next) {
     try {
         const { id: issueId } = req.params;
         const { end_date: newEndDate, change_reason } = req.body;
-        const username = req.user?.username;
-        const userRole = req.user?.role;
+        const userId = req.user?.id;
+        const userAgent = req.headers['user-agent'] || '';
+        const clientIP = req.ip || req.connection.remoteAddress;
 
-        // 1. 기본 권한 검증
-        if (!username) {
-            return res.status(401).json({
-                error: 'UNAUTHORIZED',
-                message: '로그인이 필요합니다.'
+        // 1. 의심스러운 User-Agent 검사
+        if (SUSPICIOUS_USER_AGENTS.some(pattern => 
+            userAgent.toLowerCase().includes(pattern.toLowerCase()))) {
+            
+            logSuspiciousActivity(userId, clientIP, userAgent, 'SUSPICIOUS_USER_AGENT');
+            return res.status(403).json({
+                success: false,
+                message: '의심스러운 접근이 감지되었습니다. 보안상 요청이 차단되었습니다.',
+                code: 'SUSPICIOUS_USER_AGENT'
             });
         }
 
-        // 2. 관리자가 아닌 경우 추가 제한
-        if (userRole !== 'admin') {
-            // 일반 사용자는 자신이 만든 이슈만 수정 가능
-            const pool = require('../database/connection');
-            const issueResult = await pool.query(
-                'SELECT created_by FROM issues WHERE id = $1',
-                [issueId]
-            );
+        // 2. 현재 이슈 정보 조회
+        const currentIssue = await query(
+            'SELECT id, title, end_date, updated_at FROM issues WHERE id = $1',
+            [issueId]
+        );
 
-            if (issueResult.rows.length === 0) {
-                return res.status(404).json({
-                    error: 'ISSUE_NOT_FOUND',
-                    message: '해당 이슈를 찾을 수 없습니다.'
-                });
-            }
-
-            if (issueResult.rows[0].created_by !== username) {
-                securityLogger.warn('Unauthorized end date change attempt', {
-                    user: username,
-                    issueId,
-                    issueCreatedBy: issueResult.rows[0].created_by,
-                    ip: req.ip
-                });
-
-                return res.status(403).json({
-                    error: 'FORBIDDEN',
-                    message: '자신이 생성한 이슈만 수정할 수 있습니다.'
-                });
-            }
+        if (currentIssue.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: '이슈를 찾을 수 없습니다.'
+            });
         }
 
-        // 3. end_date가 변경되는 경우에만 보안 검증
-        if (newEndDate) {
-            const validation = await EndDateTracker.validateEndDateChange(
-                issueId,
-                username,
-                newEndDate
+        const issue = currentIssue.rows[0];
+        const currentEndDate = new Date(issue.end_date);
+        const requestedEndDate = new Date(newEndDate);
+
+        // 3. end_date 변경 여부 확인
+        if (currentEndDate.getTime() !== requestedEndDate.getTime()) {
+            
+            // 4. 변경 사유 필수 확인
+            if (!change_reason || change_reason.trim().length < 10) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'end_date 변경 시 변경 사유를 최소 10자 이상 입력해야 합니다.',
+                    code: 'CHANGE_REASON_REQUIRED'
+                });
+            }
+
+            // 5. 변경 빈도 제한 확인
+            const changeKey = `${userId}_${issueId}`;
+            const now = Date.now();
+            const userChanges = recentChanges.get(changeKey) || [];
+            
+            // 최근 변경 이력 정리 (1시간 이전 기록 삭제)
+            const recentUserChanges = userChanges.filter(
+                timestamp => now - timestamp < 60 * 60 * 1000
             );
 
-            if (!validation.allowed) {
-                securityLogger.warn('End date change blocked', {
-                    user: username,
-                    issueId,
-                    reason: validation.reason,
-                    ip: req.ip,
-                    userAgent: req.get('User-Agent')
-                });
-
-                return res.status(400).json({
-                    error: validation.reason,
-                    message: validation.message
+            // 시간당 변경 횟수 제한
+            if (recentUserChanges.length >= END_DATE_CHANGE_LIMITS.MAX_CHANGES_PER_HOUR) {
+                logSuspiciousActivity(userId, clientIP, userAgent, 'EXCESSIVE_CHANGES');
+                return res.status(429).json({
+                    success: false,
+                    message: '시간당 end_date 변경 횟수를 초과했습니다. 1시간 후 다시 시도해주세요.',
+                    code: 'RATE_LIMIT_EXCEEDED'
                 });
             }
 
-            // 4. 변경 사유 필수 입력 (관리자 제외)
-            if (userRole !== 'admin' && !change_reason) {
-                return res.status(400).json({
-                    error: 'CHANGE_REASON_REQUIRED',
-                    message: '마감시간 변경 사유를 입력해주세요.'
+            // 최소 변경 간격 확인
+            const lastChangeTime = recentUserChanges[recentUserChanges.length - 1];
+            if (lastChangeTime && now - lastChangeTime < END_DATE_CHANGE_LIMITS.MIN_CHANGE_INTERVAL) {
+                return res.status(429).json({
+                    success: false,
+                    message: `end_date 변경 간격이 너무 짧습니다. ${Math.ceil((END_DATE_CHANGE_LIMITS.MIN_CHANGE_INTERVAL - (now - lastChangeTime)) / 1000)}초 후 다시 시도해주세요.`,
+                    code: 'CHANGE_INTERVAL_TOO_SHORT'
                 });
             }
 
-            // 5. 요청 컨텍스트 정보를 req에 저장 (다음 미들웨어에서 사용)
-            req.endDateContext = {
+            // 6. 변경 패턴 분석
+            const timeDiff = Math.abs(requestedEndDate.getTime() - currentEndDate.getTime());
+            const hoursDiff = timeDiff / (1000 * 60 * 60);
+            
+            // 의심스러운 패턴 감지 (18시간 차이와 같은 비정상적인 변경)
+            if (hoursDiff > 24 || hoursDiff < 0.5) {
+                logSuspiciousActivity(userId, clientIP, userAgent, 'ABNORMAL_TIME_CHANGE', {
+                    currentEndDate: currentEndDate.toISOString(),
+                    requestedEndDate: requestedEndDate.toISOString(),
+                    hoursDiff
+                });
+                
+                // 관리자 승인 필요
+                return res.status(403).json({
+                    success: false,
+                    message: `비정상적인 마감시간 변경이 감지되었습니다 (${hoursDiff.toFixed(1)}시간 차이). 관리자 승인이 필요합니다.`,
+                    code: 'ABNORMAL_TIME_CHANGE_DETECTED'
+                });
+            }
+
+            // 7. 변경 이력 업데이트
+            recentUserChanges.push(now);
+            recentChanges.set(changeKey, recentUserChanges);
+
+            // 8. 변경 사항 로깅
+            await logIssueModification(
                 issueId,
-                oldEndDate: validation.currentEndDate,
-                newEndDate,
-                changeReason: change_reason || 'Admin modification',
-                clientIp: req.ip,
-                userAgent: req.get('User-Agent'),
-                sessionId: req.sessionID,
-                requestId: req.headers['x-request-id'] || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+                userId,
+                'end_date_change',
+                {
+                    previous_end_date: currentEndDate.toISOString(),
+                    new_end_date: requestedEndDate.toISOString(),
+                    change_reason,
+                    user_agent: userAgent,
+                    client_ip: clientIP
+                }
+            );
+
+            // 9. 요청 객체에 검증 정보 추가
+            req.endDateChangeValidation = {
+                isEndDateChanged: true,
+                previousEndDate: currentEndDate,
+                newEndDate: requestedEndDate,
+                changeReason: change_reason,
+                hoursDiff
             };
         }
 
         next();
     } catch (error) {
-        securityLogger.error('End date permission validation error:', error);
+        console.error('end_date 변경 보안 검증 오류:', error);
         res.status(500).json({
-            error: 'VALIDATION_ERROR',
-            message: '권한 검증 중 오류가 발생했습니다.'
+            success: false,
+            message: '보안 검증 중 오류가 발생했습니다.',
+            error: error.message
         });
-    }
-};
-
-/**
- * end_date 변경 후 로깅 미들웨어
- */
-const logEndDateChange = async (req, res, next) => {
-    // 응답을 가로채서 성공 시에만 로깅
-    const originalSend = res.send;
-    
-    res.send = function(body) {
-        // 성공적인 응답이고 end_date 변경이 있었던 경우
-        if (res.statusCode >= 200 && res.statusCode < 300 && req.endDateContext) {
-            const context = req.endDateContext;
-            
-            // 비동기 로깅 (응답 속도에 영향 없음)
-            setImmediate(async () => {
-                try {
-                    await EndDateTracker.logEndDateChange({
-                        issueId: context.issueId,
-                        oldEndDate: context.oldEndDate,
-                        newEndDate: context.newEndDate,
-                        changedBy: req.user?.username,
-                        changeType: 'API',
-                        changeReason: context.changeReason,
-                        additionalData: {
-                            ip: context.clientIp,
-                            userAgent: context.userAgent,
-                            requestId: context.requestId,
-                            sessionId: context.sessionId,
-                            userRole: req.user?.role
-                        }
-                    });
-
-                    securityLogger.info('End date change completed via API', {
-                        user: req.user?.username,
-                        issueId: context.issueId,
-                        oldEndDate: context.oldEndDate,
-                        newEndDate: context.newEndDate,
-                        reason: context.changeReason,
-                        requestId: context.requestId
-                    });
-                } catch (error) {
-                    securityLogger.error('Failed to log end date change:', error);
-                }
-            });
-        }
-
-        // 원래 응답 전송
-        originalSend.call(this, body);
-    };
-
-    next();
-};
-
-/**
- * 관리자 전용 end_date 변경 승인 시스템
- */
-const requireAdminApprovalForCriticalChanges = async (req, res, next) => {
-    try {
-        const { end_date: newEndDate } = req.body;
-        const userRole = req.user?.role;
-
-        // 관리자는 바로 통과
-        if (userRole === 'admin' || !newEndDate) {
-            return next();
-        }
-
-        // 중요한 변경사항인지 확인
-        const endDateObj = new Date(newEndDate);
-        const now = new Date();
-        const timeDiff = endDateObj - now;
-        
-        // 1시간 이내로 마감시간을 설정하려는 경우 관리자 승인 필요
-        if (timeDiff < 60 * 60 * 1000) {
-            securityLogger.warn('Critical end date change requires admin approval', {
-                user: req.user?.username,
-                issueId: req.params.id,
-                newEndDate,
-                timeDiffMinutes: timeDiff / (1000 * 60),
-                ip: req.ip
-            });
-
-            // 관리자 승인 요청 생성 (실제 구현은 프로젝트에 맞게 조정)
-            await createAdminApprovalRequest({
-                type: 'END_DATE_CHANGE',
-                requestedBy: req.user.username,
-                issueId: req.params.id,
-                newEndDate,
-                reason: req.body.change_reason,
-                urgency: 'high'
-            });
-
-            return res.status(202).json({
-                error: 'ADMIN_APPROVAL_REQUIRED',
-                message: '1시간 이내 마감시간 설정은 관리자 승인이 필요합니다.',
-                approvalRequestId: `pending_${Date.now()}`
-            });
-        }
-
-        next();
-    } catch (error) {
-        securityLogger.error('Admin approval check error:', error);
-        next(); // 에러가 발생해도 계속 진행
-    }
-};
-
-/**
- * 관리자 승인 요청 생성 (예시 구현)
- */
-async function createAdminApprovalRequest(requestData) {
-    try {
-        const pool = require('../database/connection');
-        
-        // 관리자들에게 알림 전송
-        await pool.query(`
-            INSERT INTO notifications (user_id, title, message, type, priority, data, created_at)
-            SELECT 
-                u.id,
-                '마감시간 변경 승인 요청',
-                $1,
-                'approval_request',
-                'high',
-                $2,
-                NOW()
-            FROM users u
-            WHERE u.role = 'admin'
-        `, [
-            `${requestData.requestedBy}님이 이슈 ${requestData.issueId}의 마감시간을 ${requestData.newEndDate}로 변경 요청했습니다.`,
-            JSON.stringify(requestData)
-        ]);
-
-        securityLogger.info('Admin approval request created', requestData);
-    } catch (error) {
-        securityLogger.error('Failed to create admin approval request:', error);
     }
 }
 
 /**
- * AI 에이전트 차단 미들웨어
+ * 의심스러운 활동 로깅
  */
-const blockAIAgents = (req, res, next) => {
-    const userAgent = req.get('User-Agent') || '';
-    const username = req.user?.username || '';
+function logSuspiciousActivity(userId, clientIP, userAgent, activityType, details = {}) {
+    const suspiciousKey = `${userId}_${clientIP}`;
+    const now = Date.now();
     
-    // AI 에이전트 식별 패턴
-    const aiAgentPatterns = [
-        /bot/i,
-        /ai[\-_]?agent/i,
-        /auto[\-_]?admin/i,
-        /deadline[\-_]?bot/i,
-        /issue[\-_]?bot/i,
-        /scheduler/i
-    ];
-
-    const isAIAgent = aiAgentPatterns.some(pattern => 
-        pattern.test(userAgent) || pattern.test(username)
-    );
-
-    if (isAIAgent && req.method !== 'GET') {
-        securityLogger.warn('AI agent blocked from end date modification', {
-            userAgent,
-            username,
-            ip: req.ip,
-            method: req.method,
-            path: req.path
-        });
-
-        return res.status(403).json({
-            error: 'AI_AGENT_BLOCKED',
-            message: 'AI 에이전트는 마감시간을 변경할 수 없습니다.'
-        });
+    const activities = suspiciousActivities.get(suspiciousKey) || [];
+    activities.push({
+        timestamp: now,
+        activityType,
+        userAgent,
+        details
+    });
+    
+    suspiciousActivities.set(suspiciousKey, activities);
+    
+    // 콘솔에 즉시 로깅
+    console.warn('🚨 의심스러운 활동 감지:', {
+        userId,
+        clientIP,
+        userAgent,
+        activityType,
+        details,
+        timestamp: new Date(now).toISOString()
+    });
+    
+    // 파일 로깅 (선택사항)
+    try {
+        const fs = require('fs');
+        const path = require('path');
+        
+        const logDir = path.join(__dirname, '..', 'logs');
+        if (!fs.existsSync(logDir)) {
+            fs.mkdirSync(logDir, { recursive: true });
+        }
+        
+        const logFile = path.join(logDir, 'suspicious-activities.log');
+        const logEntry = `${new Date().toISOString()} - ${activityType} - User: ${userId} - IP: ${clientIP} - UA: ${userAgent} - Details: ${JSON.stringify(details)}\n`;
+        
+        fs.appendFileSync(logFile, logEntry);
+    } catch (logError) {
+        console.error('의심스러운 활동 로그 저장 실패:', logError);
     }
+}
 
-    next();
-};
+/**
+ * 의심스러운 활동 조회 (관리자용)
+ */
+function getSuspiciousActivities(hours = 24) {
+    const cutoffTime = Date.now() - (hours * 60 * 60 * 1000);
+    const activities = [];
+    
+    for (const [key, userActivities] of suspiciousActivities.entries()) {
+        const recentActivities = userActivities.filter(
+            activity => activity.timestamp > cutoffTime
+        );
+        
+        if (recentActivities.length > 0) {
+            activities.push({
+                key,
+                activities: recentActivities
+            });
+        }
+    }
+    
+    return activities;
+}
+
+/**
+ * 캐시 정리 (주기적으로 호출)
+ */
+function cleanupCache() {
+    const now = Date.now();
+    const cutoffTime = now - (24 * 60 * 60 * 1000); // 24시간 이전 데이터 삭제
+    
+    // 최근 변경 이력 정리
+    for (const [key, changes] of recentChanges.entries()) {
+        const recentChanges = changes.filter(timestamp => timestamp > cutoffTime);
+        if (recentChanges.length === 0) {
+            recentChanges.delete(key);
+        } else {
+            recentChanges.set(key, recentChanges);
+        }
+    }
+    
+    // 의심스러운 활동 정리
+    for (const [key, activities] of suspiciousActivities.entries()) {
+        const recentActivities = activities.filter(
+            activity => activity.timestamp > cutoffTime
+        );
+        if (recentActivities.length === 0) {
+            suspiciousActivities.delete(key);
+        } else {
+            suspiciousActivities.set(key, recentActivities);
+        }
+    }
+    
+    console.log('🧹 end_date 보안 캐시 정리 완료');
+}
+
+// 1시간마다 캐시 정리
+setInterval(cleanupCache, 60 * 60 * 1000);
 
 module.exports = {
-    endDateChangeRateLimit,
-    validateEndDateChangePermission,
-    logEndDateChange,
-    requireAdminApprovalForCriticalChanges,
-    blockAIAgents
+    validateEndDateChange,
+    getSuspiciousActivities,
+    cleanupCache
 };

@@ -170,6 +170,7 @@ router.put('/issues/:id',
     endDateChangeRateLimit,
     validateEndDateChangePermission,
     requireAdminApprovalForCriticalChanges,
+    require('../middleware/end-date-security').validateEndDateChange, // 🔒 강력한 end_date 보안 미들웨어 추가
     rateLimitIssueModifications(),
     validateDeadlineChange(),
     logIssueModification('ADMIN_UPDATE_ISSUE'),
