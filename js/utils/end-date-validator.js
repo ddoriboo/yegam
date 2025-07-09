@@ -440,7 +440,10 @@ window.getTimeLeft = function(endDate) {
         futureUTC: future.toISOString(),
         diffMs: diff,
         diffHours: (diff / (1000 * 60 * 60)).toFixed(2),
-        diffDays: (diff / (1000 * 60 * 60 * 24)).toFixed(2)
+        diffDays: (diff / (1000 * 60 * 60 * 24)).toFixed(2),
+        calculated_days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+        calculated_hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
+        calculated_minutes: Math.floor((diff / 1000 / 60) % 60)
     });
     
     if (diff <= 0) return "마감";
@@ -477,3 +480,18 @@ window.formatEndDate = function(endDate) {
 };
 
 console.log('🔧 End date validation system initialized');
+
+// 🔧 실시간 시간 테스트 (디버깅용)
+setTimeout(() => {
+    console.log('🧪 시간 계산 테스트:');
+    const testDates = [
+        '2025-07-11T11:00:00.000Z',
+        '2025-07-12T01:00:00.000Z',
+        '2025-07-14T21:00:00.000Z'
+    ];
+    
+    testDates.forEach(dateStr => {
+        const result = window.getTimeLeft(dateStr);
+        console.log(`📅 ${dateStr} → ${result}`);
+    });
+}, 2000);

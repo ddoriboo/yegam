@@ -462,6 +462,23 @@ async function initHomePage() {
             console.log('🔍 백엔드에서 받은 순서 (첫 3개):');
             data.issues.slice(0, 3).forEach((issue, index) => {
                 console.log(`${index + 1}. "${issue.title}" - ${issue.created_at} (인기: ${issue.is_popular})`);
+                
+                // 🔍 시간 데이터 상세 분석
+                if (issue.end_date) {
+                    const endDate = new Date(issue.end_date);
+                    const now = new Date();
+                    const diffHours = (endDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+                    
+                    console.log(`⏰ 시간 상세 분석:`, {
+                        raw_end_date: issue.end_date,
+                        parsed_date: endDate.toISOString(),
+                        korean_time: endDate.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }),
+                        current_time: now.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }),
+                        hours_remaining: diffHours.toFixed(2),
+                        days_remaining: (diffHours / 24).toFixed(2),
+                        getTimeLeft_result: typeof window.getTimeLeft === 'function' ? window.getTimeLeft(issue.end_date) : 'getTimeLeft not available'
+                    });
+                }
             });
             
             // 백엔드에서 정렬되어 오지만, 혹시 모르니 프론트엔드에서도 한 번 더 정렬
