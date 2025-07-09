@@ -2,6 +2,7 @@ import * as auth from '../auth.js';
 import * as backend from '../backend.js';
 import { MESSAGES } from '../../config/constants.js';
 import { updateCardAfterBet } from './issue-card.js';
+import { updateUserWallet } from './header.js';
 
 export function setupBettingEventListeners() {
     const grid = document.querySelector('#popular-issues-grid, #all-issues-grid');
@@ -52,15 +53,24 @@ async function placeBet(issueId, choice, cardElement) {
             // 사용자 정보 업데이트
             const updatedUser = { ...user, gam_balance: result.updatedUser.gam_balance };
             auth.updateUserInSession(updatedUser);
-            updateUserWallet();
+            
+            // 카드 UI 업데이트
             updateCardAfterBet(cardElement, choice, amount);
             
-            // 전역 사용자 정보도 업데이트
+            // 전역 사용자 정보도 업데이트 (이 함수가 모든 업데이트를 처리함)
             if (window.updateCurrentUser) {
                 window.updateCurrentUser(updatedUser);
+            } else {
+                // fallback: 직접 DOM 업데이트
+                const userCoinsEl = document.getElementById('user-coins');
+                if (userCoinsEl) {
+                    userCoinsEl.textContent = result.updatedUser.gam_balance.toLocaleString();
+                }
+                // header 모듈의 함수 호출
+                updateUserWallet();
             }
             
-            // 헤더 강제 업데이트
+            // 추가적인 헤더 강제 업데이트
             if (window.forceUpdateHeader) {
                 window.forceUpdateHeader();
             }
@@ -73,10 +83,3 @@ async function placeBet(issueId, choice, cardElement) {
     }
 }
 
-function updateUserWallet() {
-    const userCoinsEl = document.getElementById('user-coins');
-    if (userCoinsEl && auth.isLoggedIn()) {
-        const user = auth.getCurrentUser();
-        userCoinsEl.textContent = user.gam_balance.toLocaleString();
-    }
-}

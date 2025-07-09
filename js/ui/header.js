@@ -1,5 +1,14 @@
 import * as auth from '../auth.js';
 
+// 사용자 지갑(GAM 잔액) 업데이트 함수를 export
+export function updateUserWallet() {
+    const userCoinsEl = document.getElementById('user-coins');
+    if (userCoinsEl && auth.isLoggedIn()) {
+        const user = auth.getCurrentUser();
+        userCoinsEl.textContent = (user.gam_balance || 0).toLocaleString();
+    }
+}
+
 export function updateHeader() {
     const userActionsContainer = document.getElementById('header-user-actions');
     if (!userActionsContainer) return;

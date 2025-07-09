@@ -16,9 +16,19 @@ window.currentUser = currentUser;
 window.updateCurrentUser = (newUserData) => {
     currentUser = newUserData;
     window.currentUser = currentUser;
+    
+    // localStorage에도 업데이트
+    localStorage.setItem('yegame-user', JSON.stringify(currentUser));
+    
     // 헤더 업데이트도 함께 실행
     updateHeader();
     updateIssueRequestButtons(true);
+    
+    // GAM 잔액 표시 직접 업데이트 (fallback)
+    const userCoinsEl = document.getElementById('user-coins');
+    if (userCoinsEl) {
+        userCoinsEl.textContent = (currentUser.gam_balance || 0).toLocaleString();
+    }
 };
 
 // 이슈 목록 새로고침 함수
@@ -51,8 +61,21 @@ window.refreshIssueList = async () => {
 // 헤더 강제 업데이트 함수 (베팅 후 호출용)
 window.forceUpdateHeader = () => {
     if (currentUser) {
+        // 헤더 전체 업데이트
         updateHeader();
         updateIssueRequestButtons(true);
+        
+        // GAM 잔액 표시 강제 업데이트
+        const userCoinsEl = document.getElementById('user-coins');
+        if (userCoinsEl) {
+            userCoinsEl.textContent = (currentUser.gam_balance || 0).toLocaleString();
+        }
+        
+        // 모바일 헤더의 GAM 잔액도 업데이트 (있는 경우)
+        const mobileUserCoinsEl = document.querySelector('#mobile-menu #user-coins');
+        if (mobileUserCoinsEl) {
+            mobileUserCoinsEl.textContent = (currentUser.gam_balance || 0).toLocaleString();
+        }
     }
 };
 
