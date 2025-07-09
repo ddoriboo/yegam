@@ -56,25 +56,18 @@ router.get('/', async (req, res) => {
         res.json({
             success: true,
             issues: issues.map(issue => {
-                // 🇰🇷 시간 데이터를 KST로 변환해서 전송
-                let kstEndDate = null;
-                if (issue.end_date) {
-                    const utcDate = new Date(issue.end_date);
-                    // KST로 변환 (UTC + 9시간)
-                    const kstDate = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000));
-                    kstEndDate = kstDate.toISOString().replace('Z', '+09:00');
-                }
-                
+                // 🔧 PostgreSQL에서 이미 KST로 설정된 데이터를 그대로 사용
+                // 더 이상 타임존 변환을 하지 않음 (double conversion 방지)
                 return {
                     ...issue,
                     isPopular: Boolean(issue.is_popular),
                     commentCount: parseInt(issue.comment_count) || 0,
-                    // 🔍 KST로 변환된 시간 데이터 전송
-                    end_date: kstEndDate,
-                    // 🔍 디버깅을 위한 시간 정보 추가
+                    // 🔍 DB에서 받은 그대로 전송 (이미 KST)
+                    end_date: issue.end_date,
+                    // 🔍 디버깅을 위한 원본 시간 정보
                     end_date_debug: {
-                        original_utc: issue.end_date,
-                        converted_kst: kstEndDate,
+                        original_db: issue.end_date,
+                        type: typeof issue.end_date,
                         timestamp: issue.end_date ? new Date(issue.end_date).getTime() : null
                     }
                 };
