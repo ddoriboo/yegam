@@ -80,14 +80,6 @@ export function updateHeader() {
     initializeLucideIcons();
 }
 
-export function updateUserWallet() {
-    const userCoinsEl = document.getElementById('user-coins');
-    if (userCoinsEl && auth.isLoggedIn()) {
-        const user = auth.getCurrentUser();
-        userCoinsEl.textContent = (user.gam_balance || 0).toLocaleString();
-    }
-}
-
 // 알림 인터벌 정리 함수
 export function clearNotificationInterval() {
     if (notificationInterval) {
