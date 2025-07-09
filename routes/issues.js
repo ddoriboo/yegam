@@ -35,30 +35,50 @@ router.get('/', async (req, res) => {
         `, ['active']);
         const issues = result.rows;
         
-        // 디버그: 첫 3개 이슈의 순서 로그
-        console.log('🔍 API 응답 순서 (첫 3개):');
+        // 🔍 시간 데이터 상세 분석
+        console.log('🔍 DB에서 가져온 시간 데이터 분석:');
         issues.slice(0, 3).forEach((issue, index) => {
-            console.log(`${index + 1}. "${issue.title}" - ${issue.created_at} (인기: ${issue.is_popular})`);
+            console.log(`${index + 1}. "${issue.title}"`);
             if (issue.end_date) {
-                console.log(`   ⏰ 마감시간: ${issue.end_date} (UTC: ${new Date(issue.end_date).toISOString()})`);
-                console.log(`   🇰🇷 한국시간: ${new Date(issue.end_date).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`);
-                console.log(`   📊 남은시간: ${Math.floor((new Date(issue.end_date).getTime() - Date.now()) / (1000 * 60 * 60))}시간`);
+                const rawEndDate = issue.end_date;
+                const parsedDate = new Date(rawEndDate);
+                
+                console.log(`   📊 원본 DB 데이터: ${rawEndDate}`);
+                console.log(`   📊 JavaScript 파싱: ${parsedDate.toISOString()}`);
+                console.log(`   📊 KST 표시: ${parsedDate.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`);
+                console.log(`   📊 브라우저 로컬: ${parsedDate.toLocaleString('ko-KR')}`);
+                console.log(`   📊 타입: ${typeof rawEndDate}, 값: ${rawEndDate}`);
+                console.log(`   📊 UTC 타임스탬프: ${parsedDate.getTime()}`);
+                console.log('   ---');
             }
         });
         
         res.json({
             success: true,
-            issues: issues.map(issue => ({
-                ...issue,
-                isPopular: Boolean(issue.is_popular),
-                commentCount: parseInt(issue.comment_count) || 0,
-                // 🔍 디버깅을 위한 시간 정보 추가
-                end_date_debug: {
-                    original: issue.end_date,
-                    iso: issue.end_date ? new Date(issue.end_date).toISOString() : null,
-                    utc_timestamp: issue.end_date ? new Date(issue.end_date).getTime() : null
+            issues: issues.map(issue => {
+                // 🇰🇷 시간 데이터를 KST로 변환해서 전송
+                let kstEndDate = null;
+                if (issue.end_date) {
+                    const utcDate = new Date(issue.end_date);
+                    // KST로 변환 (UTC + 9시간)
+                    const kstDate = new Date(utcDate.getTime() + (9 * 60 * 60 * 1000));
+                    kstEndDate = kstDate.toISOString().replace('Z', '+09:00');
                 }
-            }))
+                
+                return {
+                    ...issue,
+                    isPopular: Boolean(issue.is_popular),
+                    commentCount: parseInt(issue.comment_count) || 0,
+                    // 🔍 KST로 변환된 시간 데이터 전송
+                    end_date: kstEndDate,
+                    // 🔍 디버깅을 위한 시간 정보 추가
+                    end_date_debug: {
+                        original_utc: issue.end_date,
+                        converted_kst: kstEndDate,
+                        timestamp: issue.end_date ? new Date(issue.end_date).getTime() : null
+                    }
+                };
+            })
         });
     } catch (error) {
         console.error('이슈 조회 오류:', error);

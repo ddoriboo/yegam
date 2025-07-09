@@ -421,24 +421,27 @@ window.validateEndDates = () => window.endDateValidator.validateVisibleIssues();
 window.getValidationStats = () => window.endDateValidator.getValidationStats();
 window.toggleAutoRefresh = (enabled) => window.endDateValidator.setAutoRefresh(enabled);
 
-// 🔧 KST 기준 시간 함수 - 변환 없이 단순하게!
+// 🔧 KST 데이터를 올바르게 처리하는 함수
 window.getTimeLeft = function(endDate) {
     if (!endDate) return "마감";
     
-    // 🇰🇷 모든 시간을 KST 기준으로 처리 (변환 없음)
+    // 🔍 현재 시간 (KST)
     const now = new Date();
+    
+    // 🔍 백엔드에서 KST로 변환된 데이터 처리
     const future = new Date(endDate);
     
-    // 단순 시간 차이 계산
+    // 시간 차이 계산
     const diff = future.getTime() - now.getTime();
     
-    // 🔍 단순화된 디버깅 로그
-    console.log('🇰🇷 KST 기준 시간 계산:', {
+    // 🔍 상세 디버깅 로그
+    console.log('🔍 KST 기준 시간 계산:', {
         endDate: endDate,
         now: now.toLocaleString('ko-KR'),
         future: future.toLocaleString('ko-KR'),
-        diffHours: (diff / (1000 * 60 * 60)).toFixed(2),
-        diffDays: (diff / (1000 * 60 * 60 * 24)).toFixed(2)
+        diff_ms: diff,
+        diff_hours: (diff / (1000 * 60 * 60)).toFixed(2),
+        diff_days: (diff / (1000 * 60 * 60 * 24)).toFixed(2)
     });
     
     if (diff <= 0) return "마감";
@@ -452,7 +455,7 @@ window.getTimeLeft = function(endDate) {
     else if (hours > 0) result = `${hours}시간 남음`;
     else result = `${minutes}분 남음`;
     
-    console.log('📊 KST 기준 결과:', result);
+    console.log('📊 KST 기준 최종 결과:', result);
     return result;
 };
 
@@ -477,15 +480,34 @@ console.log('🔧 End date validation system initialized');
 
 // 🔧 실시간 시간 테스트 (디버깅용)
 setTimeout(() => {
-    console.log('🧪 시간 계산 테스트:');
-    const testDates = [
-        '2025-07-11T11:00:00.000Z',
-        '2025-07-12T01:00:00.000Z',
-        '2025-07-14T21:00:00.000Z'
+    console.log('🧪 UTC vs KST 시간 처리 테스트:');
+    
+    // 예시: 13일 오전 4시 (KST) = 12일 오후 7시 (UTC)
+    const testCases = [
+        {
+            name: '13일 오전 4시 KST',
+            utc: '2025-07-12T19:00:00.000Z',  // UTC
+            expected_kst: '2025-07-13 04:00'   // KST
+        },
+        {
+            name: '13일 오후 1시 KST',
+            utc: '2025-07-13T04:00:00.000Z',  // UTC
+            expected_kst: '2025-07-13 13:00'   // KST
+        }
     ];
     
-    testDates.forEach(dateStr => {
-        const result = window.getTimeLeft(dateStr);
-        console.log(`📅 ${dateStr} → ${result}`);
+    testCases.forEach(testCase => {
+        const date = new Date(testCase.utc);
+        const kstDisplay = date.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
+        const localDisplay = date.toLocaleString('ko-KR');
+        
+        console.log(`📊 ${testCase.name}:`);
+        console.log(`   UTC 입력: ${testCase.utc}`);
+        console.log(`   예상 KST: ${testCase.expected_kst}`);
+        console.log(`   실제 KST: ${kstDisplay}`);
+        console.log(`   브라우저 로컬: ${localDisplay}`);
+        console.log(`   일치 여부: ${kstDisplay.includes(testCase.expected_kst.split(' ')[1]) ? '✅' : '❌'}`);
+        console.log(`   getTimeLeft 결과: ${window.getTimeLeft(testCase.utc)}`);
+        console.log('   ---');
     });
 }, 2000);
