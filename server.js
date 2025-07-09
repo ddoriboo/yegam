@@ -38,6 +38,10 @@ const { errorHandler } = require('./middleware/errorHandler');
 const visitorTrackingMiddleware = require('./middleware/visitor-tracking');
 const HealthCheck = require('./utils/health-check');
 
+// End Date 보안 시스템 모듈들
+const { recoveryService } = require('./services/end-date-recovery');
+const { aiRestrictions } = require('./middleware/ai-agent-restrictions');
+
 // Passport 설정 로드
 require('./config/passport');
 
@@ -47,8 +51,8 @@ const PORT = envConfig.port || 3000;
 // 헬스체크 인스턴스 생성
 const healthCheck = new HealthCheck();
 
-// 버전 정보 - PostgreSQL 완전 통일 버전
-console.log('🚀 예겜 서버 v2.1 - 보안 및 모니터링 강화 버전');
+// 버전 정보 - End Date 보안 시스템 통합 버전
+console.log('🚀 예겜 서버 v2.2 - End Date 데이터 일관성 보장 시스템');
 
 // Railway 프록시 신뢰 설정 (HTTPS 리다이렉션을 위해 필요)
 app.set('trust proxy', true);

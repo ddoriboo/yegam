@@ -18,6 +18,14 @@ const {
     detectRapidDeadlineChanges
 } = require('../utils/issue-logger');
 const { adminBotBlocker, adminApiProtection } = require('../middleware/adminbot-blocker');
+const {
+    endDateChangeRateLimit,
+    validateEndDateChangePermission,
+    logEndDateChange,
+    requireAdminApprovalForCriticalChanges,
+    blockAIAgents
+} = require('../middleware/end-date-security');
+const EndDateTracker = require('../utils/end-date-tracker');
 
 // ⚠️ 위험한 tempAdminMiddleware 제거됨 - secureAdminMiddleware로 대체됨
 const issueScheduler = require('../services/scheduler');
@@ -99,7 +107,8 @@ router.get('/issues', secureAdminMiddleware, requirePermission('view_issues'), a
 
 // 이슈 생성
 router.post('/issues', 
-    secureAdminMiddleware, 
+    secureAdminMiddleware,
+    blockAIAgents,
     requirePermission('create_issue'),
     rateLimitIssueModifications(),
     logIssueModification('ADMIN_CREATE_ISSUE'),
@@ -114,23 +123,40 @@ router.post('/issues',
             });
         }
         
-        // end_date가 이미 UTC ISO string으로 전달되므로 직접 사용
-        const result = await query(`
-            INSERT INTO issues (title, category, description, image_url, yes_price, end_date, is_popular, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, $6::timestamptz, $7, NOW(), NOW())
-            RETURNING *
-        `, [title, category, description, image_url, yes_price, end_date, is_popular]);
+        // 새 이슈 생성 시에도 DB 세션 컨텍스트 설정
+        const pool = require('../database/connection');
+        const client = await pool.connect();
         
-        const issue = result.rows[0];
+        try {
+            await EndDateTracker.setSessionContext(client, {
+                currentUser: req.user?.username,
+                changeType: 'ADMIN_CREATE',
+                changeReason: 'New issue creation',
+                clientIp: req.ip,
+                userAgent: req.get('User-Agent'),
+                sessionId: req.sessionID
+            });
+            
+            // end_date가 이미 UTC ISO string으로 전달되므로 직접 사용
+            const result = await client.query(`
+                INSERT INTO issues (title, category, description, image_url, yes_price, end_date, is_popular, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6::timestamptz, $7, NOW(), NOW())
+                RETURNING *
+            `, [title, category, description, image_url, yes_price, end_date, is_popular]);
         
-        res.json({
-            success: true,
-            message: '이슈가 성공적으로 생성되었습니다.',
-            issue: {
-                ...issue,
-                isPopular: Boolean(issue.is_popular)
-            }
-        });
+            const issue = result.rows[0];
+            
+            res.json({
+                success: true,
+                message: '이슈가 성공적으로 생성되었습니다.',
+                issue: {
+                    ...issue,
+                    isPopular: Boolean(issue.is_popular)
+                }
+            });
+        } finally {
+            client.release();
+        }
     } catch (error) {
         console.error('이슈 생성 실패:', error);
         res.status(500).json({ success: false, message: '이슈 생성에 실패했습니다.' });
@@ -140,9 +166,14 @@ router.post('/issues',
 // 이슈 수정
 router.put('/issues/:id', 
     secureAdminMiddleware,
+    blockAIAgents,
+    endDateChangeRateLimit,
+    validateEndDateChangePermission,
+    requireAdminApprovalForCriticalChanges,
     rateLimitIssueModifications(),
     validateDeadlineChange(),
     logIssueModification('ADMIN_UPDATE_ISSUE'),
+    logEndDateChange,
     async (req, res) => {
     try {
         const { id } = req.params;
@@ -155,36 +186,56 @@ router.put('/issues/:id',
             });
         }
         
-        // end_date가 이미 UTC ISO string으로 전달되므로 직접 사용
-        const result = await query(`
-            UPDATE issues 
-            SET title = $1, category = $2, description = $3, image_url = $4, 
-                yes_price = $5, end_date = $6::timestamptz, is_popular = $7, 
-                updated_at = NOW()
-            WHERE id = $8
-            RETURNING *
-        `, [title, category, description, image_url, yes_price, end_date, is_popular ? true : false, id]);
+        // end_date 변경 전 DB 세션 컨텍스트 설정
+        const pool = require('../database/connection');
+        const client = await pool.connect();
         
-        if (result.rows.length === 0) {
-            return res.status(404).json({ success: false, message: '이슈를 찾을 수 없습니다.' });
-        }
-        
-        const issue = result.rows[0];
-        
-        // 이슈 수정 로깅
-        logIssueCreation(issue.id, issue.title, issue.end_date, req.user?.id, 'admin', req.ip, 'admin_update');
-        
-        // 빠른 변경 패턴 감지
-        detectRapidDeadlineChanges(issue.id);
-        
-        res.json({
-            success: true,
-            message: '이슈가 성공적으로 수정되었습니다.',
-            issue: {
-                ...issue,
-                isPopular: Boolean(issue.is_popular)
+        try {
+            if (req.endDateContext) {
+                await EndDateTracker.setSessionContext(client, {
+                    currentUser: req.user?.username,
+                    changeType: 'ADMIN_UPDATE',
+                    changeReason: req.body.change_reason || 'Admin modification',
+                    clientIp: req.ip,
+                    userAgent: req.get('User-Agent'),
+                    requestId: req.endDateContext.requestId,
+                    sessionId: req.sessionID
+                });
             }
-        });
+            
+            // end_date가 이미 UTC ISO string으로 전달되므로 직접 사용
+            const result = await client.query(`
+                UPDATE issues 
+                SET title = $1, category = $2, description = $3, image_url = $4, 
+                    yes_price = $5, end_date = $6::timestamptz, is_popular = $7, 
+                    updated_at = NOW()
+                WHERE id = $8
+                RETURNING *
+            `, [title, category, description, image_url, yes_price, end_date, is_popular ? true : false, id]);
+        
+            if (result.rows.length === 0) {
+                return res.status(404).json({ success: false, message: '이슈를 찾을 수 없습니다.' });
+            }
+            
+            const issue = result.rows[0];
+            
+            // 이슈 수정 로깅
+            logIssueCreation(issue.id, issue.title, issue.end_date, req.user?.id, 'admin', req.ip, 'admin_update');
+            
+            // 빠른 변경 패턴 감지
+            detectRapidDeadlineChanges(issue.id);
+            
+            res.json({
+                success: true,
+                message: '이슈가 성공적으로 수정되었습니다.',
+                issue: {
+                    ...issue,
+                    isPopular: Boolean(issue.is_popular)
+                }
+            });
+        } finally {
+            client.release();
+        }
         
     } catch (error) {
         console.error('이슈 수정 실패:', error);

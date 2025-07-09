@@ -6,6 +6,14 @@ const {
     validateDeadlineChange,
     rateLimitIssueModifications
 } = require('../middleware/simple-issue-audit');
+const {
+    endDateChangeRateLimit,
+    validateEndDateChangePermission,
+    logEndDateChange,
+    requireAdminApprovalForCriticalChanges,
+    blockAIAgents
+} = require('../middleware/end-date-security');
+const EndDateTracker = require('../utils/end-date-tracker');
 
 const router = express.Router();
 
