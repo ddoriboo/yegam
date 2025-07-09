@@ -421,25 +421,26 @@ window.validateEndDates = () => window.endDateValidator.validateVisibleIssues();
 window.getValidationStats = () => window.endDateValidator.getValidationStats();
 window.toggleAutoRefresh = (enabled) => window.endDateValidator.setAutoRefresh(enabled);
 
-// 🔧 DB에서 받은 KST 데이터를 올바르게 처리하는 함수
+// 🔧 UTC 시간을 올바르게 KST로 처리하는 함수
 window.getTimeLeft = function(endDate) {
     if (!endDate) return "마감";
     
-    // 🔍 현재 시간 (로컬 시간)
+    // 🔍 현재 로컬 시간 (KST)
     const now = new Date();
     
-    // 🔍 DB에서 받은 KST 데이터를 직접 사용
+    // 🔍 UTC 시간을 파싱 (JavaScript가 자동으로 로컬 시간대로 변환)
     const future = new Date(endDate);
     
     // 시간 차이 계산
     const diff = future.getTime() - now.getTime();
     
-    // 🔍 간단한 디버깅 로그
-    console.log('🔍 시간 계산:', {
-        endDate: endDate,
-        now: now.toLocaleString('ko-KR'),
-        future: future.toLocaleString('ko-KR'),
-        diff_hours: (diff / (1000 * 60 * 60)).toFixed(2)
+    // 🔍 상세 디버깅 로그
+    console.log('🔍 UTC→KST 시간 계산:', {
+        input_utc: endDate,
+        now_kst: now.toLocaleString('ko-KR'),
+        future_kst: future.toLocaleString('ko-KR'),
+        diff_hours: (diff / (1000 * 60 * 60)).toFixed(2),
+        diff_days: (diff / (1000 * 60 * 60 * 24)).toFixed(2)
     });
     
     if (diff <= 0) return "마감";
@@ -453,6 +454,7 @@ window.getTimeLeft = function(endDate) {
     else if (hours > 0) result = `${hours}시간 남음`;
     else result = `${minutes}분 남음`;
     
+    console.log('⏰ 최종 결과:', result);
     return result;
 };
 

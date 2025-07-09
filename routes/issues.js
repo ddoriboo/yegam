@@ -56,18 +56,26 @@ router.get('/', async (req, res) => {
         res.json({
             success: true,
             issues: issues.map(issue => {
-                // 🔧 PostgreSQL에서 이미 KST로 설정된 데이터를 그대로 사용
-                // 더 이상 타임존 변환을 하지 않음 (double conversion 방지)
+                // 🔧 올바른 UTC → KST 변환
+                // DB에서 받은 UTC 시간을 프론트엔드에서 사용할 수 있도록 처리
+                let processedEndDate = issue.end_date;
+                
+                if (issue.end_date) {
+                    // UTC 시간을 받아서 그대로 ISO string으로 전송
+                    // 프론트엔드에서 로컬 시간대에 맞게 변환하도록 함
+                    const utcDate = new Date(issue.end_date);
+                    processedEndDate = utcDate.toISOString();
+                }
+                
                 return {
                     ...issue,
                     isPopular: Boolean(issue.is_popular),
                     commentCount: parseInt(issue.comment_count) || 0,
-                    // 🔍 DB에서 받은 그대로 전송 (이미 KST)
-                    end_date: issue.end_date,
-                    // 🔍 디버깅을 위한 원본 시간 정보
+                    end_date: processedEndDate,
+                    // 🔍 디버깅을 위한 시간 정보
                     end_date_debug: {
-                        original_db: issue.end_date,
-                        type: typeof issue.end_date,
+                        original_utc: issue.end_date,
+                        processed: processedEndDate,
                         timestamp: issue.end_date ? new Date(issue.end_date).getTime() : null
                     }
                 };
