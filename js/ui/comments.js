@@ -406,6 +406,7 @@ async function handleCommentSubmit(form, issueId, parentId = null) {
     
     const submitBtn = form.querySelector('[type="submit"]');
     const originalText = submitBtn.textContent;
+    let responseData = null;
     
     try {
         submitBtn.disabled = true;
@@ -424,9 +425,9 @@ async function handleCommentSubmit(form, issueId, parentId = null) {
             })
         });
         
-        const data = await response.json();
+        responseData = await response.json();
         
-        if (data.success) {
+        if (responseData.success) {
             // 댓글 목록 새로고침
             await loadComments(issueId);
             
@@ -446,7 +447,8 @@ async function handleCommentSubmit(form, issueId, parentId = null) {
             // 성공 메시지
             showNotification('댓글이 작성되었습니다.', 'success');
         } else {
-            throw new Error(data.error || '댓글 작성에 실패했습니다.');
+            const errorMessage = responseData.error || responseData.message || '댓글 작성에 실패했습니다.';
+            throw new Error(errorMessage);
         }
     } catch (error) {
         console.error('댓글 작성 실패:', error);
@@ -454,6 +456,12 @@ async function handleCommentSubmit(form, issueId, parentId = null) {
         
         // 쿨다운 에러인 경우 타이머 시작
         if (error.message.includes('30초에 한 번만 가능')) {
+            // 서버 응답에서 cooldownRemaining 직접 추출
+            if (responseData && responseData.cooldownRemaining) {
+                startCooldownTimer(submitBtn, responseData.cooldownRemaining, originalText);
+                return; // finally 블록 실행 안 함
+            }
+            // 다음으로 메시지에서 시간 추출 시도
             const match = error.message.match(/(\d+)초 후에/);
             if (match) {
                 const remainingTime = parseInt(match[1]);

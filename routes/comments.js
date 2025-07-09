@@ -138,7 +138,10 @@ router.post('/', async (req, res) => {
             if (timeDiff < 30) {
                 const remainingTime = Math.ceil(30 - timeDiff);
                 return res.status(400).json({ 
-                    error: `댓글 작성은 30초에 한 번만 가능합니다. ${remainingTime}초 후에 다시 시도해주세요.` 
+                    success: false,
+                    error: `댓글 작성은 30초에 한 번만 가능합니다. ${remainingTime}초 후에 다시 시도해주세요.`,
+                    message: `댓글 작성은 30초에 한 번만 가능합니다. ${remainingTime}초 후에 다시 시도해주세요.`,
+                    cooldownRemaining: remainingTime
                 });
             }
         }

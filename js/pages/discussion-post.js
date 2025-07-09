@@ -471,6 +471,8 @@ async function submitReply(e) {
         return;
     }
     
+    let responseData = null;
+    
     try {
         e.target.disabled = true;
         e.target.textContent = '작성 중...';
@@ -487,9 +489,9 @@ async function submitReply(e) {
             })
         });
         
-        const data = await response.json();
+        responseData = await response.json();
         
-        if (data.success) {
+        if (responseData.success) {
             // 폼 숨기기 및 초기화
             replyForm.classList.add('hidden');
             textarea.value = '';
@@ -504,7 +506,24 @@ async function submitReply(e) {
                 document.getElementById('comments-count').textContent = currentPost.comment_count;
             }
         } else {
-            alert(data.message || '답글 작성 중 오류가 발생했습니다.');
+            const errorMessage = responseData.error || responseData.message || '답글 작성 중 오류가 발생했습니다.';
+            alert(errorMessage);
+            
+            // 쿨다운 에러인 경우 타이머 시작
+            if (errorMessage.includes('30초에 한 번만 가능')) {
+                // 서버 응답에서 cooldownRemaining 직접 추출
+                if (responseData.cooldownRemaining) {
+                    startCooldownTimer(e.target, responseData.cooldownRemaining, '답글 작성');
+                    return; // finally 블록 실행 안 함
+                }
+                // 다음으로 메시지에서 시간 추출 시도
+                const match = errorMessage.match(/(\d+)초 후에/);
+                if (match) {
+                    const remainingTime = parseInt(match[1]);
+                    startCooldownTimer(e.target, remainingTime, '답글 작성');
+                    return; // finally 블록 실행 안 함
+                }
+            }
         }
         
     } catch (error) {
@@ -602,6 +621,8 @@ async function handleCommentSubmit(e) {
         return;
     }
     
+    let responseData = null;
+    
     try {
         const submitBtn = e.target.querySelector('button[type="submit"]');
         submitBtn.disabled = true;
@@ -616,9 +637,9 @@ async function handleCommentSubmit(e) {
             body: JSON.stringify({ content })
         });
         
-        const data = await response.json();
+        responseData = await response.json();
         
-        if (data.success) {
+        if (responseData.success) {
             // 폼 초기화
             contentTextarea.value = '';
             
@@ -632,11 +653,19 @@ async function handleCommentSubmit(e) {
                 document.getElementById('comments-count').textContent = currentPost.comment_count;
             }
         } else {
-            alert(data.message || '댓글 작성 중 오류가 발생했습니다.');
+            const errorMessage = responseData.error || responseData.message || '댓글 작성 중 오류가 발생했습니다.';
+            alert(errorMessage);
             
             // 쿨다운 에러인 경우 타이머 시작
-            if (data.message && data.message.includes('30초에 한 번만 가능')) {
-                const match = data.message.match(/(\d+)초 후에/);
+            if (errorMessage.includes('30초에 한 번만 가능')) {
+                // 서버 응답에서 cooldownRemaining 직접 추출
+                if (responseData.cooldownRemaining) {
+                    const submitBtn = e.target.querySelector('button[type="submit"]');
+                    startCooldownTimer(submitBtn, responseData.cooldownRemaining, '댓글 작성');
+                    return; // finally 블록 실행 안 함
+                }
+                // 다음으로 메시지에서 시간 추출 시도
+                const match = errorMessage.match(/(\d+)초 후에/);
                 if (match) {
                     const remainingTime = parseInt(match[1]);
                     const submitBtn = e.target.querySelector('button[type="submit"]');
