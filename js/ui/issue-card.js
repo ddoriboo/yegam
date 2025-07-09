@@ -1,7 +1,33 @@
 import * as auth from '../auth.js';
 import * as backend from '../backend.js';
 import { CATEGORY_COLORS, MESSAGES } from '../../config/constants.js';
-import { formatVolume, timeUntil, formatDate, getCategoryImage } from '../../utils/formatters.js';
+import { formatVolume, getCategoryImage } from '../../utils/formatters.js';
+
+// 전역 시간 함수 사용 (일관성 보장)
+const timeUntil = window.getTimeLeft || function(endDate) {
+    if (!endDate) return "마감";
+    const now = new Date();
+    const future = new Date(endDate);
+    const diff = future.getTime() - now.getTime();
+    if (diff <= 0) return "마감";
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+    const minutes = Math.floor((diff / 1000 / 60) % 60);
+    if (days > 0) return `${days}일 남음`;
+    if (hours > 0) return `${hours}시간 남음`;
+    return `${minutes}분 남음`;
+};
+
+const formatDate = window.formatEndDate || function(endDate) {
+    if (!endDate) return '';
+    const d = new Date(endDate);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('ko-KR', {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', hour12: false,
+        timeZone: 'Asia/Seoul'
+    }).replace(/\. /g, '.').replace(/\.$/, '').replace(/ /g, ' ');
+};
 
 export function createIssueCard(issue) {
     const yesPrice = issue.yesPrice;

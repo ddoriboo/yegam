@@ -207,7 +207,8 @@ function getCategoryImage(category) {
     return imageMap[category] || 'https://images.unsplash.com/photo-1604594849809-dfedbc827105?w=500&h=300&fit=crop&auto=format';
 }
 
-module.exports = {
+// ES6 exports for frontend compatibility
+export {
     formatVolume,
     timeUntil,
     formatDate,
@@ -218,3 +219,18 @@ module.exports = {
     debounce,
     getCategoryImage
 };
+
+// CommonJS exports for backend compatibility
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        formatVolume,
+        timeUntil,
+        formatDate,
+        formatCurrency,
+        isValidEmail,
+        validatePassword,
+        sanitizeHTML,
+        debounce,
+        getCategoryImage
+    };
+}
