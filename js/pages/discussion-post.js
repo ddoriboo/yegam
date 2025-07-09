@@ -685,9 +685,12 @@ async function handleCommentSubmit(e) {
     }
 }
 
-// 쿨다운 타이머 함수
+// 쿨다운 타이머 함수 (개선된 버전)
 function startCooldownTimer(button, seconds, originalText) {
     button.disabled = true;
+    
+    // 쿨다운 모달 표시
+    showCooldownModal(`댓글 작성은 30초에 한 번만 가능합니다. ${seconds}초 후에 다시 시도해주세요.`);
     
     const timer = setInterval(() => {
         if (seconds > 0) {
@@ -699,6 +702,100 @@ function startCooldownTimer(button, seconds, originalText) {
             button.textContent = originalText;
         }
     }, 1000);
+}
+
+// 쿨다운 전용 모달 알림
+function showCooldownModal(message) {
+    // 기존 쿨다운 모달 제거
+    const existingModal = document.querySelector('.cooldown-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // 쿨다운 시간 추출
+    const timeMatch = message.match(/(\d+)초/);
+    const cooldownTime = timeMatch ? parseInt(timeMatch[1]) : 30;
+    
+    const modal = document.createElement('div');
+    modal.className = 'cooldown-modal fixed inset-0 flex items-center justify-center transition-all duration-300 opacity-0';
+    modal.style.zIndex = '50002'; // 최상위 레이어
+    modal.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    
+    modal.innerHTML = `
+        <div class="bg-white rounded-xl p-6 max-w-sm mx-4 shadow-2xl transform scale-95 transition-all duration-300">
+            <div class="text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-orange-100 mb-4">
+                    <i data-lucide="clock" class="h-6 w-6 text-orange-600"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">잠시만 기다려주세요</h3>
+                <p class="text-sm text-gray-600 mb-4">
+                    댓글 작성은 <span class="font-semibold text-orange-600">${cooldownTime}초에 한 번씩</span> 가능합니다.
+                </p>
+                <div class="countdown-display bg-orange-50 rounded-lg p-3 mb-4">
+                    <span class="text-2xl font-bold text-orange-600 countdown-number">${cooldownTime}</span>
+                    <span class="text-sm text-orange-600 ml-1">초 후 다시 시도</span>
+                </div>
+                <button class="close-cooldown-modal w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors">
+                    확인
+                </button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Lucide 아이콘 초기화
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
+    
+    // 애니메이션 시작
+    requestAnimationFrame(() => {
+        modal.classList.remove('opacity-0');
+        const content = modal.querySelector('div > div');
+        content.classList.remove('scale-95');
+        content.classList.add('scale-100');
+    });
+    
+    // 카운트다운 타이머
+    let remainingTime = cooldownTime;
+    const countdownNumber = modal.querySelector('.countdown-number');
+    
+    const countdownTimer = setInterval(() => {
+        remainingTime--;
+        if (remainingTime > 0) {
+            countdownNumber.textContent = remainingTime;
+        } else {
+            clearInterval(countdownTimer);
+            countdownNumber.textContent = '0';
+            countdownNumber.parentElement.innerHTML = '<span class="text-green-600 font-medium">이제 댓글을 작성할 수 있습니다!</span>';
+        }
+    }, 1000);
+    
+    // 모달 닫기 이벤트
+    const closeModal = () => {
+        clearInterval(countdownTimer);
+        modal.classList.add('opacity-0');
+        const content = modal.querySelector('div > div');
+        content.classList.add('scale-95');
+        setTimeout(() => {
+            modal.remove();
+        }, 300);
+    };
+    
+    modal.querySelector('.close-cooldown-modal').addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeModal();
+        }
+    });
+    
+    // 자동 닫기 (카운트다운 완료 후 3초)
+    setTimeout(() => {
+        if (document.body.contains(modal)) {
+            closeModal();
+        }
+    }, (cooldownTime + 3) * 1000);
 }
 
 // 상태 표시 함수들
