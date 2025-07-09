@@ -3,6 +3,7 @@ import * as backend from '../backend.js';
 import { MESSAGES } from '../../config/constants.js';
 import { updateCardAfterBet } from './issue-card.js';
 import { updateUserWallet } from './header.js';
+import { forceGamUpdate, verifyAndRetryGamUpdate } from '../utils/dom-updater.js';
 
 export function setupBettingEventListeners() {
     const grid = document.querySelector('#popular-issues-grid, #all-issues-grid');
@@ -45,40 +46,57 @@ async function placeBet(issueId, choice, cardElement) {
     }
 
     try {
+        console.log('🎯 베팅 시작:', { userId: user.id, issueId, choice, amount, currentBalance: user.gam_balance });
+        
         const result = await backend.placeBet(user.id, issueId, choice, amount);
+        
+        console.log('🔄 베팅 API 응답:', result);
 
         if (result.success) {
-            alert(MESSAGES.SUCCESS.BET_PLACED);
+            console.log('✅ 베팅 성공 - 업데이트 시작');
             
-            // 사용자 정보 업데이트
-            const updatedUser = { ...user, gam_balance: result.updatedUser.gam_balance };
+            const newBalance = result.updatedUser.gam_balance;
+            console.log('💰 새로운 GAM 잔액:', newBalance, '(이전:', user.gam_balance, ')');
+            
+            // 1. 업데이트된 사용자 정보 생성
+            const updatedUser = { ...user, gam_balance: newBalance };
+            
+            // 2. 강제 GAM 업데이트 실행 (모든 방법 동원)
+            console.log('🚀 강제 GAM 업데이트 시작...');
+            forceGamUpdate(newBalance, updatedUser);
+            
+            // 3. 기존 업데이트 방법들도 병행 실행 (이중 보장)
             auth.updateUserInSession(updatedUser);
+            localStorage.setItem('yegame-user', JSON.stringify(updatedUser));
             
-            // 카드 UI 업데이트
-            updateCardAfterBet(cardElement, choice, amount);
-            
-            // 전역 사용자 정보도 업데이트 (이 함수가 모든 업데이트를 처리함)
+            // 4. 전역 상태 업데이트
             if (window.updateCurrentUser) {
+                console.log('🔄 전역 사용자 정보 업데이트 호출');
                 window.updateCurrentUser(updatedUser);
-            } else {
-                // fallback: 직접 DOM 업데이트
-                const userCoinsEl = document.getElementById('user-coins');
-                if (userCoinsEl) {
-                    userCoinsEl.textContent = result.updatedUser.gam_balance.toLocaleString();
-                }
-                // header 모듈의 함수 호출
-                updateUserWallet();
             }
             
-            // 추가적인 헤더 강제 업데이트
+            // 5. 헤더 업데이트
+            updateUserWallet(newBalance);
             if (window.forceUpdateHeader) {
+                console.log('🔄 헤더 강제 업데이트 호출');
                 window.forceUpdateHeader();
             }
+            
+            // 6. 카드 UI 업데이트
+            updateCardAfterBet(cardElement, choice, amount);
+            
+            // 7. 검증 및 재시도 (100ms, 300ms, 500ms 후)
+            verifyAndRetryGamUpdate(newBalance, 100);
+            verifyAndRetryGamUpdate(newBalance, 300);
+            verifyAndRetryGamUpdate(newBalance, 500);
+            
+            alert(MESSAGES.SUCCESS.BET_PLACED);
         } else {
+            console.error('❌ 베팅 실패:', result.message);
             alert(`${MESSAGES.ERROR.BETTING_FAILED}: ${result.message}`);
         }
     } catch (error) {
-        console.error('베팅 처리 오류:', error);
+        console.error('💥 베팅 처리 오류:', error);
         alert('베팅 처리 중 오류가 발생했습니다.');
     }
 }

@@ -1,11 +1,44 @@
 import * as auth from '../auth.js';
 
 // 사용자 지갑(GAM 잔액) 업데이트 함수를 export
-export function updateUserWallet() {
-    const userCoinsEl = document.getElementById('user-coins');
-    if (userCoinsEl && auth.isLoggedIn()) {
+export function updateUserWallet(forceBalance = null) {
+    const userCoinsElements = document.querySelectorAll('#user-coins');
+    
+    if (userCoinsElements.length > 0 && auth.isLoggedIn()) {
         const user = auth.getCurrentUser();
-        userCoinsEl.textContent = (user.gam_balance || 0).toLocaleString();
+        const currentBalance = forceBalance !== null ? forceBalance : (user?.gam_balance || 0);
+        
+        console.log('🔄 updateUserWallet 호출:', { 
+            elementCount: userCoinsElements.length, 
+            currentBalance, 
+            forceBalance,
+            user: user?.username 
+        });
+        
+        userCoinsElements.forEach((el, index) => {
+            const oldValue = el.textContent;
+            const newValue = currentBalance.toLocaleString();
+            
+            el.textContent = newValue;
+            
+            console.log(`💰 GAM 업데이트 [${index}]:`, {
+                element: el.id || el.className,
+                oldValue,
+                newValue,
+                changed: oldValue !== newValue
+            });
+        });
+        
+        // 전역 currentUser도 업데이트 (window.currentUser 존재 시)
+        if (window.currentUser && forceBalance !== null) {
+            window.currentUser.gam_balance = forceBalance;
+            console.log('🌐 전역 currentUser GAM 업데이트:', forceBalance);
+        }
+    } else {
+        console.warn('⚠️ updateUserWallet 실패:', { 
+            elementsFound: userCoinsElements.length, 
+            isLoggedIn: auth.isLoggedIn() 
+        });
     }
 }
 

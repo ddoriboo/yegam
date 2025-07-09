@@ -74,8 +74,12 @@ router.post('/', authMiddleware, validateBetRequest, async (req, res) => {
         
         const betId = insertBetResult.rows[0].id;
         
-        // 사용자 GAM 잔액 차감
+        // 사용자 GAM 잔액 차감 및 업데이트된 잔액 조회
         await client.query('UPDATE users SET gam_balance = gam_balance - $1 WHERE id = $2', [amount, userId]);
+        
+        // 업데이트된 사용자 정보 다시 조회 (정확한 잔액 확인)
+        const updatedUserResult = await client.query('SELECT gam_balance FROM users WHERE id = $1', [userId]);
+        const updatedUserBalance = updatedUserResult.rows[0].gam_balance;
         
         // 이슈 볼륨 및 가격 업데이트
         const newYesVolume = choice === 'Yes' ? (issue.yes_volume || 0) + amount : (issue.yes_volume || 0);
@@ -92,6 +96,8 @@ router.post('/', authMiddleware, validateBetRequest, async (req, res) => {
         await client.query('COMMIT');
         client.release();
         
+        console.log(`✅ 베팅 성공 - 사용자 ${userId}, 이전 잔액: ${gamBalance}, 베팅 금액: ${amount}, 현재 잔액: ${updatedUserBalance}`);
+        
         res.json({
             success: true,
             message: '베팅이 성공적으로 완료되었습니다.',
@@ -103,11 +109,17 @@ router.post('/', authMiddleware, validateBetRequest, async (req, res) => {
                 amount
             },
             updatedUser: {
-                gam_balance: gamBalance - amount
+                gam_balance: updatedUserBalance // DB에서 직접 조회한 정확한 잔액
             },
             updatedIssue: {
                 yesPrice: newYesPrice,
                 totalVolume: newTotalVolume
+            },
+            debug: {
+                previousBalance: gamBalance,
+                betAmount: amount,
+                expectedBalance: gamBalance - amount,
+                actualBalance: updatedUserBalance
             }
         });
         

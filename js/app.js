@@ -14,6 +14,11 @@ let userToken = localStorage.getItem('yegame-token');
 // 전역으로 노출
 window.currentUser = currentUser;
 window.updateCurrentUser = (newUserData) => {
+    console.log('🌍 전역 updateCurrentUser 호출:', { 
+        이전: currentUser ? { username: currentUser.username, gam: currentUser.gam_balance } : null,
+        새로운: { username: newUserData.username, gam: newUserData.gam_balance }
+    });
+    
     currentUser = newUserData;
     window.currentUser = currentUser;
     
@@ -24,11 +29,28 @@ window.updateCurrentUser = (newUserData) => {
     updateHeader();
     updateIssueRequestButtons(true);
     
-    // GAM 잔액 표시 직접 업데이트 (fallback)
-    const userCoinsEl = document.getElementById('user-coins');
-    if (userCoinsEl) {
-        userCoinsEl.textContent = (currentUser.gam_balance || 0).toLocaleString();
-    }
+    // 모든 GAM 잔액 표시 요소 즉시 업데이트 (다중 안전장치)
+    const userCoinsElements = document.querySelectorAll('#user-coins');
+    userCoinsElements.forEach((el, index) => {
+        const oldValue = el.textContent;
+        const newValue = (currentUser.gam_balance || 0).toLocaleString();
+        el.textContent = newValue;
+        
+        console.log(`💰 전역 GAM 업데이트 [${index}]:`, {
+            element: el.id || el.className,
+            old: oldValue,
+            new: newValue
+        });
+    });
+    
+    // updateUserWallet도 호출하여 이중 보장
+    import('./ui/header.js').then(header => {
+        if (header.updateUserWallet) {
+            header.updateUserWallet(currentUser.gam_balance);
+        }
+    }).catch(err => console.warn('헤더 모듈 로드 실패:', err));
+    
+    console.log('✅ 전역 사용자 정보 업데이트 완료');
 };
 
 // 이슈 목록 새로고침 함수
@@ -61,21 +83,40 @@ window.refreshIssueList = async () => {
 // 헤더 강제 업데이트 함수 (베팅 후 호출용)
 window.forceUpdateHeader = () => {
     if (currentUser) {
+        console.log('🔄 forceUpdateHeader 호출 - 현재 사용자:', { 
+            username: currentUser.username, 
+            gam: currentUser.gam_balance 
+        });
+        
         // 헤더 전체 업데이트
         updateHeader();
         updateIssueRequestButtons(true);
         
-        // GAM 잔액 표시 강제 업데이트
-        const userCoinsEl = document.getElementById('user-coins');
-        if (userCoinsEl) {
-            userCoinsEl.textContent = (currentUser.gam_balance || 0).toLocaleString();
-        }
+        // 모든 GAM 잔액 표시 요소 강제 업데이트
+        const allUserCoinsElements = document.querySelectorAll('#user-coins, [id*="user-coins"], [class*="user-coins"]');
+        allUserCoinsElements.forEach((el, index) => {
+            const oldValue = el.textContent;
+            const newValue = (currentUser.gam_balance || 0).toLocaleString();
+            el.textContent = newValue;
+            
+            console.log(`🔄 강제 GAM 업데이트 [${index}]:`, {
+                element: el.id || el.className || el.tagName,
+                old: oldValue,
+                new: newValue,
+                changed: oldValue !== newValue
+            });
+        });
         
-        // 모바일 헤더의 GAM 잔액도 업데이트 (있는 경우)
-        const mobileUserCoinsEl = document.querySelector('#mobile-menu #user-coins');
-        if (mobileUserCoinsEl) {
-            mobileUserCoinsEl.textContent = (currentUser.gam_balance || 0).toLocaleString();
-        }
+        // updateUserWallet도 호출 (이중 보장)
+        import('./ui/header.js').then(header => {
+            if (header.updateUserWallet) {
+                header.updateUserWallet(currentUser.gam_balance);
+            }
+        }).catch(err => console.warn('강제 헤더 업데이트 중 모듈 로드 실패:', err));
+        
+        console.log('✅ 강제 헤더 업데이트 완료');
+    } else {
+        console.warn('⚠️ forceUpdateHeader 실패 - currentUser가 null');
     }
 };
 
