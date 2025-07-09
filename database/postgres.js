@@ -15,19 +15,20 @@ const initPostgreSQL = () => {
         
         pool = new Pool({
             connectionString: connectionString,
-            ssl: connectionString.includes('railway') || connectionString.includes('postgres://') ? { rejectUnauthorized: false } : false
+            ssl: connectionString.includes('railway') || connectionString.includes('postgres://') ? { rejectUnauthorized: false } : false,
+            options: '-c timezone=Asia/Seoul'
         });
         
         console.log('✅ PostgreSQL 연결 설정 완료');
         
         // 🇰🇷 PostgreSQL 타임존을 한국시간으로 설정
-        pool.query("SET timezone = 'Asia/Seoul'", (err) => {
-            if (err) {
-                console.warn('⚠️ 타임존 설정 실패:', err.message);
-            } else {
-                console.log('🇰🇷 PostgreSQL 타임존이 Asia/Seoul로 설정되었습니다.');
-            }
-        });
+        //pool.query("SET timezone = 'Asia/Seoul'", (err) => {
+        //    if (err) {
+        //        console.warn('⚠️ 타임존 설정 실패:', err.message);
+        //    } else {
+        //        console.log('🇰🇷 PostgreSQL 타임존이 Asia/Seoul로 설정되었습니다.');
+        //    }
+        //});
         
         // 테이블 생성
         createTables()
