@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>개인정보처리방침 - 예겜</title>
+  <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="icon" href="/favicon.ico" />
+</head>
+
+<body class="bg-white text-gray-900 font-sans">
+  <div id="app-container" class="min-h-screen flex flex-col">
+
+    <!-- Include the same header as index.html -->
+    <!-- You can copy your header block from index.html directly here -->
+
+    <main class="flex-grow container mx-auto px-4 lg:px-8 py-12 prose">
+      <h1>개인정보처리방침</h1>
+
+      <h2>1. 수집하는 개인정보 항목</h2>
+      <p>예겜은 서비스 제공을 위해 다음과 같은 개인정보를 수집할 수 있습니다: 이메일 주소, 사용자 이름, 접속 기록 등.</p>
+
+      <h2>2. 개인정보의 수집 및 이용 목적</h2>
+      <p>수집한 정보는 회원관리, 서비스 개선, 공지사항 전달 등 목적에 한정하여 사용됩니다.</p>
+
+      <h2>3. 개인정보의 보유 및 이용 기간</h2>
+      <p>회원 탈퇴 시까지 또는 관련 법령에 따라 보관 후 파기합니다.</p>
+
+      <h2>4. 개인정보 제3자 제공</h2>
+      <p>원칙적으로 이용자의 개인정보를 외부에 제공하지 않으며, 필요한 경우 사전 동의를 받습니다.</p>
+
+      <p class="text-sm text-gray-500 mt-4">최종 업데이트: 2025년 7월 11일</p>
+
+      <a href="index.html" class="text-blue-600 hover:underline block mt-8">← 홈으로 돌아가기</a>
+    </main>
+
+    <!-- Include the same footer as index.html -->
+    <!-- Copy your footer block from index.html directly here -->
+
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+
+  <script>
+    async function loadVisitorCounts() {
+      try {
+        const [todayRes, totalRes] = await Promise.all([
+          fetch('/api/visitors/stats/today'),
+          fetch('/api/visitors/stats/total')
+        ]);
+        const todayData = await todayRes.json();
+        const totalData = await totalRes.json();
+        if (todayData.success) document.getElementById('today-visitors-count').textContent = todayData.today.unique_visitors.toLocaleString();
+        if (totalData.success) document.getElementById('total-visitors-count').textContent = totalData.total.unique_visitors.toLocaleString();
+      } catch (err) {
+        console.error('방문자 수 로드 오류:', err);
+      }
+    }
+    document.addEventListener('DOMContentLoaded', () => setTimeout(loadVisitorCounts, 1000));
+  </script>
+</body>
+</html>
