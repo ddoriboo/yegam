@@ -5,7 +5,8 @@ const compression = require('compression');
 const path = require('path');
 const session = require('express-session');
 const passport = require('passport');
-require('dotenv').config();
+require('dotenv').config(); // production config
+// require('dotenv').config({ path: '.env.local' }); local config
 
 // 환경변수 검증 (서버 시작 전 실행)
 const EnvironmentValidator = require('./utils/env-validator');
@@ -394,6 +395,10 @@ app.get('/mypage', (req, res) => {
 
 app.get('/tier_guide', (req, res) => {
     res.sendFile(path.join(__dirname, 'tier_guide.html'));
+});
+
+app.get('/terms', (req, res) => {
+    res.sendFile(path.join(__dirname, 'terms.html'));
 });
 
 app.get('/discussions', (req, res) => {
