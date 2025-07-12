@@ -12,18 +12,23 @@ class YegamTutorial {
     }
 
     init() {
-        // 즉시 이벤트 리스너 설정 시도
-        this.setupEventListeners();
+        console.log('🎯 예겜 튜토리얼 시스템 초기화 시작');
         
-        // DOM이 완전히 로드된 후 다시 시도
+        // DOM 준비 상태에 따라 다르게 처리
         if (document.readyState === 'loading') {
+            console.log('📋 DOM 로딩 중 - DOMContentLoaded 이벤트 대기');
             document.addEventListener('DOMContentLoaded', () => {
+                console.log('✅ DOMContentLoaded 이벤트 발생');
                 this.setupEventListeners();
             });
+        } else {
+            console.log('✅ DOM 이미 로드됨 - 즉시 설정');
+            this.setupEventListeners();
         }
         
-        // 조금 더 기다린 후 다시 시도 (다른 스크립트가 DOM을 변경할 수 있음)
+        // 추가 보험으로 지연 실행도 유지
         setTimeout(() => {
+            console.log('🔄 지연 실행으로 이벤트 리스너 재설정');
             this.setupEventListeners();
         }, 1000);
         
@@ -851,7 +856,13 @@ class YegamTutorial {
     }
 
     endTutorial() {
-        console.log('✅ 튜토리얼 종료');
+        console.log('⏭️ 튜토리얼 스킵/종료');
+        this.cleanupTutorial();
+        // 스킵 시에는 완료로 표시하지 않음
+    }
+    
+    completeTutorial() {
+        console.log('✅ 튜토리얼 완료');
         this.cleanupTutorial();
         this.markAsCompleted();
     }

@@ -102,14 +102,10 @@ function addTutorialPromotion() {
             <div class="bubble-arrow"></div>
         `;
         
-        // 데스크톱에서만 표시 (모바일은 공간이 좁음)
-        if (index === 0) {
-            console.log('✨ 첫 번째 링크에 프로모션 버블 추가');
-            link.appendChild(bubble);
-            console.log('📌 프로모션 버블 DOM 추가 완료');
-        } else {
-            console.log('📱 모바일 링크 스킵 (데스크톱 전용)');
-        }
+        // 모든 링크에 표시 (모바일도 포함)
+        console.log(`✨ 링크 [${index}]에 프로모션 버블 추가`);
+        link.appendChild(bubble);
+        console.log('📌 프로모션 버블 DOM 추가 완료');
     });
     
     // 말풍선 스타일 추가
@@ -191,10 +187,15 @@ function addTutorialPromotion() {
                 75% { transform: rotate(10deg); }
             }
             
-            /* 모바일에서는 숨김 */
+            /* 모바일에서는 더 작게 표시 */
             @media (max-width: 768px) {
                 .tutorial-promotion-bubble {
-                    display: none;
+                    top: -50px;
+                    padding: 6px 10px;
+                    font-size: 11px;
+                }
+                .bubble-emoji {
+                    font-size: 16px !important;
                 }
             }
             
