@@ -130,6 +130,14 @@ const createTables = async () => {
             console.log('사용자 테이블 출석 보상 컬럼들 추가 스킵 (이미 존재함)');
         }
         
+        // 튜토리얼 완료 상태 추적 컬럼 추가
+        try {
+            await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS tutorial_completed BOOLEAN DEFAULT FALSE`);
+            console.log('✅ 사용자 테이블 튜토리얼 완료 컬럼 추가 완료');
+        } catch (error) {
+            console.log('사용자 테이블 튜토리얼 완료 컬럼 추가 스킵 (이미 존재함)');
+        }
+        
         // coins 데이터를 gam_balance로 마이그레이션 (데이터 통일)
         try {
             // 1. coins가 있지만 gam_balance가 없거나 0인 경우 동기화

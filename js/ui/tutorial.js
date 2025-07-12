@@ -354,45 +354,15 @@ class YegamTutorial {
             });
         }
 
-        // 실시간 확률 변화 설명
-        steps.push({
-            target: 'body',
-            title: '📈 실시간 확률 변화 읽는 법',
-            content: '🔄 매 베팅마다 실시간 확률 업데이트! 📊 참여자 수와 GAM 규모에 따른 확률 변동! ⚡ 마감 임박시 급격한 변화 관찰! 확률 흐름을 읽고 최적 타이밍을 노리세요!',
-            position: 'center'
-        });
-
-        // 알림 시스템 설명
-        steps.push({
-            target: 'body',
-            title: '🔔 알림 시스템 & 실시간 업데이트',
-            content: '⏰ 이슈 마감 알림! 🎯 베팅 결과 알림! 💰 GAM 변동 알림! 📢 중요 공지사항! 놓치고 싶지 않은 모든 순간을 실시간으로 알려드려요!',
-            position: 'center'
-        });
-
-        // 모바일 최적화 기능 (모바일에서만)
-        if (window.innerWidth <= 768) {
-            steps.push({
-                target: 'body',
-                title: '📱 모바일 최적화 기능 활용법',
-                content: '👆 터치 최적화 인터페이스! 📱 모바일 전용 UI/UX! 🔄 좌우 스크롤 이슈 탐색! 💨 빠른 베팅과 댓글! 언제 어디서나 편리하게 예겜을 즐기세요!',
-                position: 'center'
-            });
-        } else {
-            steps.push({
-                target: 'body',
-                title: '💻 데스크톱 고급 기능들',
-                content: '⌨️ 키보드 단축키 지원! 🖱️ 마우스 호버 상세정보! 📊 확장된 통계 패널! 🖥️ 멀티태스킹 최적화! 데스크톱의 모든 장점을 활용해보세요!',
-                position: 'center'
-            });
-        }
-
-        // 마지막 마무리 단계
+        // 15-17단계 제거됨 (사용자 요청)
+        
+        // 18단계: 마지막 마무리 단계 (완료 시 특별 보상)
         steps.push({
             target: 'body',
             title: '🎉 예겜 마스터 완성!',
-            content: '축하합니다! 이제 예겜의 모든 기능을 마스터했습니다! 🚀 지금 바로 첫 베팅을 해보세요! 💰 GAM을 모으고, 🏆 티어를 올리고, 👥 커뮤니티와 함께 예측의 재미를 만끽하세요!',
-            position: 'center'
+            content: '축하합니다! 예겜의 모든 기능을 완전히 마스터했습니다! 🎁 특별 완주 보상으로 10,000 GAM을 드립니다! 지금 바로 첫 베팅에 도전해보세요!',
+            position: 'center',
+            isLastStep: true
         });
     }
 
@@ -487,7 +457,7 @@ class YegamTutorial {
         if (nextBtn) {
             nextBtn.addEventListener('click', () => {
                 if (this.currentStep === this.totalSteps - 1) {
-                    this.endTutorial();
+                    this.completeTutorialWithReward();
                 } else {
                     this.nextStep();
                 }
@@ -636,8 +606,209 @@ class YegamTutorial {
         this.showStep(0);
     }
 
-    endTutorial() {
-        console.log('✅ 튜토리얼 종료');
+    async completeTutorialWithReward() {
+        console.log('🎉 튜토리얼 완료 - 특별 보상 지급!');
+        
+        // 먼저 일반 종료 처리
+        this.cleanupTutorial();
+        
+        try {
+            // 1. 폭죽 애니메이션 실행
+            this.triggerCelebrationAnimation();
+            
+            // 2. GAM 보상 지급 API 호출
+            const rewardResult = await this.claimTutorialReward();
+            
+            // 3. 특별 완료 메시지 표시
+            setTimeout(() => {
+                this.showTutorialCompletionReward(rewardResult);
+            }, 1500); // 폭죽 애니메이션 후
+            
+        } catch (error) {
+            console.error('튜토리얼 보상 지급 오류:', error);
+            // 오류가 있어도 일반 완료 처리
+            this.markAsCompleted();
+        }
+    }
+
+    triggerCelebrationAnimation() {
+        console.log('🎆 축하 폭죽 애니메이션 실행!');
+        
+        // 폭죽 애니메이션 실행 (coin-explosion.js 사용)
+        if (window.CoinExplosion) {
+            window.CoinExplosion.explode();
+        } else if (typeof CoinExplosion !== 'undefined') {
+            const celebration = new CoinExplosion();
+            celebration.explode();
+        } else {
+            console.warn('폭죽 애니메이션을 찾을 수 없습니다');
+        }
+        
+        // 축하 효과음 (선택사항)
+        this.playSuccessSound();
+    }
+
+    async claimTutorialReward() {
+        const token = localStorage.getItem('yegame-token');
+        if (!token) {
+            throw new Error('로그인이 필요합니다');
+        }
+
+        const response = await fetch('/api/gam/tutorial-reward', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        const result = await response.json();
+        
+        if (!result.success) {
+            throw new Error(result.message || '보상 지급 실패');
+        }
+
+        return result;
+    }
+
+    showTutorialCompletionReward(rewardResult) {
+        const modal = document.createElement('div');
+        modal.className = 'tutorial-completion-reward-modal';
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 60000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: tutorialFadeIn 0.3s ease;
+        `;
+
+        const content = document.createElement('div');
+        content.style.cssText = `
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 24px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            color: white;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+            position: relative;
+            overflow: hidden;
+        `;
+
+        content.innerHTML = `
+            <div style="font-size: 4rem; margin-bottom: 1rem;">🎉</div>
+            <h2 style="font-size: 1.8rem; font-weight: bold; margin-bottom: 1rem; color: #FFD700;">튜토리얼 완주 축하!</h2>
+            <div style="background: rgba(255,255,255,0.2); border-radius: 16px; padding: 1.5rem; margin: 1.5rem 0;">
+                <div style="font-size: 1.1rem; margin-bottom: 0.5rem;">🎁 특별 완주 보상</div>
+                <div style="font-size: 2.5rem; font-weight: bold; color: #FFD700; text-shadow: 2px 2px 4px rgba(0,0,0,0.3);">
+                    +10,000 GAM
+                </div>
+                ${rewardResult.alreadyClaimed ? 
+                    '<div style="color: #ffcccb; font-size: 0.9rem; margin-top: 0.5rem;">※ 이미 지급받은 보상입니다</div>' : 
+                    '<div style="color: #90EE90; font-size: 0.9rem; margin-top: 0.5rem;">✅ 계정에 지급 완료!</div>'
+                }
+            </div>
+            <p style="margin: 1.5rem 0; line-height: 1.6; font-size: 1.1rem;">
+                🚀 이제 예겜의 모든 기능을 마스터했습니다!<br>
+                💰 받은 GAM으로 첫 베팅에 도전해보세요!
+            </p>
+            <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem;">
+                <button id="start-betting-btn" style="
+                    background: linear-gradient(135deg, #FFD700, #FFA500);
+                    color: #333;
+                    border: none;
+                    padding: 12px 24px;
+                    border-radius: 12px;
+                    font-weight: bold;
+                    font-size: 1rem;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    box-shadow: 0 4px 15px rgba(255,215,0,0.3);
+                ">🎯 지금 베팅하기</button>
+                <button id="close-reward-modal" style="
+                    background: rgba(255,255,255,0.2);
+                    color: white;
+                    border: 1px solid rgba(255,255,255,0.3);
+                    padding: 12px 24px;
+                    border-radius: 12px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                ">나중에 하기</button>
+            </div>
+        `;
+
+        modal.appendChild(content);
+        document.body.appendChild(modal);
+
+        // 버튼 이벤트 리스너
+        modal.querySelector('#start-betting-btn').addEventListener('click', () => {
+            document.body.removeChild(modal);
+            this.highlightFirstBettingOpportunity();
+        });
+
+        modal.querySelector('#close-reward-modal').addEventListener('click', () => {
+            document.body.removeChild(modal);
+            this.markAsCompleted();
+        });
+
+        // 모달 외부 클릭 시 닫기
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                document.body.removeChild(modal);
+                this.markAsCompleted();
+            }
+        });
+
+        // 사용자 정보 업데이트 (GAM 잔액 반영)
+        if (window.updateCurrentUser && rewardResult.user) {
+            window.updateCurrentUser(rewardResult.user);
+        }
+    }
+
+    highlightFirstBettingOpportunity() {
+        // 첫 번째 베팅 버튼을 찾아서 하이라이트
+        const firstBetButton = document.querySelector('.bet-btn');
+        if (firstBetButton) {
+            // 해당 이슈 카드로 스크롤
+            firstBetButton.closest('.issue-card')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // 잠시 하이라이트
+            setTimeout(() => {
+                firstBetButton.style.boxShadow = '0 0 0 4px rgba(255, 215, 0, 0.8)';
+                firstBetButton.style.transform = 'scale(1.05)';
+                
+                setTimeout(() => {
+                    firstBetButton.style.boxShadow = '';
+                    firstBetButton.style.transform = '';
+                }, 2000);
+            }, 500);
+        }
+        
+        this.markAsCompleted();
+    }
+
+    playSuccessSound() {
+        // 성공 효과음 재생 (선택사항)
+        try {
+            const audio = new Audio();
+            audio.src = 'data:audio/wav;base64,UklGRnoGAABXQVZFZm10IAAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+LvxnwgBSB+ze/eizEIGGS57+OZRQ0LTKXh7bllHgg2jdXzzn0vBSJ7x+7ejz8JFFyy5+mrWBELQ5zd7Mp4JAUff83u3Y0yBxhiuOvjnEIQC0ml4Oy9aB4INozU8tGAMgUie8bu3Y4+CRRaseTqrFoTC0CY2+bJdyIGHXvM7duNMQcYYrjq45xADAxKpd/ovWgeBzWP0vHSgzYEIHfH7d2QOwkUXLDj6qxZEwpCl9jrzZpIUgZGnNzi';
+            audio.volume = 0.3;
+            audio.play().catch(() => {}); // 실패해도 무시
+        } catch (error) {
+            // 효과음 재생 실패는 무시
+        }
+    }
+
+    cleanupTutorial() {
         this.isRunning = false;
         
         // 오버레이 제거
@@ -666,8 +837,11 @@ class YegamTutorial {
         // 세션 스토리지 정리
         sessionStorage.removeItem('tutorial-mode');
         sessionStorage.removeItem('tutorial-step');
-        
-        // 완료 표시
+    }
+
+    endTutorial() {
+        console.log('✅ 튜토리얼 종료');
+        this.cleanupTutorial();
         this.markAsCompleted();
     }
 
@@ -740,6 +914,11 @@ class YegamTutorial {
                 0%, 20%, 50%, 80%, 100% { transform: translateX(-50%) translateY(0); }
                 40% { transform: translateX(-50%) translateY(-10px); }
                 60% { transform: translateX(-50%) translateY(-5px); }
+            }
+            
+            @keyframes tutorialFadeIn {
+                from { opacity: 0; transform: scale(0.9); }
+                to { opacity: 1; transform: scale(1); }
             }
         `;
         document.head.appendChild(style);

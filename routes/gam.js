@@ -171,6 +171,83 @@ router.post('/check-achievements/:userId', async (req, res) => {
     }
 });
 
+// 튜토리얼 완료 보상 받기 (1회 한정)
+router.post('/tutorial-reward', authMiddleware, async (req, res) => {
+    const userId = req.user.id;
+    
+    try {
+        const { query } = require('../database/postgres');
+        
+        // 사용자 정보 조회 (튜토리얼 완료 여부 확인)
+        const userResult = await query(
+            'SELECT id, username, email, gam_balance, tutorial_completed FROM users WHERE id = $1',
+            [userId]
+        );
+        
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: '사용자를 찾을 수 없습니다.'
+            });
+        }
+        
+        const user = userResult.rows[0];
+        
+        // 이미 튜토리얼 보상을 받았는지 확인
+        if (user.tutorial_completed) {
+            return res.json({
+                success: true,
+                message: '이미 튜토리얼 보상을 받으셨습니다.',
+                alreadyClaimed: true,
+                user: {
+                    id: user.id,
+                    username: user.username,
+                    email: user.email,
+                    gam_balance: user.gam_balance
+                }
+            });
+        }
+        
+        // 10,000 GAM 지급
+        const rewardAmount = 10000;
+        const newBalance = user.gam_balance + rewardAmount;
+        
+        // 사용자 GAM 잔액 업데이트 및 튜토리얼 완료 플래그 설정
+        await query(
+            'UPDATE users SET gam_balance = $1, tutorial_completed = true, updated_at = NOW() WHERE id = $2',
+            [newBalance, userId]
+        );
+        
+        // GAM 거래 내역 기록
+        await query(`
+            INSERT INTO gam_transactions (user_id, type, category, amount, description, reference_id)
+            VALUES ($1, 'earn', 'tutorial_reward', $2, '튜토리얼 완주 보상', $1)
+        `, [userId, rewardAmount]);
+        
+        console.log(`✅ 튜토리얼 보상 지급: 사용자 ${userId}에게 ${rewardAmount} GAM 지급`);
+        
+        res.json({
+            success: true,
+            message: `축하합니다! 튜토리얼 완주 보상 ${rewardAmount.toLocaleString()} GAM을 받으셨습니다!`,
+            alreadyClaimed: false,
+            rewardAmount,
+            user: {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                gam_balance: newBalance
+            }
+        });
+        
+    } catch (error) {
+        console.error('튜토리얼 보상 지급 실패:', error);
+        res.status(500).json({
+            success: false,
+            message: '튜토리얼 보상 지급에 실패했습니다. 잠시 후 다시 시도해주세요.'
+        });
+    }
+});
+
 // 감 통계 조회
 router.get('/stats/:userId', async (req, res) => {
     const { userId } = req.params;
