@@ -550,6 +550,12 @@ class YegamTutorial {
     }
 
     showStep(stepIndex) {
+        // 튜토리얼이 중단된 경우 더 이상 진행하지 않음
+        if (!this.isRunning) {
+            console.log('⏭️ 튜토리얼이 중단됨 - showStep 중지');
+            return;
+        }
+        
         const step = this.steps[stepIndex];
         if (!step) return;
 
@@ -575,12 +581,24 @@ class YegamTutorial {
     }
 
     nextStep() {
+        // 튜토리얼이 중단된 경우 더 이상 진행하지 않음
+        if (!this.isRunning) {
+            console.log('⏭️ 튜토리얼이 중단됨 - nextStep 중지');
+            return;
+        }
+        
         if (this.currentStep < this.totalSteps - 1) {
             this.showStep(this.currentStep + 1);
         }
     }
 
     prevStep() {
+        // 튜토리얼이 중단된 경우 더 이상 진행하지 않음
+        if (!this.isRunning) {
+            console.log('⏭️ 튜토리얼이 중단됨 - prevStep 중지');
+            return;
+        }
+        
         if (this.currentStep > 0) {
             this.showStep(this.currentStep - 1);
         }
@@ -588,6 +606,15 @@ class YegamTutorial {
 
     startInteractiveTutorial() {
         console.log('🎮 인터랙티브 튜토리얼 시작');
+        
+        // 튜토리얼 실행 플래그 설정
+        this.isRunning = true;
+        
+        // 튜토리얼이 중단된 경우 더 이상 진행하지 않음
+        if (!this.isRunning) {
+            console.log('⏭️ 튜토리얼이 중단됨 - startInteractiveTutorial 중지');
+            return;
+        }
         
         // 현재 페이지가 about.html이면 홈페이지로 이동
         if (window.location.pathname.includes('about.html')) {
@@ -856,9 +883,59 @@ class YegamTutorial {
     }
 
     endTutorial() {
-        console.log('⏭️ 튜토리얼 스킵/종료');
-        this.cleanupTutorial();
+        console.log('⏭️ 튜토리얼 스킵/종료 - 완전 정리');
+        
+        // 즉시 실행 중 플래그 false로 설정
+        this.isRunning = false;
+        
+        // 모든 튜토리얼 요소 강제 제거
+        this.forceCleanupAll();
+        
         // 스킵 시에는 완료로 표시하지 않음
+        console.log('✅ 튜토리얼 완전 종료됨');
+    }
+    
+    forceCleanupAll() {
+        console.log('🧹 모든 튜토리얼 요소 강제 정리');
+        
+        // 기본 정리
+        this.cleanupTutorial();
+        
+        // 모든 튜토리얼 관련 모달 강제 제거
+        const tutorialModals = [
+            '.tutorial-welcome-modal',
+            '.tutorial-overlay',
+            '.tutorial-tooltip',
+            '.tutorial-spotlight',
+            '.tutorial-completion-notification'
+        ];
+        
+        tutorialModals.forEach(selector => {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(el => {
+                try {
+                    el.remove();
+                    console.log(`🗑️ 제거됨: ${selector}`);
+                } catch (error) {
+                    console.warn(`제거 실패: ${selector}`, error);
+                }
+            });
+        });
+        
+        // 모든 하이라이트 제거
+        document.querySelectorAll('.tutorial-highlight').forEach(el => {
+            el.classList.remove('tutorial-highlight');
+        });
+        
+        // 세션 스토리지 완전 정리
+        sessionStorage.removeItem('tutorial-mode');
+        sessionStorage.removeItem('tutorial-step');
+        
+        // 스텝 리셋
+        this.currentStep = 0;
+        this.totalSteps = 0;
+        
+        console.log('✅ 강제 정리 완료');
     }
     
     completeTutorial() {
@@ -1068,18 +1145,7 @@ class YegamTutorial {
     markAsCompleted() {
         localStorage.setItem(this.storageKey, 'true');
         this.showCompletionMessage();
-        
-        // 헤더의 튜토리얼 프로모션 말풍선 제거
-        this.removeTutorialPromotionBubbles();
-    }
-
-    removeTutorialPromotionBubbles() {
-        // 모든 튜토리얼 프로모션 말풍선 제거
-        const bubbles = document.querySelectorAll('.tutorial-promotion-bubble');
-        bubbles.forEach(bubble => {
-            bubble.remove();
-        });
-        console.log('🗑️ 튜토리얼 프로모션 말풍선 제거됨');
+        // 프로모션 말풍선 기능 제거됨
     }
 
     showCompletionMessage() {
@@ -1198,11 +1264,13 @@ function checkAndResumeTutorial() {
     const tutorialStep = sessionStorage.getItem('tutorial-step');
     
     if (tutorialMode === 'true' && window.yegamTutorial) {
-        console.log('🔄 튜토리얼 모드 감지 - 재개 중...');
+        console.log('🔄 튜토리얼 모드 감지 - 재개 가능 여부 확인 중...');
         
         // 약간의 지연 후 튜토리얼 재개 (페이지 렌더링 완료 대기)
         setTimeout(() => {
+            // 튜토리얼이 이미 실행 중이거나 사용자가 의도적으로 종료한 경우 재개하지 않음
             if (window.yegamTutorial && !window.yegamTutorial.isRunning) {
+                console.log('✅ 튜토리얼 재개 중...');
                 const step = parseInt(tutorialStep) || 0;
                 window.yegamTutorial.currentStep = step;
                 window.yegamTutorial.startTutorial();
@@ -1210,8 +1278,20 @@ function checkAndResumeTutorial() {
                 // 플래그 제거
                 sessionStorage.removeItem('tutorial-mode');
                 sessionStorage.removeItem('tutorial-step');
+            } else if (window.yegamTutorial && window.yegamTutorial.isRunning) {
+                console.log('⚠️ 튜토리얼이 이미 실행 중이므로 재개하지 않음');
+                // 플래그만 제거
+                sessionStorage.removeItem('tutorial-mode');
+                sessionStorage.removeItem('tutorial-step');
+            } else {
+                console.log('❌ 튜토리얼 재개 조건 불충족');
             }
         }, 1000);
+    } else if (tutorialMode === 'true') {
+        console.log('⚠️ 튜토리얼 모드 플래그 발견하지만 yegamTutorial 객체 없음 - 플래그 정리');
+        // 오래된 플래그 정리
+        sessionStorage.removeItem('tutorial-mode');
+        sessionStorage.removeItem('tutorial-step');
     }
 }
 

@@ -312,46 +312,7 @@
                 console.error('❌ 튜토리얼 시스템 초기화 실패');
             }
             
-            // 프로모션 버블 강제 표시 테스트
-            setTimeout(() => {
-                console.log('🎁 프로모션 버블 강제 표시 테스트...');
-                const aboutLinks = document.querySelectorAll('a[href="about.html"]');
-                console.log('🔍 About 링크 발견:', aboutLinks.length);
-                
-                if (aboutLinks.length > 0) {
-                    // 임시로 강제 표시
-                    aboutLinks.forEach((link, index) => {
-                        if (!link.querySelector('.tutorial-promotion-bubble')) {
-                            link.style.position = 'relative';
-                            const testBubble = document.createElement('div');
-                            testBubble.className = 'tutorial-promotion-bubble';
-                            testBubble.innerHTML = `
-                                <div class="bubble-content">
-                                    <span class="bubble-emoji">🎁</span>
-                                    <span class="bubble-text">테스트 버블!</span>
-                                </div>
-                                <div class="bubble-arrow"></div>
-                            `;
-                            testBubble.style.cssText = `
-                                position: absolute;
-                                top: -65px;
-                                left: 50%;
-                                transform: translateX(-50%);
-                                background: linear-gradient(135deg, #3b82f6, #2563eb);
-                                color: white;
-                                padding: 8px 12px;
-                                border-radius: 12px;
-                                font-size: 12px;
-                                z-index: 1000;
-                            `;
-                            link.appendChild(testBubble);
-                            console.log(`✅ 테스트 버블 추가됨 [${index}]`);
-                        }
-                    });
-                } else {
-                    console.warn('❌ About 링크를 찾을 수 없음');
-                }
-            }, 2000);
+            // 프로모션 버블 기능 제거됨 (사용자 요청)
         }, 500);
     });
     </script>
