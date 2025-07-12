@@ -155,14 +155,25 @@ class MinigameBase {
     }
     
     updateBalanceDisplay() {
-        const balanceElement = this.gameContainer?.querySelector('.balance-amount');
+        // 모달 내 잔액 업데이트 (Bustabit 모달의 경우)
+        const balanceElement = document.getElementById('user-balance');
         if (balanceElement) {
-            balanceElement.textContent = this.userBalance.toLocaleString();
+            balanceElement.textContent = GAMFormatter.format(this.userBalance);
+            console.log(`💰 모달 잔액 업데이트: ${this.userBalance} GAM`);
+        }
+        
+        // 기본 게임 컨테이너 잔액 업데이트
+        const containerBalanceElement = this.gameContainer?.querySelector('.balance-amount');
+        if (containerBalanceElement) {
+            containerBalanceElement.textContent = this.userBalance.toLocaleString();
         }
         
         // 헤더의 GAM 잔액도 업데이트
         if (window.updateUserWallet) {
             window.updateUserWallet(this.userBalance);
+            console.log(`📱 헤더 GAM 잔액 업데이트: ${this.userBalance} GAM`);
+        } else {
+            console.warn('⚠️ window.updateUserWallet 함수를 찾을 수 없습니다');
         }
     }
     

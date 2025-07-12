@@ -66,9 +66,12 @@ router.post('/bet', authMiddleware, async (req, res) => {
         }
         
         // GAM 차감 처리
+        console.log(`💸 베팅 처리 시작: 사용자 ${userId}, 금액 ${betAmount} GAM`);
+        
         const { query } = require('../../database/postgres');
         
         await query('BEGIN');
+        console.log('🔄 트랜잭션 시작');
         
         try {
             // 사용자 잔액 확인 및 잠금
@@ -77,8 +80,11 @@ router.post('/bet', authMiddleware, async (req, res) => {
                 [userId]
             );
             
+            console.log(`👤 사용자 조회 결과:`, userResult.rows);
+            
             if (userResult.rows.length === 0) {
                 await query('ROLLBACK');
+                console.log('❌ 사용자를 찾을 수 없음');
                 return res.status(404).json({
                     success: false,
                     message: '사용자를 찾을 수 없습니다'
@@ -86,10 +92,12 @@ router.post('/bet', authMiddleware, async (req, res) => {
             }
             
             const user = userResult.rows[0];
+            console.log(`💰 현재 GAM 잔액: ${user.gam_balance} GAM`);
             
             // 잔액 확인
             if (user.gam_balance < betAmount) {
                 await query('ROLLBACK');
+                console.log(`❌ GAM 부족: 필요 ${betAmount}, 보유 ${user.gam_balance}`);
                 return res.status(400).json({
                     success: false,
                     message: '보유 GAM이 부족합니다'
@@ -99,18 +107,23 @@ router.post('/bet', authMiddleware, async (req, res) => {
             // 게임 엔진에 베팅 등록
             const engine = getBustabitEngine();
             const betResult = engine.placeBet(userId, username, betAmount);
+            console.log(`🎮 게임 엔진 베팅 결과:`, betResult);
             
             if (!betResult.success) {
                 await query('ROLLBACK');
+                console.log(`❌ 게임 엔진 베팅 실패: ${betResult.message}`);
                 return res.json(betResult);
             }
             
             // GAM 차감
             const newBalance = user.gam_balance - betAmount;
+            console.log(`💰 GAM 차감: ${user.gam_balance} → ${newBalance}`);
+            
             await query(
                 'UPDATE users SET gam_balance = $1 WHERE id = $2',
                 [newBalance, userId]
             );
+            console.log('✅ 사용자 GAM 잔액 업데이트 완료');
             
             // 거래 기록
             await query(
@@ -126,8 +139,10 @@ router.post('/bet', authMiddleware, async (req, res) => {
                     JSON.stringify({ gameType: 'bustabit', betAmount })
                 ]
             );
+            console.log('✅ GAM 거래 기록 완료');
             
             await query('COMMIT');
+            console.log('✅ 트랜잭션 커밋 완료');
             
             console.log(`✅ Bustabit 베팅 성공: ${username} - ${betAmount} GAM`);
             
@@ -158,11 +173,15 @@ router.post('/cashout', authMiddleware, async (req, res) => {
     const username = req.user.username;
     
     try {
+        console.log(`💰 캐시아웃 처리 시작: 사용자 ${userId}`);
+        
         // 게임 엔진에서 캐시아웃 처리
         const engine = getBustabitEngine();
         const cashoutResult = engine.cashOut(userId);
+        console.log(`🎮 게임 엔진 캐시아웃 결과:`, cashoutResult);
         
         if (!cashoutResult.success) {
+            console.log(`❌ 게임 엔진 캐시아웃 실패: ${cashoutResult.message}`);
             return res.json(cashoutResult);
         }
         
@@ -170,6 +189,7 @@ router.post('/cashout', authMiddleware, async (req, res) => {
         const { query } = require('../../database/postgres');
         
         await query('BEGIN');
+        console.log('🔄 캐시아웃 트랜잭션 시작');
         
         try {
             // 사용자 잔액 업데이트

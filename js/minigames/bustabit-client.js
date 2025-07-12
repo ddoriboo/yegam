@@ -105,11 +105,22 @@ class BustabitClient extends MinigameBase {
             clearInterval(this.updateInterval);
         }
         
+        if (this.renderInterval) {
+            clearInterval(this.renderInterval);
+        }
+        
+        // 게임 상태는 200ms마다, 렌더링은 16ms마다 (60fps)
         this.updateInterval = setInterval(() => {
             this.updateGameState();
-        }, 200); // 200ms마다 업데이트
+        }, 200);
         
-        console.log('🔄 게임 상태 폴링 시작');
+        this.renderInterval = setInterval(() => {
+            if (this.gameState === 'playing') {
+                this.drawGraph(); // 부드러운 그래프 업데이트
+            }
+        }, 16); // 60fps
+        
+        console.log('🔄 게임 상태 폴링 및 렌더링 시작');
     }
     
     // 게임 상태 업데이트
@@ -191,13 +202,17 @@ class BustabitClient extends MinigameBase {
     onPlayingPhase() {
         this.disableBetting();
         
+        console.log(`🎮 플레이 단계 진입: hasBet=${this.hasBet}, hasCashedOut=${this.hasCashedOut}`);
+        
         // 베팅한 사용자만 캐시아웃 가능
         if (this.hasBet && !this.hasCashedOut) {
             this.enableCashout();
             this.showNotification('🚀 게임 시작! 캐시아웃 타이밍을 잡아보세요!', 'success');
+            console.log('✅ 캐시아웃 버튼 활성화됨');
         } else {
             this.disableCashout();
             this.showNotification('🚀 게임 시작! 다음 라운드에 베팅해보세요!', 'info');
+            console.log('❌ 캐시아웃 버튼 비활성화 상태 유지');
         }
     }
     
@@ -265,6 +280,11 @@ class BustabitClient extends MinigameBase {
                 this.updateBalanceDisplay();
                 this.updateCurrentBetDisplay();
                 this.disableBetting();
+                
+                // 게임이 이미 시작되었다면 즉시 캐시아웃 활성화
+                if (this.gameState === 'playing') {
+                    this.enableCashout();
+                }
                 
                 this.showSuccess(`${amount} GAM 베팅 완료!`);
                 console.log(`✅ 베팅 성공: ${amount} GAM`);
@@ -657,22 +677,48 @@ class BustabitClient extends MinigameBase {
     // 버튼 상태 관리
     enableBetting() {
         const betBtn = document.getElementById('bet-btn');
-        if (betBtn) betBtn.disabled = false;
+        if (betBtn) {
+            betBtn.disabled = false;
+            betBtn.style.opacity = '1';
+            betBtn.style.cursor = 'pointer';
+            console.log('✅ 베팅 버튼 활성화');
+        } else {
+            console.error('❌ 베팅 버튼을 찾을 수 없음');
+        }
     }
     
     disableBetting() {
         const betBtn = document.getElementById('bet-btn');
-        if (betBtn) betBtn.disabled = true;
+        if (betBtn) {
+            betBtn.disabled = true;
+            betBtn.style.opacity = '0.5';
+            betBtn.style.cursor = 'not-allowed';
+            console.log('🚫 베팅 버튼 비활성화');
+        }
     }
     
     enableCashout() {
         const cashoutBtn = document.getElementById('cashout-btn');
-        if (cashoutBtn) cashoutBtn.disabled = false;
+        if (cashoutBtn) {
+            cashoutBtn.disabled = false;
+            cashoutBtn.style.opacity = '1';
+            cashoutBtn.style.cursor = 'pointer';
+            cashoutBtn.style.backgroundColor = '#10b981';
+            console.log('✅ 캐시아웃 버튼 활성화');
+        } else {
+            console.error('❌ 캐시아웃 버튼을 찾을 수 없음');
+        }
     }
     
     disableCashout() {
         const cashoutBtn = document.getElementById('cashout-btn');
-        if (cashoutBtn) cashoutBtn.disabled = true;
+        if (cashoutBtn) {
+            cashoutBtn.disabled = true;
+            cashoutBtn.style.opacity = '0.5';
+            cashoutBtn.style.cursor = 'not-allowed';
+            cashoutBtn.style.backgroundColor = '#6b7280';
+            console.log('🚫 캐시아웃 버튼 비활성화');
+        }
     }
     
     disableAllButtons() {
@@ -693,6 +739,11 @@ class BustabitClient extends MinigameBase {
         if (this.updateInterval) {
             clearInterval(this.updateInterval);
             this.updateInterval = null;
+        }
+        
+        if (this.renderInterval) {
+            clearInterval(this.renderInterval);
+            this.renderInterval = null;
         }
         
         super.destroy();
