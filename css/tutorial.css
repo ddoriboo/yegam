@@ -1,0 +1,339 @@
+/* 예겜 온보딩 튜토리얼 스타일 */
+
+/* Driver.js 커스터마이징 */
+.driver-popover {
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(16px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+    color: #1f2937 !important;
+    max-width: 360px !important;
+}
+
+.driver-popover-title {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-size: 1.125rem !important;
+    font-weight: 600 !important;
+    color: #111827 !important;
+    margin-bottom: 0.5rem !important;
+    line-height: 1.4 !important;
+}
+
+.driver-popover-description {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-size: 0.875rem !important;
+    color: #4b5563 !important;
+    line-height: 1.6 !important;
+    margin-bottom: 1rem !important;
+}
+
+/* 버튼 스타일링 */
+.driver-popover-footer {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 0.75rem !important;
+    margin-top: 1rem !important;
+}
+
+.driver-popover-next-btn,
+.driver-popover-prev-btn,
+.driver-popover-close-btn {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    padding: 0.5rem 1rem !important;
+    border-radius: 8px !important;
+    border: none !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+}
+
+.driver-popover-next-btn {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
+    color: white !important;
+}
+
+.driver-popover-next-btn:hover {
+    background: linear-gradient(135deg, #2563eb, #1e40af) !important;
+    transform: translateY(-1px) !important;
+}
+
+.driver-popover-prev-btn {
+    background: #f3f4f6 !important;
+    color: #6b7280 !important;
+}
+
+.driver-popover-prev-btn:hover {
+    background: #e5e7eb !important;
+    color: #4b5563 !important;
+}
+
+.driver-popover-close-btn {
+    background: transparent !important;
+    color: #9ca3af !important;
+    padding: 0.25rem !important;
+    min-width: auto !important;
+}
+
+.driver-popover-close-btn:hover {
+    color: #6b7280 !important;
+    background: #f3f4f6 !important;
+}
+
+/* 진행률 표시 */
+.driver-popover-progress {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+    font-size: 0.75rem !important;
+    color: #6b7280 !important;
+    margin-bottom: 0.75rem !important;
+}
+
+.driver-popover-progress-bar {
+    flex: 1 !important;
+    height: 3px !important;
+    background: #e5e7eb !important;
+    border-radius: 2px !important;
+    overflow: hidden !important;
+}
+
+.driver-popover-progress-fill {
+    height: 100% !important;
+    background: linear-gradient(90deg, #3b82f6, #1d4ed8) !important;
+    border-radius: 2px !important;
+    transition: width 0.3s ease !important;
+}
+
+/* 하이라이트 스타일 */
+.driver-highlighted-element {
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5) !important;
+    border-radius: 8px !important;
+    transition: all 0.3s ease !important;
+}
+
+/* 오버레이 스타일 */
+.driver-overlay {
+    background: rgba(0, 0, 0, 0.6) !important;
+    backdrop-filter: blur(2px) !important;
+}
+
+/* 튜토리얼 시작 버튼 */
+.tutorial-start-btn {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 56px;
+    height: 56px;
+    cursor: pointer;
+    box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+    transition: all 0.3s ease;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.tutorial-start-btn:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 15px 35px rgba(59, 130, 246, 0.4);
+}
+
+.tutorial-start-btn.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(20px);
+}
+
+/* 튜토리얼 환영 모달 */
+.tutorial-welcome-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50000;
+    padding: 1rem;
+}
+
+.tutorial-welcome-content {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 2rem;
+    max-width: 480px;
+    width: 100%;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    text-align: center;
+    animation: modalSlideIn 0.4s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.tutorial-welcome-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #111827;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.tutorial-welcome-subtitle {
+    font-size: 1rem;
+    color: #6b7280;
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+}
+
+.tutorial-welcome-features {
+    text-align: left;
+    margin: 1.5rem 0;
+    padding: 1rem;
+    background: rgba(59, 130, 246, 0.05);
+    border-radius: 12px;
+    border: 1px solid rgba(59, 130, 246, 0.1);
+}
+
+.tutorial-welcome-feature {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.875rem;
+    color: #4b5563;
+}
+
+.tutorial-welcome-feature:last-child {
+    margin-bottom: 0;
+}
+
+.tutorial-welcome-feature-icon {
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+}
+
+.tutorial-welcome-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+.tutorial-btn {
+    flex: 1;
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 10px;
+    font-weight: 500;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+.tutorial-btn-primary {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: white;
+}
+
+.tutorial-btn-primary:hover {
+    background: linear-gradient(135deg, #2563eb, #1e40af);
+    transform: translateY(-1px);
+}
+
+.tutorial-btn-secondary {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.tutorial-btn-secondary:hover {
+    background: #e5e7eb;
+    color: #4b5563;
+}
+
+/* 모바일 최적화 */
+@media (max-width: 768px) {
+    .driver-popover {
+        max-width: calc(100vw - 2rem) !important;
+        margin: 1rem !important;
+    }
+    
+    .tutorial-start-btn {
+        bottom: 1rem;
+        right: 1rem;
+        width: 48px;
+        height: 48px;
+        font-size: 1rem;
+    }
+    
+    .tutorial-welcome-content {
+        margin: 1rem;
+        padding: 1.5rem;
+    }
+    
+    .tutorial-welcome-title {
+        font-size: 1.25rem;
+    }
+    
+    .tutorial-welcome-actions {
+        flex-direction: column;
+    }
+}
+
+/* 접근성 개선 */
+@media (prefers-reduced-motion: reduce) {
+    .driver-popover,
+    .tutorial-start-btn,
+    .tutorial-welcome-content {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* 다크모드 지원 (향후 확장용) */
+@media (prefers-color-scheme: dark) {
+    .driver-popover {
+        background: rgba(31, 41, 55, 0.95) !important;
+        color: #f9fafb !important;
+    }
+    
+    .driver-popover-title {
+        color: #f9fafb !important;
+    }
+    
+    .driver-popover-description {
+        color: #d1d5db !important;
+    }
+}
