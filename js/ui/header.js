@@ -42,6 +42,138 @@ export function updateUserWallet(forceBalance = null) {
     }
 }
 
+// 튜토리얼 프로모션 말풍선 추가
+function addTutorialPromotion() {
+    // 튜토리얼 완료 여부 체크
+    const tutorialCompleted = localStorage.getItem('yegam-tutorial-completed') === 'true';
+    
+    // 로그인하지 않았거나 이미 완료한 경우 표시하지 않음
+    if (!auth.isLoggedIn() || tutorialCompleted) {
+        return;
+    }
+    
+    // 예겜 소개 링크들 찾기 (데스크톱 + 모바일)
+    const aboutLinks = document.querySelectorAll('a[href="about.html"]');
+    
+    aboutLinks.forEach((link, index) => {
+        // 이미 프로모션이 있으면 스킵
+        if (link.querySelector('.tutorial-promotion-bubble')) return;
+        
+        // 링크를 상대 위치로 변경
+        link.style.position = 'relative';
+        
+        // 말풍선 생성
+        const bubble = document.createElement('div');
+        bubble.className = 'tutorial-promotion-bubble';
+        bubble.innerHTML = `
+            <div class="bubble-content">
+                <span class="bubble-emoji">🎁</span>
+                <span class="bubble-text">튜토리얼 완료하고<br><strong>10,000 GAM</strong> 받기!</span>
+            </div>
+            <div class="bubble-arrow"></div>
+        `;
+        
+        // 데스크톱에서만 표시 (모바일은 공간이 좁음)
+        if (index === 0) {
+            link.appendChild(bubble);
+        }
+    });
+    
+    // 말풍선 스타일 추가
+    if (!document.querySelector('#tutorial-promotion-styles')) {
+        const style = document.createElement('style');
+        style.id = 'tutorial-promotion-styles';
+        style.textContent = `
+            .tutorial-promotion-bubble {
+                position: absolute;
+                top: -65px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: linear-gradient(135deg, #3b82f6, #2563eb);
+                color: white;
+                padding: 8px 12px;
+                border-radius: 12px;
+                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+                white-space: nowrap;
+                font-size: 12px;
+                line-height: 1.4;
+                z-index: 1000;
+                animation: tutorialBubblePulse 2s infinite, tutorialBubbleBounce 3s infinite;
+                cursor: pointer;
+            }
+            
+            .bubble-content {
+                display: flex;
+                align-items: center;
+                gap: 6px;
+            }
+            
+            .bubble-emoji {
+                font-size: 18px;
+                animation: tutorialGiftShake 2s infinite;
+            }
+            
+            .bubble-text {
+                text-align: left;
+            }
+            
+            .bubble-text strong {
+                color: #FFD700;
+                font-weight: bold;
+                text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+            }
+            
+            .bubble-arrow {
+                position: absolute;
+                bottom: -6px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 0;
+                height: 0;
+                border-left: 6px solid transparent;
+                border-right: 6px solid transparent;
+                border-top: 6px solid #2563eb;
+            }
+            
+            @keyframes tutorialBubblePulse {
+                0%, 100% { 
+                    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+                }
+                50% { 
+                    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.6);
+                }
+            }
+            
+            @keyframes tutorialBubbleBounce {
+                0%, 100% { transform: translateX(-50%) translateY(0); }
+                25% { transform: translateX(-50%) translateY(-3px); }
+                75% { transform: translateX(-50%) translateY(3px); }
+            }
+            
+            @keyframes tutorialGiftShake {
+                0%, 100% { transform: rotate(0deg); }
+                25% { transform: rotate(-10deg); }
+                75% { transform: rotate(10deg); }
+            }
+            
+            /* 모바일에서는 숨김 */
+            @media (max-width: 768px) {
+                .tutorial-promotion-bubble {
+                    display: none;
+                }
+            }
+            
+            /* 호버 효과 */
+            a[href="about.html"]:hover .tutorial-promotion-bubble {
+                animation-play-state: paused;
+                transform: translateX(-50%) scale(1.05);
+                transition: transform 0.2s ease;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+}
+
 export function updateHeader() {
     const userActionsContainer = document.getElementById('header-user-actions');
     if (!userActionsContainer) return;
@@ -107,6 +239,11 @@ export function updateHeader() {
         userActionsContainer.innerHTML = `
             <a href="login.html" class="btn-primary">로그인/회원가입</a>
         `;
+    }
+    
+    // 튜토리얼 프로모션 말풍선 추가 (로그인한 경우에만)
+    if (auth.isLoggedIn()) {
+        addTutorialPromotion();
     }
     
     // Lucide 아이콘 초기화 - 더 안정적인 방법

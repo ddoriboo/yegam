@@ -440,7 +440,10 @@ class YegamTutorial {
             <p style="font-size: 0.875rem; color: #4b5563; line-height: 1.6; margin-bottom: 1rem;">${step.content}</p>
             <div style="display: flex; justify-content: space-between; gap: 0.75rem;">
                 <button id="tutorial-prev" style="padding: 0.5rem 1rem; background: #f3f4f6; color: #6b7280; border: none; border-radius: 8px; font-size: 0.875rem; cursor: pointer; transition: all 0.2s ease;" ${this.currentStep === 0 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>이전</button>
-                <button id="tutorial-next" style="padding: 0.5rem 1rem; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; border: none; border-radius: 8px; font-size: 0.875rem; cursor: pointer; transition: all 0.2s ease;">${this.currentStep === this.totalSteps - 1 ? '완료' : '다음'}</button>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button id="tutorial-skip" style="padding: 0.5rem 1rem; background: transparent; color: #6b7280; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 0.875rem; cursor: pointer; transition: all 0.2s ease;">나중에</button>
+                    <button id="tutorial-next" style="padding: 0.5rem 1rem; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; border: none; border-radius: 8px; font-size: 0.875rem; cursor: pointer; transition: all 0.2s ease;">${this.currentStep === this.totalSteps - 1 ? '완료' : '다음'}</button>
+                </div>
             </div>
         `;
 
@@ -449,6 +452,7 @@ class YegamTutorial {
         // 버튼 이벤트 리스너
         const prevBtn = this.tooltip.querySelector('#tutorial-prev');
         const nextBtn = this.tooltip.querySelector('#tutorial-next');
+        const skipBtn = this.tooltip.querySelector('#tutorial-skip');
 
         if (prevBtn && !prevBtn.disabled) {
             prevBtn.addEventListener('click', () => this.prevStep());
@@ -461,6 +465,13 @@ class YegamTutorial {
                 } else {
                     this.nextStep();
                 }
+            });
+        }
+
+        if (skipBtn) {
+            skipBtn.addEventListener('click', () => {
+                console.log('🔚 튜토리얼 나중에 하기 선택');
+                this.endTutorial();
             });
         }
     }
@@ -1040,6 +1051,18 @@ class YegamTutorial {
     markAsCompleted() {
         localStorage.setItem(this.storageKey, 'true');
         this.showCompletionMessage();
+        
+        // 헤더의 튜토리얼 프로모션 말풍선 제거
+        this.removeTutorialPromotionBubbles();
+    }
+
+    removeTutorialPromotionBubbles() {
+        // 모든 튜토리얼 프로모션 말풍선 제거
+        const bubbles = document.querySelectorAll('.tutorial-promotion-bubble');
+        bubbles.forEach(bubble => {
+            bubble.remove();
+        });
+        console.log('🗑️ 튜토리얼 프로모션 말풍선 제거됨');
     }
 
     showCompletionMessage() {
