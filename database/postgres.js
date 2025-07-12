@@ -277,11 +277,23 @@ const createTables = async () => {
                 category VARCHAR(50) NOT NULL,
                 amount INTEGER NOT NULL,
                 description TEXT,
-                reference_id INTEGER,
+                reference_id TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
             )
         `);
+        
+        // reference_id 컬럼 타입을 TEXT로 변경 (기존 데이터베이스 대응)
+        try {
+            await client.query(`
+                ALTER TABLE gam_transactions 
+                ALTER COLUMN reference_id TYPE TEXT
+            `);
+            console.log('✅ gam_transactions.reference_id 컬럼 타입을 TEXT로 변경 완료');
+        } catch (alterError) {
+            // 이미 TEXT 타입이거나 다른 이유로 실패한 경우 무시
+            console.log('ℹ️ gam_transactions.reference_id 컬럼 타입 변경 스킵:', alterError.message.substring(0, 100));
+        }
         
         // === 주제별 분석방 Discussion 테이블들 ===
         console.log('💬 분석방 Discussion 테이블 생성 중...');

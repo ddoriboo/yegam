@@ -155,14 +155,34 @@ router.post('/bet', authMiddleware, async (req, res) => {
             
         } catch (innerError) {
             await query('ROLLBACK');
+            console.log('🔄 트랜잭션 롤백 완료');
             throw innerError;
         }
         
     } catch (error) {
-        console.error('Bustabit 베팅 실패:', error);
+        console.error('❌ Bustabit 베팅 실패 상세:', {
+            error: error.message,
+            stack: error.stack,
+            userId: userId,
+            betAmount: betAmount
+        });
+        
+        let errorMessage = '베팅 처리 중 오류가 발생했습니다';
+        
+        // 특정 에러에 대한 사용자 친화적 메시지
+        if (error.message.includes('relation') && error.message.includes('does not exist')) {
+            errorMessage = '데이터베이스 테이블 오류가 발생했습니다. 관리자에게 문의해주세요.';
+        } else if (error.message.includes('invalid input syntax')) {
+            errorMessage = '입력 데이터 형식 오류가 발생했습니다.';
+        } else if (error.message.includes('connection')) {
+            errorMessage = '데이터베이스 연결 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+        }
+        
         res.status(500).json({
             success: false,
-            message: '베팅 처리 중 오류가 발생했습니다'
+            message: errorMessage,
+            errorCode: 'BETTING_ERROR',
+            timestamp: new Date().toISOString()
         });
     }
 });
