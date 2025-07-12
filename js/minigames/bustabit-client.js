@@ -131,6 +131,10 @@ class BustabitClient extends MinigameBase {
         const prevState = this.gameState;
         this.gameState = gameState.gameState;
         this.currentMultiplier = gameState.currentMultiplier;
+        this.bettingCountdown = gameState.bettingCountdown;
+        this.waitingCountdown = gameState.waitingCountdown;
+        this.elapsedTime = gameState.elapsedTime;
+        this.playerCount = gameState.playerCount;
         
         // 상태 변경 시 UI 업데이트
         if (prevState !== this.gameState) {
@@ -140,6 +144,7 @@ class BustabitClient extends MinigameBase {
         // UI 업데이트
         this.updateMultiplierDisplay();
         this.updateStatusDisplay();
+        this.updateCountdownDisplay();
         this.updatePlayersDisplay(gameState.players);
         this.drawGraph();
         
@@ -147,6 +152,11 @@ class BustabitClient extends MinigameBase {
         if (this.gameState === 'crashed' && prevState === 'playing') {
             this.loadGameHistory();
             this.resetPlayerState();
+            
+            // 크래시 포인트 표시
+            if (gameState.crashPoint) {
+                this.showNotification(`💥 ${gameState.crashPoint.toFixed(2)}x에서 크래시!`, 'error');
+            }
         }
     }
     
@@ -173,28 +183,46 @@ class BustabitClient extends MinigameBase {
     // 베팅 단계
     onBettingPhase() {
         this.enableBetting();
+        this.disableCashout();
         this.showNotification('베팅 시간입니다!', 'info');
     }
     
     // 게임 플레이 단계
     onPlayingPhase() {
         this.disableBetting();
+        
+        // 베팅한 사용자만 캐시아웃 가능
         if (this.hasBet && !this.hasCashedOut) {
             this.enableCashout();
+            this.showNotification('🚀 게임 시작! 캐시아웃 타이밍을 잡아보세요!', 'success');
+        } else {
+            this.disableCashout();
+            this.showNotification('🚀 게임 시작! 다음 라운드에 베팅해보세요!', 'info');
         }
-        this.showNotification('게임 시작! 언제 캐시아웃하실건가요?', 'success');
     }
     
     // 크래시 단계
     onCrashedPhase() {
         this.disableCashout();
-        this.showNotification(`💥 ${this.currentMultiplier.toFixed(2)}x에서 크래시!`, 'error');
+        this.disableBetting();
+        
+        // 사용자별 결과 메시지
+        if (this.hasBet) {
+            if (this.hasCashedOut) {
+                this.showNotification(`🎉 성공! ${this.currentMultiplier.toFixed(2)}x에서 캐시아웃!`, 'success');
+            } else {
+                this.showNotification(`💥 ${this.currentMultiplier.toFixed(2)}x에서 크래시! 아쉬워요!`, 'error');
+            }
+        }
     }
     
     // 대기 단계
     onWaitingPhase() {
         this.disableAllButtons();
-        this.showNotification('새 게임을 기다리는 중...', 'info');
+        this.resetPlayerState();
+        if (this.waitingCountdown > 0) {
+            this.showNotification(`⏳ 다음 라운드까지 ${this.waitingCountdown}초`, 'info');
+        }
     }
     
     // 베팅하기
@@ -281,12 +309,17 @@ class BustabitClient extends MinigameBase {
             if (result.success) {
                 this.hasCashedOut = true;
                 this.userBalance = result.newBalance;
+                this.cashoutMultiplier = result.multiplier;
+                this.payoutAmount = result.payout;
                 
                 this.updateBalanceDisplay();
                 this.disableCashout();
                 
-                this.showSuccess(`🎉 ${result.multiplier.toFixed(2)}x 캐시아웃! +${result.payout} GAM`);
+                this.showSuccess(`🎉 ${result.multiplier.toFixed(2)}x 캐시아웃! +${result.payout.toLocaleString()} GAM`);
                 console.log(`💰 캐시아웃 성공: ${result.multiplier.toFixed(2)}x, ${result.payout} GAM`);
+                
+                // UI에 캐시아웃 상태 표시
+                this.updateCurrentBetDisplay();
             } else {
                 this.showError(result.message);
             }
@@ -318,22 +351,61 @@ class BustabitClient extends MinigameBase {
     updateStatusDisplay() {
         if (!this.statusDisplay) return;
         
-        const statusMessages = {
-            'waiting': '새 게임 대기 중...',
-            'betting': '베팅 시간',
-            'playing': '게임 진행 중',
-            'crashed': '게임 종료'
-        };
+        let statusText = '';
+        let statusClass = this.gameState;
         
-        this.statusDisplay.textContent = statusMessages[this.gameState] || '알 수 없음';
-        this.statusDisplay.className = `game-status ${this.gameState}`;
+        switch (this.gameState) {
+            case 'waiting':
+                if (this.waitingCountdown > 0) {
+                    statusText = `다음 라운드까지 ${this.waitingCountdown}초`;
+                } else {
+                    statusText = '새 게임 준비 중...';
+                }
+                break;
+            case 'betting':
+                if (this.bettingCountdown > 0) {
+                    statusText = `베팅 시간 ${this.bettingCountdown}초`;
+                } else {
+                    statusText = '베팅 마감!';
+                }
+                break;
+            case 'playing':
+                statusText = '🚀 게임 진행 중';
+                break;
+            case 'crashed':
+                statusText = '💥 크래시!';
+                break;
+            default:
+                statusText = '알 수 없음';
+        }
+        
+        this.statusDisplay.textContent = statusText;
+        this.statusDisplay.className = `game-status ${statusClass}`;
+    }
+    
+    // 카운트다운 표시 업데이트
+    updateCountdownDisplay() {
+        // 베팅 시간 카운트다운은 statusDisplay에서 처리됨
+        // 추가적인 카운트다운 UI가 필요하면 여기에 구현
     }
     
     // 현재 베팅 표시 업데이트
     updateCurrentBetDisplay() {
         const currentBetElement = document.getElementById('current-bet');
         if (currentBetElement) {
-            currentBetElement.textContent = this.hasBet ? GAMFormatter.format(this.currentBet) : '0 GAM';
+            if (this.hasBet) {
+                if (this.hasCashedOut) {
+                    currentBetElement.innerHTML = `
+                        <span style="color: #10b981;">${GAMFormatter.format(this.currentBet)} (캐시아웃: ${this.cashoutMultiplier.toFixed(2)}x)</span>
+                    `;
+                } else {
+                    currentBetElement.innerHTML = `
+                        <span style="color: #f59e0b;">${GAMFormatter.format(this.currentBet)} (진행 중)</span>
+                    `;
+                }
+            } else {
+                currentBetElement.textContent = '0 GAM';
+            }
         }
     }
     
@@ -375,85 +447,182 @@ class BustabitClient extends MinigameBase {
         this.ctx.clearRect(0, 0, width, height);
         
         // 배경
-        this.ctx.fillStyle = '#1a1a2e';
+        this.ctx.fillStyle = '#0f172a';
         this.ctx.fillRect(0, 0, width, height);
         
-        // 그리드
-        this.drawGrid(width, height);
+        // 마진 설정 (축 레이블 공간)
+        const margin = { top: 20, right: 20, bottom: 40, left: 60 };
+        const graphWidth = width - margin.left - margin.right;
+        const graphHeight = height - margin.top - margin.bottom;
+        
+        // 그리드와 축
+        this.drawAxesAndGrid(margin, graphWidth, graphHeight);
         
         // 배수 곡선
         if (this.gameState === 'playing' || this.gameState === 'crashed') {
-            this.drawMultiplierCurve(width, height);
+            this.drawMultiplierCurve(margin, graphWidth, graphHeight);
         }
         
-        // 배수 텍스트
-        this.drawMultiplierText(width, height);
-    }
-    
-    // 그리드 그리기
-    drawGrid(width, height) {
-        this.ctx.strokeStyle = '#2a2a40';
-        this.ctx.lineWidth = 1;
-        
-        // 세로선
-        for (let x = 0; x < width; x += 50) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(x, 0);
-            this.ctx.lineTo(x, height);
-            this.ctx.stroke();
-        }
-        
-        // 가로선
-        for (let y = 0; y < height; y += 30) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(0, height - y);
-            this.ctx.lineTo(width, height - y);
-            this.ctx.stroke();
+        // 게임 상태별 오버레이
+        if (this.gameState === 'betting') {
+            this.drawBettingOverlay(width, height);
         }
     }
     
-    // 배수 곡선 그리기
-    drawMultiplierCurve(width, height) {
-        if (this.currentMultiplier <= 1) return;
+    // 축과 그리드 그리기
+    drawAxesAndGrid(margin, graphWidth, graphHeight) {
+        const ctx = this.ctx;
         
-        this.ctx.strokeStyle = this.gameState === 'crashed' ? '#ef4444' : '#10b981';
-        this.ctx.lineWidth = 3;
-        this.ctx.beginPath();
+        // 축 색상
+        ctx.strokeStyle = '#334155';
+        ctx.lineWidth = 2;
         
-        const maxMultiplier = Math.max(this.currentMultiplier * 1.2, 5);
-        const steps = 100;
+        // Y축 (배수)
+        ctx.beginPath();
+        ctx.moveTo(margin.left, margin.top);
+        ctx.lineTo(margin.left, margin.top + graphHeight);
+        ctx.stroke();
+        
+        // X축 (시간)
+        ctx.beginPath();
+        ctx.moveTo(margin.left, margin.top + graphHeight);
+        ctx.lineTo(margin.left + graphWidth, margin.top + graphHeight);
+        ctx.stroke();
+        
+        // 그리드 설정
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 1;
+        
+        // 시간 범위 계산 (0초부터 현재 경과 시간 + 여유분)
+        const maxTime = Math.max(this.elapsedTime / 1000 + 5, 10); // 최소 10초
+        const timeStep = maxTime <= 20 ? 2 : maxTime <= 60 ? 5 : 10;
+        
+        // 배수 범위 계산
+        const maxMultiplier = Math.max(this.currentMultiplier * 1.5, 5);
+        const multiplierStep = maxMultiplier <= 10 ? 1 : maxMultiplier <= 50 ? 5 : 10;
+        
+        // 세로 그리드 선 (시간)
+        for (let t = 0; t <= maxTime; t += timeStep) {
+            const x = margin.left + (t / maxTime) * graphWidth;
+            
+            ctx.beginPath();
+            ctx.moveTo(x, margin.top);
+            ctx.lineTo(x, margin.top + graphHeight);
+            ctx.stroke();
+            
+            // 시간 레이블
+            ctx.fillStyle = '#64748b';
+            ctx.font = '12px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${t}s`, x, margin.top + graphHeight + 20);
+        }
+        
+        // 가로 그리드 선 (배수)
+        for (let m = 1; m <= maxMultiplier; m += multiplierStep) {
+            const y = margin.top + graphHeight - ((m - 1) / (maxMultiplier - 1)) * graphHeight;
+            
+            ctx.beginPath();
+            ctx.moveTo(margin.left, y);
+            ctx.lineTo(margin.left + graphWidth, y);
+            ctx.stroke();
+            
+            // 배수 레이블
+            ctx.fillStyle = '#64748b';
+            ctx.font = '12px Inter';
+            ctx.textAlign = 'right';
+            ctx.fillText(`${m.toFixed(m >= 10 ? 0 : 1)}x`, margin.left - 10, y + 4);
+        }
+        
+        // 축 레이블
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = 'bold 14px Inter';
+        
+        // X축 레이블 (시간)
+        ctx.textAlign = 'center';
+        ctx.fillText('시간 (초)', margin.left + graphWidth / 2, margin.top + graphHeight + 35);
+        
+        // Y축 레이블 (배수)
+        ctx.save();
+        ctx.translate(15, margin.top + graphHeight / 2);
+        ctx.rotate(-Math.PI / 2);
+        ctx.textAlign = 'center';
+        ctx.fillText('배수', 0, 0);
+        ctx.restore();
+    }
+    
+    // 배수 곡선 그리기 (개선된 버전)
+    drawMultiplierCurve(margin, graphWidth, graphHeight) {
+        if (this.currentMultiplier <= 1 || this.elapsedTime <= 0) return;
+        
+        const ctx = this.ctx;
+        const currentTimeSeconds = this.elapsedTime / 1000;
+        const maxTime = Math.max(currentTimeSeconds + 5, 10);
+        const maxMultiplier = Math.max(this.currentMultiplier * 1.5, 5);
+        
+        // 곡선 색상 (게임 상태에 따라)
+        ctx.strokeStyle = this.gameState === 'crashed' ? '#ef4444' : '#10b981';
+        ctx.lineWidth = 3;
+        ctx.lineShadow = this.gameState === 'crashed' ? 'none' : '0 0 10px rgba(16, 185, 129, 0.5)';
+        
+        ctx.beginPath();
+        
+        const steps = Math.min(currentTimeSeconds * 20, 200); // 더 부드러운 곡선
         
         for (let i = 0; i <= steps; i++) {
-            const progress = i / steps;
-            const x = progress * width;
+            const t = (i / steps) * currentTimeSeconds;
+            const multiplier = Math.pow(Math.E, 0.06 * t); // 실제 bustabit 스타일
             
-            // 현재 시점까지만 그리기
-            const currentProgress = Math.min(progress, this.currentMultiplier / maxMultiplier);
-            const multiplier = 1 + (currentProgress * (maxMultiplier - 1));
-            
-            if (multiplier > this.currentMultiplier) break;
-            
-            const y = height - (multiplier - 1) / (maxMultiplier - 1) * height * 0.8;
+            const x = margin.left + (t / maxTime) * graphWidth;
+            const y = margin.top + graphHeight - ((multiplier - 1) / (maxMultiplier - 1)) * graphHeight;
             
             if (i === 0) {
-                this.ctx.moveTo(x, y);
+                ctx.moveTo(x, y);
             } else {
-                this.ctx.lineTo(x, y);
+                ctx.lineTo(x, y);
             }
         }
         
-        this.ctx.stroke();
+        ctx.stroke();
+        
+        // 현재 포인트 강조
+        if (this.gameState === 'playing') {
+            const currentX = margin.left + (currentTimeSeconds / maxTime) * graphWidth;
+            const currentY = margin.top + graphHeight - ((this.currentMultiplier - 1) / (maxMultiplier - 1)) * graphHeight;
+            
+            ctx.fillStyle = '#10b981';
+            ctx.beginPath();
+            ctx.arc(currentX, currentY, 6, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 현재 배수 텍스트
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 16px Inter';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${this.currentMultiplier.toFixed(2)}x`, currentX, currentY - 15);
+        }
     }
     
-    // 배수 텍스트 그리기
-    drawMultiplierText(width, height) {
-        this.ctx.fillStyle = '#ffffff';
-        this.ctx.font = 'bold 48px Arial';
-        this.ctx.textAlign = 'center';
-        this.ctx.textBaseline = 'middle';
+    // 베팅 중 오버레이
+    drawBettingOverlay(width, height) {
+        const ctx = this.ctx;
         
-        const text = this.currentMultiplier.toFixed(2) + 'x';
-        this.ctx.fillText(text, width / 2, height / 2);
+        // 반투명 오버레이
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(0, 0, width, height);
+        
+        // 베팅 중 텍스트
+        ctx.fillStyle = '#3b82f6';
+        ctx.font = 'bold 32px Inter';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('베팅 중...', width / 2, height / 2 - 20);
+        
+        // 카운트다운
+        if (this.bettingCountdown > 0) {
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 24px Inter';
+            ctx.fillText(`${this.bettingCountdown}초`, width / 2, height / 2 + 20);
+        }
     }
     
     // 게임 히스토리 로드

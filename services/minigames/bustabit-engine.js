@@ -8,26 +8,51 @@ class BustabitEngine {
         this.players = new Map(); // userId -> {betAmount, cashedOut, cashoutMultiplier}
         this.gameHistory = [];
         this.tickInterval = null;
+        this.autoCycleInterval = null;
+        this.bettingCountdown = 0;
+        this.waitingCountdown = 0;
         
         // 게임 설정
         this.config = {
             bettingTimeMs: 5000,    // 5초 베팅 시간
-            tickIntervalMs: 100,    // 100ms마다 업데이트
+            waitingTimeMs: 3000,    // 3초 대기 시간
+            tickIntervalMs: 50,     // 50ms마다 업데이트 (더 부드럽게)
             minMultiplier: 1.01,    // 최소 크래시 포인트
             maxMultiplier: 10000,   // 최대 크래시 포인트
             houseEdge: 0.01         // 1% 하우스 엣지
         };
         
         console.log('🚀 Bustabit 게임 엔진 초기화 완료');
+        
+        // 자동 게임 사이클 시작
+        this.startAutoCycle();
+    }
+    
+    // 자동 게임 사이클 시작
+    startAutoCycle() {
+        console.log('🔄 자동 게임 사이클 시작');
+        
+        // 즉시 첫 게임 시작
+        setTimeout(() => {
+            this.startNewGame();
+        }, 1000);
+    }
+    
+    // 자동 사이클 중지
+    stopAutoCycle() {
+        if (this.autoCycleInterval) {
+            clearInterval(this.autoCycleInterval);
+            this.autoCycleInterval = null;
+        }
+        if (this.tickInterval) {
+            clearInterval(this.tickInterval);
+            this.tickInterval = null;
+        }
+        console.log('⏹️ 자동 게임 사이클 중지');
     }
     
     // 새 게임 시작
     startNewGame() {
-        if (this.gameState !== 'waiting') {
-            console.warn('게임이 이미 진행 중입니다');
-            return false;
-        }
-        
         console.log('🎮 새로운 Bustabit 게임 시작');
         
         // 게임 상태 초기화
@@ -35,10 +60,14 @@ class BustabitEngine {
         this.currentMultiplier = 1.00;
         this.players.clear();
         this.crashPoint = this.generateCrashPoint();
+        this.bettingCountdown = this.config.bettingTimeMs / 1000; // 초 단위
         
         console.log(`💥 크래시 포인트 생성: ${this.crashPoint.toFixed(2)}x`);
         
-        // 베팅 시간 시작
+        // 베팅 카운트다운 시작
+        this.startBettingCountdown();
+        
+        // 베팅 시간 후 게임 라운드 시작
         setTimeout(() => {
             this.startGameRound();
         }, this.config.bettingTimeMs);
@@ -46,8 +75,20 @@ class BustabitEngine {
         return {
             gameState: this.gameState,
             bettingTimeMs: this.config.bettingTimeMs,
-            crashPoint: this.crashPoint // 개발용 (실제로는 숨겨야 함)
+            bettingCountdown: this.bettingCountdown
         };
+    }
+    
+    // 베팅 카운트다운 시작
+    startBettingCountdown() {
+        const countdownInterval = setInterval(() => {
+            this.bettingCountdown--;
+            
+            if (this.bettingCountdown <= 0) {
+                clearInterval(countdownInterval);
+                this.bettingCountdown = 0;
+            }
+        }, 1000);
     }
     
     // 게임 라운드 시작 (배수 증가 시작)
@@ -83,12 +124,19 @@ class BustabitEngine {
         }
     }
     
-    // 배수 계산 (시간 기반)
+    // 배수 계산 (시간 기반) - 실제 bustabit과 유사한 알고리즘
     calculateMultiplier(elapsedMs) {
-        // 지수적 증가 함수 사용
+        // 실제 bustabit 스타일의 증가 곡선
         const seconds = elapsedMs / 1000;
-        const growthRate = 0.1; // 증가율 조정
-        return Math.max(1.00, 1 + (Math.exp(growthRate * seconds) - 1));
+        
+        // 더 현실적인 증가 곡선 (초기 느리고 점점 빨라짐)
+        if (seconds <= 0) return 1.00;
+        
+        // bustabit 스타일: 6% 복리 증가율 기반
+        const baseRate = 0.06; // 6% per second base rate
+        const multiplier = Math.pow(Math.E, baseRate * seconds);
+        
+        return Math.max(1.00, multiplier);
     }
     
     // 크래시 포인트 생성 (Provably Fair 알고리즘 기반)
@@ -228,11 +276,22 @@ class BustabitEngine {
         // 히스토리에 추가
         this.addToHistory(results);
         
-        // 3초 후 새 게임 대기 상태로 변경
-        setTimeout(() => {
-            this.gameState = 'waiting';
-            console.log('⏳ 새 게임 대기 상태로 변경');
-        }, 3000);
+        // 대기 시간 카운트다운 시작
+        this.waitingCountdown = this.config.waitingTimeMs / 1000;
+        const waitingInterval = setInterval(() => {
+            this.waitingCountdown--;
+            
+            if (this.waitingCountdown <= 0) {
+                clearInterval(waitingInterval);
+                this.waitingCountdown = 0;
+                
+                // 자동으로 다음 게임 시작
+                this.gameState = 'waiting';
+                setTimeout(() => {
+                    this.startNewGame();
+                }, 100);
+            }
+        }, 1000);
         
         return results;
     }
@@ -301,7 +360,11 @@ class BustabitEngine {
         return {
             gameState: this.gameState,
             currentMultiplier: this.currentMultiplier,
+            crashPoint: this.gameState === 'crashed' ? this.crashPoint : null, // 크래시 후에만 공개
             playerCount: this.players.size,
+            bettingCountdown: this.bettingCountdown,
+            waitingCountdown: this.waitingCountdown,
+            elapsedTime: this.gameState === 'playing' ? Date.now() - this.startTime : 0,
             players: Array.from(this.players.entries()).map(([userId, player]) => ({
                 userId: userId,
                 username: player.username,
@@ -309,7 +372,7 @@ class BustabitEngine {
                 cashedOut: player.cashedOut,
                 cashoutMultiplier: player.cashoutMultiplier
             })),
-            recentHistory: this.gameHistory.slice(0, 10)
+            recentHistory: this.gameHistory.slice(0, 20)
         };
     }
     

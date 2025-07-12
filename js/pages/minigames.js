@@ -79,17 +79,24 @@ class MinigamesPage {
         console.log('📊 게임 통계 로드 중...');
         
         try {
-            for (const gameType of Object.keys(this.games)) {
-                if (this.games[gameType].status === 'active') {
-                    const stats = await MinigameGamIntegration.getCurrentGameStats(gameType);
-                    if (stats) {
-                        this.updateGameStats(gameType, stats);
-                    }
-                }
+            // Bustabit 실시간 플레이어 수 로드
+            const response = await fetch('/api/minigames/bustabit/state');
+            const result = await response.json();
+            
+            if (result.success) {
+                this.updateGameStats('bustabit', {
+                    currentPlayers: result.gameState.playerCount,
+                    gameState: result.gameState.gameState
+                });
             }
         } catch (error) {
             console.error('게임 통계 로드 실패:', error);
         }
+        
+        // 주기적으로 업데이트 (5초마다)
+        setInterval(() => {
+            this.loadGameStats();
+        }, 5000);
     }
     
     updateGameStats(gameType, stats) {
@@ -264,36 +271,8 @@ class MinigamesPage {
         // 사용자 잔액 표시
         this.updateBustabitBalance(modal);
         
-        // 자동 게임 시작 (개발/테스트용)
-        this.startBustabitGameIfNeeded();
-    }
-    
-    // Bustabit 게임 자동 시작 (개발/테스트용)
-    async startBustabitGameIfNeeded() {
-        try {
-            // 현재 게임 상태 확인
-            const response = await fetch('/api/minigames/bustabit/state');
-            const result = await response.json();
-            
-            if (result.success && result.gameState.gameState === 'waiting') {
-                console.log('🎯 새 Bustabit 게임 자동 시작');
-                
-                // 새 게임 시작 요청
-                const startResponse = await fetch('/api/minigames/bustabit/start', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-                
-                const startResult = await startResponse.json();
-                if (startResult.success) {
-                    console.log('✅ 새 게임 시작됨');
-                } else {
-                    console.warn('게임 시작 실패:', startResult.message);
-                }
-            }
-        } catch (error) {
-            console.warn('게임 자동 시작 확인 실패:', error);
-        }
+        // 게임 엔진이 자동으로 게임을 시작하므로 수동 시작 불필요
+        console.log('✅ Bustabit 클라이언트 초기화 완료');
     }
     
     async updateBustabitBalance(modal) {
