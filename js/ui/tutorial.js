@@ -117,26 +117,58 @@ class YegamTutorial {
         steps.push({
             target: 'body',
             title: '🎮 예겜에 오신 것을 환영합니다!',
-            content: '예겜은 다양한 이슈에 대해 예측하고 GAM을 이용해 참여하는 예측 플랫폼입니다. 함께 주요 기능들을 살펴볼까요?',
+            content: '예겜은 12가지 핵심 기능을 가진 종합 예측 플랫폼입니다. GAM 시스템부터 커뮤니티까지, 모든 기능을 마스터해보세요! 🚀',
             position: 'center'
         });
 
-        // 사용자 정보/GAM 잔액 설명
+        // 헤더 네비게이션 설명
+        steps.push({
+            target: 'nav',
+            title: '🧭 스마트 네비게이션',
+            content: '예겜의 모든 기능에 쉽게 접근할 수 있는 네비게이션입니다. 예겜 소개, 전체 이슈, 분석방, 업적 안내 등을 확인하세요!',
+            position: 'bottom'
+        });
+
+        // 검색 기능 설명
+        const searchBtn = document.getElementById('header-search-btn');
+        if (searchBtn) {
+            steps.push({
+                target: '#header-search-btn',
+                title: '🔍 고급 검색 시스템',
+                content: '이슈 제목으로 빠른 검색이 가능합니다. 실시간 자동완성과 필터링으로 원하는 이슈를 쉽게 찾아보세요!',
+                position: 'bottom'
+            });
+        }
+
+        // 사용자 정보/GAM 잔액 설명 (더 자세히)
         const userActions = document.getElementById('header-user-actions');
         if (userActions && userActions.children.length > 0) {
             steps.push({
                 target: '#header-user-actions',
-                title: '💰 GAM 잔액 & 출석 보상',
-                content: '로그인하면 여기서 GAM 잔액을 확인할 수 있어요. 매일 로그인하면 출석 보상으로 5,000 GAM을 받을 수 있습니다! 연속 출석할수록 더 많은 보너스도 있어요.',
+                title: '💰 GAM 시스템 마스터하기',
+                content: '💎 GAM 잔액 확인, 📅 출석 체크, 🔔 알림 관리가 모두 여기서! 매일 출석하면 5,000 GAM + 연속 출석 보너스까지! 최대 99,999,999 GAM까지 모을 수 있어요.',
                 position: 'bottom'
             });
         } else {
             steps.push({
                 target: '#header-user-actions',
-                title: '💰 GAM 시스템',
-                content: '로그인하면 여기에 GAM 잔액이 표시됩니다. 매일 로그인하여 출석 보상을 받고, 예측에 참여해보세요!',
+                title: '💰 GAM 시스템의 모든 것',
+                content: '🎁 신규 가입시 10,000 GAM 지급! 📅 매일 출석 보상 5,000 GAM! 🏆 베팅 성공시 수익 획득! 로그인하면 여기에 GAM 잔액과 모든 기능이 표시됩니다.',
                 position: 'bottom'
             });
+        }
+
+        // 모바일 메뉴 설명 (모바일에서만)
+        if (window.innerWidth <= 768) {
+            const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+            if (mobileMenuBtn) {
+                steps.push({
+                    target: '#mobile-menu-btn',
+                    title: '📱 모바일 최적화 메뉴',
+                    content: '모바일에서도 모든 기능을 편리하게! 햄버거 메뉴를 터치하면 전체 네비게이션이 나타납니다.',
+                    position: 'bottom'
+                });
+            }
         }
 
         // 페이지별 특화 단계들
@@ -152,18 +184,21 @@ class YegamTutorial {
         if (issueRequestBtn) {
             steps.push({
                 target: issueRequestBtn.id.includes('desktop') ? '#desktop-issue-request-btn' : '#mobile-issue-request-btn',
-                title: '✏️ 이슈 신청하기',
-                content: '원하는 예측 주제가 없다면 직접 이슈를 신청해보세요! 관리자 검토 후 승인되면 다른 사용자들과 함께 예측할 수 있어요.',
+                title: '✏️ 이슈 신청 프로세스 완전정복',
+                content: '📝 이슈 제목, 설명, 카테고리, 마감일 설정까지! 💡 창의적인 예측 주제를 제안하고 커뮤니티를 활성화하세요. 승인되면 최초 제안자 특전도 있어요!',
                 position: 'bottom'
             });
         } else {
             steps.push({
                 target: 'nav',
-                title: '✏️ 이슈 신청하기',
-                content: '로그인하면 네비게이션에 "이슈 신청" 버튼이 나타납니다. 원하는 예측 주제를 직접 제안해보세요!',
+                title: '✏️ 이슈 신청의 모든 것',
+                content: '🔐 로그인하면 "이슈 신청" 버튼이 활성화됩니다! 📋 상세한 가이드라인과 함께 누구나 쉽게 이슈를 제안할 수 있어요.',
                 position: 'bottom'
             });
         }
+
+        // 추가 기능들 설명
+        this.addAdvancedFeatureSteps(steps);
 
         this.steps = steps;
         this.totalSteps = steps.length;
@@ -171,14 +206,25 @@ class YegamTutorial {
     }
 
     addHomePageSteps(steps) {
-        // 카테고리 필터 설명
+        // 정렬 옵션 설명
+        const sortSelect = document.querySelector('#sort-select');
+        if (sortSelect) {
+            steps.push({
+                target: '#sort-select',
+                title: '📊 스마트 정렬 시스템',
+                content: '🔥 인기순: 가장 HOT한 이슈들! ⏰ 최신순: 따끈따끈한 신규 이슈! 🚨 마감임박순: 놓치면 안 되는 이슈들! 📈 참여량순: 대규모 베팅 이슈들!',
+                position: 'bottom'
+            });
+        }
+
+        // 카테고리 필터 설명 (더 상세히)
         const categoryFilters = document.querySelector('#category-filters') || 
                                document.querySelector('.category-filters-desktop');
         if (categoryFilters) {
             steps.push({
                 target: '#category-filters, .category-filters-desktop',
-                title: '🏷️ 8개 카테고리',
-                content: '정치, 스포츠, 경제, 코인, 테크, 엔터, 날씨, 해외 등 8개 카테고리로 구분된 다양한 이슈들을 탐색해보세요.',
+                title: '🏷️ 8개 카테고리 완전정복',
+                content: '🏛️ 정치: 선거, 정책 예측 | ⚽ 스포츠: 경기 결과, 기록 | 💹 경제: 주가, 환율 | 🪙 코인: 암호화폐 | 💻 테크: IT 혁신 | 🎭 엔터: 연예계 이슈 | 🌤️ 날씨: 기상 예보 | 🌍 해외: 글로벌 이슈',
                 position: 'bottom'
             });
         }
@@ -188,8 +234,8 @@ class YegamTutorial {
         if (popularList && popularList.children.length > 0) {
             steps.push({
                 target: '#popular-issues-list',
-                title: '⭐ 인기 이슈 목록',
-                content: '가장 많은 관심을 받고 있는 인기 이슈들입니다. 클릭하면 해당 이슈로 바로 이동해요!',
+                title: '⭐ 인기 이슈 HOT 랭킹',
+                content: '🔥 실시간 HOT 이슈들의 치열한 순위! 📊 참여자 수, GAM 규모, 댓글 활동을 종합한 인기도! 💡 트렌드를 읽고 기회를 잡으세요!',
                 position: 'bottom'
             });
         }
@@ -199,8 +245,8 @@ class YegamTutorial {
         if (mobilePopular && mobilePopular.children.length > 0 && window.innerWidth <= 768) {
             steps.push({
                 target: '#popular-issues-mobile',
-                title: '⭐ 인기 이슈 카드',
-                content: '인기 이슈들을 좌우로 스크롤하며 둘러보세요. 각 카드를 터치하면 상세 정보를 볼 수 있어요!',
+                title: '⭐ 모바일 인기 이슈 캐러셀',
+                content: '📱 좌우 스와이프로 인기 이슈 탐색! 🎯 터치 한 번으로 즉시 베팅! ⚡ 빠르고 직관적인 모바일 경험을 즐기세요!',
                 position: 'bottom'
             });
         }
@@ -210,8 +256,8 @@ class YegamTutorial {
         if (allIssuesGrid && allIssuesGrid.children.length > 0) {
             steps.push({
                 target: '#all-issues-grid',
-                title: '📊 예측 이슈 카드',
-                content: '각 이슈에서 Yes/No로 예측할 수 있어요. 실시간 확률, 총 참여 GAM, 참여 인원을 확인하고 베팅에 참여해보세요!',
+                title: '📊 실시간 이슈 대시보드',
+                content: '💡 각 카드는 살아있는 정보! 📈 실시간 확률 변동, 💰 GAM 풀 규모, 👥 참여자 수, ⏰ 마감 카운트다운까지! 모든 정보가 실시간으로 업데이트됩니다!',
                 position: 'top'
             });
 
@@ -220,8 +266,8 @@ class YegamTutorial {
             if (betButtons.length > 0) {
                 steps.push({
                     target: '.bet-btn',
-                    title: '🎯 예측 참여하기',
-                    content: 'Yes 또는 No 버튼을 클릭해서 예측에 참여하세요. 10~10,000 GAM 사이에서 베팅 금액을 선택할 수 있어요.',
+                    title: '🎯 스마트 베팅 시스템',
+                    content: '💚 YES 버튼: 긍정적 예측! ❤️ NO 버튼: 부정적 예측! 💰 10~10,000 GAM 자유 선택! 🧠 전략적 베팅으로 수익 극대화하세요!',
                     position: 'top'
                 });
             }
@@ -231,8 +277,19 @@ class YegamTutorial {
             if (commentButtons.length > 0) {
                 steps.push({
                     target: '.comments-toggle-btn',
-                    title: '💬 토론 참여하기',
-                    content: '이슈에 대한 의견을 댓글로 나누고, 좋아요를 누르거나 대댓글을 작성할 수 있어요. 다른 사용자들과 활발하게 소통해보세요!',
+                    title: '💬 완전한 토론 생태계',
+                    content: '💭 댓글, 대댓글 무제한! 👍 좋아요로 공감 표현! 🔥 실시간 토론 참여! 📊 댓글 수가 많을수록 더 뜨거운 이슈! 커뮤니티의 지혜를 나누세요!',
+                    position: 'top'
+                });
+            }
+
+            // 추가: 방문자 통계 설명 (홈페이지 하단)
+            const visitorStats = document.querySelector('#today-visitors-count');
+            if (visitorStats) {
+                steps.push({
+                    target: '#today-visitors-count',
+                    title: '📊 실시간 커뮤니티 활동 지표',
+                    content: '👥 오늘 방문자와 총 방문자 수를 실시간 확인! 📈 활발한 커뮤니티 규모를 체감하세요! 더 많은 사람들과 함께할수록 더 정확한 예측이 가능합니다!',
                     position: 'top'
                 });
             }
@@ -240,27 +297,103 @@ class YegamTutorial {
     }
 
     addIssuesPageSteps(steps) {
-        // 필터 설명
+        // 필터 설명 (더 상세히)
         const filters = document.querySelector('.filters-container');
         if (filters) {
             steps.push({
                 target: '.filters-container',
-                title: '🔍 필터 & 검색',
-                content: '카테고리, 진행상태, 정렬 방식을 선택하여 원하는 이슈를 쉽게 찾을 수 있어요. 검색 기능도 활용해보세요!',
+                title: '🔍 고급 필터링 & 검색 마스터',
+                content: '📊 정렬: 인기순/최신순/마감임박순/참여량순 | 🏷️ 카테고리: 8개 분야별 필터 | ⏰ 시간: 1시간~1개월 범위 | 🔎 실시간 검색으로 정확한 이슈를 찾아보세요!',
                 position: 'bottom'
             });
         }
 
-        // 이슈 그리드 설명
+        // 이슈 그리드 설명 (더 상세히)
         const issueGrid = document.querySelector('#all-issues-grid');
         if (issueGrid && issueGrid.children.length > 0) {
             steps.push({
                 target: '#all-issues-grid',
-                title: '📊 전체 이슈 목록',
-                content: '모든 예측 이슈가 카드 형태로 표시됩니다. 각 카드를 클릭해서 상세 정보를 확인하고 예측에 참여해보세요!',
+                title: '📊 스마트 이슈 카드 시스템',
+                content: '💡 실시간 확률, 참여 GAM, 참여 인원을 한눈에! 📈 확률 변화 추이, 💬 댓글 수, ⏰ 마감 임박 표시까지! 각 카드는 실시간으로 업데이트됩니다.',
                 position: 'top'
             });
         }
+    }
+
+    addAdvancedFeatureSteps(steps) {
+        // 마이페이지 기능 설명
+        const mypageLink = document.querySelector('a[href="mypage.html"]');
+        if (mypageLink) {
+            steps.push({
+                target: 'a[href="mypage.html"]',
+                title: '📊 내 정보 & 베팅 통계 분석',
+                content: '📈 승률, 수익률, 베팅 내역을 한눈에! 🏆 달성한 업적과 티어 확인! 👤 프로필 관리와 설정 변경까지! 나만의 예측 데이터를 분석해보세요.',
+                position: 'bottom'
+            });
+        }
+
+        // 티어 가이드 설명
+        const tierGuideLink = document.querySelector('a[href="tier_guide.html"]');
+        if (tierGuideLink) {
+            steps.push({
+                target: 'a[href="tier_guide.html"]',
+                title: '🏆 티어 시스템 & 업적 달성 방법',
+                content: '🥉 브론즈부터 🏆 마스터까지! 예측 성과에 따른 티어 승급 시스템! 🎯 다양한 업적과 특별 보상! 전략적 베팅으로 최고 티어에 도전하세요!',
+                position: 'bottom'
+            });
+        }
+
+        // 분석방 커뮤니티 설명
+        const discussionsLink = document.querySelector('a[href="discussions.html"]');
+        if (discussionsLink) {
+            steps.push({
+                target: 'a[href="discussions.html"]',
+                title: '🎮 분석방 커뮤니티 참여하기',
+                content: '💬 심층 토론과 분석 공유! 📊 전문가들의 예측 인사이트! 🤝 커뮤니티 멤버들과 정보 교환! 단순 베팅을 넘어 분석의 재미를 느껴보세요!',
+                position: 'bottom'
+            });
+        }
+
+        // 실시간 확률 변화 설명
+        steps.push({
+            target: 'body',
+            title: '📈 실시간 확률 변화 읽는 법',
+            content: '🔄 매 베팅마다 실시간 확률 업데이트! 📊 참여자 수와 GAM 규모에 따른 확률 변동! ⚡ 마감 임박시 급격한 변화 관찰! 확률 흐름을 읽고 최적 타이밍을 노리세요!',
+            position: 'center'
+        });
+
+        // 알림 시스템 설명
+        steps.push({
+            target: 'body',
+            title: '🔔 알림 시스템 & 실시간 업데이트',
+            content: '⏰ 이슈 마감 알림! 🎯 베팅 결과 알림! 💰 GAM 변동 알림! 📢 중요 공지사항! 놓치고 싶지 않은 모든 순간을 실시간으로 알려드려요!',
+            position: 'center'
+        });
+
+        // 모바일 최적화 기능 (모바일에서만)
+        if (window.innerWidth <= 768) {
+            steps.push({
+                target: 'body',
+                title: '📱 모바일 최적화 기능 활용법',
+                content: '👆 터치 최적화 인터페이스! 📱 모바일 전용 UI/UX! 🔄 좌우 스크롤 이슈 탐색! 💨 빠른 베팅과 댓글! 언제 어디서나 편리하게 예겜을 즐기세요!',
+                position: 'center'
+            });
+        } else {
+            steps.push({
+                target: 'body',
+                title: '💻 데스크톱 고급 기능들',
+                content: '⌨️ 키보드 단축키 지원! 🖱️ 마우스 호버 상세정보! 📊 확장된 통계 패널! 🖥️ 멀티태스킹 최적화! 데스크톱의 모든 장점을 활용해보세요!',
+                position: 'center'
+            });
+        }
+
+        // 마지막 마무리 단계
+        steps.push({
+            target: 'body',
+            title: '🎉 예겜 마스터 완성!',
+            content: '축하합니다! 이제 예겜의 모든 기능을 마스터했습니다! 🚀 지금 바로 첫 베팅을 해보세요! 💰 GAM을 모으고, 🏆 티어를 올리고, 👥 커뮤니티와 함께 예측의 재미를 만끽하세요!',
+            position: 'center'
+        });
     }
 
     createOverlay() {
@@ -272,10 +405,11 @@ class YegamTutorial {
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(2px);
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(3px);
             z-index: 49999;
             pointer-events: none;
+            transition: all 0.3s ease;
         `;
         document.body.appendChild(this.overlay);
     }
@@ -484,12 +618,69 @@ class YegamTutorial {
         const style = document.createElement('style');
         style.id = 'tutorial-highlight-styles';
         style.textContent = `
+            @keyframes tutorialPulse {
+                0% { 
+                    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.8),
+                                0 0 20px 5px rgba(255, 255, 255, 0.3),
+                                inset 0 0 0 3px rgba(59, 130, 246, 0.6);
+                }
+                50% { 
+                    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.4),
+                                0 0 30px 10px rgba(255, 255, 255, 0.5),
+                                inset 0 0 0 3px rgba(59, 130, 246, 0.8);
+                }
+                100% { 
+                    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.8),
+                                0 0 20px 5px rgba(255, 255, 255, 0.3),
+                                inset 0 0 0 3px rgba(59, 130, 246, 0.6);
+                }
+            }
+            
+            @keyframes tutorialSpotlight {
+                0% { background: rgba(255, 255, 255, 0.1); }
+                50% { background: rgba(255, 255, 255, 0.2); }
+                100% { background: rgba(255, 255, 255, 0.1); }
+            }
+            
             .tutorial-highlight {
                 position: relative !important;
                 z-index: 50001 !important;
-                box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5) !important;
-                border-radius: 8px !important;
-                transition: all 0.3s ease !important;
+                border-radius: 12px !important;
+                transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1) !important;
+                animation: tutorialPulse 2s infinite, tutorialSpotlight 3s infinite !important;
+                background: rgba(255, 255, 255, 0.15) !important;
+                backdrop-filter: saturate(150%) brightness(110%) !important;
+            }
+            
+            .tutorial-highlight::before {
+                content: '';
+                position: absolute;
+                top: -10px;
+                left: -10px;
+                right: -10px;
+                bottom: -10px;
+                background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
+                border-radius: 20px;
+                z-index: -1;
+                animation: tutorialSpotlight 2s infinite;
+            }
+            
+            .tutorial-highlight::after {
+                content: '👆';
+                position: absolute;
+                top: -40px;
+                left: 50%;
+                transform: translateX(-50%);
+                font-size: 24px;
+                animation: bounce 1s infinite;
+                z-index: 50002;
+                filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+            }
+            
+            @keyframes bounce {
+                0%, 20%, 50%, 80%, 100% { transform: translateX(-50%) translateY(0); }
+                40% { transform: translateX(-50%) translateY(-10px); }
+                60% { transform: translateX(-50%) translateY(-5px); }
             }
         `;
         document.head.appendChild(style);
@@ -507,26 +698,54 @@ class YegamTutorial {
                 <div class="tutorial-welcome-subtitle">
                     예겜의 주요 기능들을 단계별로 알아보세요!
                 </div>
-                <div class="tutorial-welcome-features">
+                <div class="tutorial-welcome-features" style="max-height: 300px; overflow-y: auto; padding-right: 10px;">
                     <div class="tutorial-welcome-feature">
                         <div class="tutorial-welcome-feature-icon">1</div>
-                        <span>GAM 시스템 & 출석 보상 알아보기</span>
+                        <span>💰 GAM 시스템 & 출석 보상 마스터하기</span>
                     </div>
                     <div class="tutorial-welcome-feature">
                         <div class="tutorial-welcome-feature-icon">2</div>
-                        <span>8개 카테고리별 이슈 탐색하기</span>
+                        <span>🏷️ 8개 카테고리별 이슈 탐색 & 필터링</span>
                     </div>
                     <div class="tutorial-welcome-feature">
                         <div class="tutorial-welcome-feature-icon">3</div>
-                        <span>예측 참여하고 베팅하기</span>
+                        <span>🎯 스마트한 예측 참여 & 베팅 전략</span>
                     </div>
                     <div class="tutorial-welcome-feature">
                         <div class="tutorial-welcome-feature-icon">4</div>
-                        <span>토론 참여하고 소통하기</span>
+                        <span>💬 토론 참여 & 댓글/대댓글 시스템</span>
                     </div>
                     <div class="tutorial-welcome-feature">
                         <div class="tutorial-welcome-feature-icon">5</div>
-                        <span>이슈 신청하는 방법 배우기</span>
+                        <span>✏️ 이슈 신청 프로세스 완전정복</span>
+                    </div>
+                    <div class="tutorial-welcome-feature">
+                        <div class="tutorial-welcome-feature-icon">6</div>
+                        <span>🔍 고급 검색 & 실시간 필터링 활용</span>
+                    </div>
+                    <div class="tutorial-welcome-feature">
+                        <div class="tutorial-welcome-feature-icon">7</div>
+                        <span>🏆 티어 시스템 & 업적 달성 방법</span>
+                    </div>
+                    <div class="tutorial-welcome-feature">
+                        <div class="tutorial-welcome-feature-icon">8</div>
+                        <span>📊 내 정보 & 베팅 통계 분석</span>
+                    </div>
+                    <div class="tutorial-welcome-feature">
+                        <div class="tutorial-welcome-feature-icon">9</div>
+                        <span>🔔 알림 시스템 & 실시간 업데이트</span>
+                    </div>
+                    <div class="tutorial-welcome-feature">
+                        <div class="tutorial-welcome-feature-icon">10</div>
+                        <span>📱 모바일 최적화 기능 활용법</span>
+                    </div>
+                    <div class="tutorial-welcome-feature">
+                        <div class="tutorial-welcome-feature-icon">11</div>
+                        <span>🎮 분석방 커뮤니티 참여하기</span>
+                    </div>
+                    <div class="tutorial-welcome-feature">
+                        <div class="tutorial-welcome-feature-icon">12</div>
+                        <span>📈 실시간 확률 변화 읽는 법</span>
                     </div>
                 </div>
                 <div class="tutorial-welcome-actions">
