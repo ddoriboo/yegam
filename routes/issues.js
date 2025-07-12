@@ -28,10 +28,12 @@ router.get('/', async (req, res) => {
             whereClause = 'WHERE i.status != $1';
             params = ['deleted']; // deleted 상태만 제외
         } else if (status === 'closed') {
-            whereClause = 'WHERE i.status = $1';
-            params = ['closed'];
+            // 종료됨: status가 'closed'이거나 마감 시간이 지난 이슈들
+            whereClause = 'WHERE (i.status = $1 OR i.end_date < CURRENT_TIMESTAMP) AND i.status != $2';
+            params = ['closed', 'deleted'];
         } else {
-            whereClause = 'WHERE i.status = $1';
+            // 진행중: status가 'active'이고 마감 시간이 아직 남은 이슈들
+            whereClause = 'WHERE i.status = $1 AND i.end_date > CURRENT_TIMESTAMP';
             params = ['active'];
         }
         

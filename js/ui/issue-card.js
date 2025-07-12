@@ -48,7 +48,7 @@ function formatDate(endDate) {
 export function createIssueCard(issue) {
     const yesPrice = issue.yesPrice;
     const noPrice = 100 - yesPrice;
-    const isClosed = issue.status === 'closed';
+    const isClosed = issue.status === 'closed' || new Date(issue.end_date || issue.endDate) <= new Date();
     let userBetDisplay = '';
     
     if (auth.isLoggedIn()) {

@@ -2002,7 +2002,7 @@ function createIssueCard(issue) {
     const noPrice = 100 - yesPrice;
     const timeLeft = getTimeLeft(issue.end_date || issue.endDate);
     const volume = issue.total_volume || issue.totalVolume || 0;
-    const isClosed = issue.status === 'closed';
+    const isClosed = issue.status === 'closed' || new Date(issue.end_date || issue.endDate) <= new Date();
     
     return `
         <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow ${isClosed ? 'opacity-75' : ''}" data-id="${issue.id}">
