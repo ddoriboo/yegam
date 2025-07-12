@@ -405,13 +405,40 @@ class YegamTutorial {
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(3px);
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(2px);
             z-index: 49999;
             pointer-events: none;
             transition: all 0.3s ease;
         `;
         document.body.appendChild(this.overlay);
+    }
+
+    createSpotlight(targetElement) {
+        if (!targetElement || targetElement === document.body) return;
+        
+        const rect = targetElement.getBoundingClientRect();
+        const spotlight = document.createElement('div');
+        spotlight.className = 'tutorial-spotlight';
+        spotlight.style.cssText = `
+            position: fixed;
+            top: ${rect.top - 10}px;
+            left: ${rect.left - 10}px;
+            width: ${rect.width + 20}px;
+            height: ${rect.height + 20}px;
+            background: transparent;
+            border-radius: 12px;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.8);
+            z-index: 50000;
+            pointer-events: none;
+            transition: all 0.5s ease;
+        `;
+        
+        if (this.spotlight) {
+            this.spotlight.remove();
+        }
+        this.spotlight = spotlight;
+        document.body.appendChild(spotlight);
     }
 
     createTooltip(step) {
@@ -547,8 +574,10 @@ class YegamTutorial {
             this.tooltip.remove();
         }
 
-        // 요소 하이라이트
+        // 요소 하이라이트 및 스포트라이트
+        const targetElement = step.target === 'body' ? null : document.querySelector(step.target);
         this.highlightElement(step.target);
+        this.createSpotlight(targetElement);
 
         // 툴팁 생성 및 배치
         this.createTooltip(step);
@@ -569,6 +598,26 @@ class YegamTutorial {
         if (this.currentStep > 0) {
             this.showStep(this.currentStep - 1);
         }
+    }
+
+    startInteractiveTutorial() {
+        console.log('🎮 인터랙티브 튜토리얼 시작');
+        
+        // 현재 페이지가 about.html이면 홈페이지로 이동
+        if (window.location.pathname.includes('about.html')) {
+            console.log('📍 홈페이지로 이동하여 실제 UI에서 튜토리얼 진행');
+            
+            // 튜토리얼 모드 플래그 설정
+            sessionStorage.setItem('tutorial-mode', 'true');
+            sessionStorage.setItem('tutorial-step', '0');
+            
+            // 홈페이지로 이동
+            window.location.href = 'index.html';
+            return;
+        }
+        
+        // 이미 홈페이지에 있다면 바로 시작
+        this.startTutorial();
     }
 
     startTutorial() {
@@ -597,6 +646,12 @@ class YegamTutorial {
             this.overlay = null;
         }
         
+        // 스포트라이트 제거
+        if (this.spotlight) {
+            this.spotlight.remove();
+            this.spotlight = null;
+        }
+        
         // 툴팁 제거
         if (this.tooltip) {
             this.tooltip.remove();
@@ -607,6 +662,10 @@ class YegamTutorial {
         document.querySelectorAll('.tutorial-highlight').forEach(el => {
             el.classList.remove('tutorial-highlight');
         });
+        
+        // 세션 스토리지 정리
+        sessionStorage.removeItem('tutorial-mode');
+        sessionStorage.removeItem('tutorial-step');
         
         // 완료 표시
         this.markAsCompleted();
@@ -693,10 +752,13 @@ class YegamTutorial {
         modal.innerHTML = `
             <div class="tutorial-welcome-content">
                 <div class="tutorial-welcome-title">
-                    🎮 예겜 소개
+                    🎮 예겜 완전정복 가이드
                 </div>
                 <div class="tutorial-welcome-subtitle">
-                    예겜의 주요 기능들을 단계별로 알아보세요!
+                    실제 화면에서 버튼을 직접 보며 배우는 인터랙티브 튜토리얼!
+                </div>
+                <div class="tutorial-welcome-notice" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; padding: 12px; border-radius: 8px; margin: 16px 0; text-align: center; font-size: 14px;">
+                    💡 <strong>인터랙티브 가이드:</strong> 실제 홈페이지로 이동하여 모든 기능을 직접 체험하며 배웁니다!
                 </div>
                 <div class="tutorial-welcome-features" style="max-height: 300px; overflow-y: auto; padding-right: 10px;">
                     <div class="tutorial-welcome-feature">
@@ -765,7 +827,7 @@ class YegamTutorial {
         modal.querySelector('#tutorial-start').addEventListener('click', () => {
             console.log('🚀 튜토리얼 시작 버튼 클릭');
             document.body.removeChild(modal);
-            this.startTutorial();
+            this.startInteractiveTutorial();
         });
 
         modal.querySelector('#tutorial-skip').addEventListener('click', () => {
@@ -906,7 +968,33 @@ window.addEventListener('load', () => {
         // 이미 초기화되었다면 이벤트 리스너만 다시 설정
         window.yegamTutorial.setupEventListeners();
     }
+    
+    // 튜토리얼 모드 체크 및 재개
+    checkAndResumeTutorial();
 });
+
+// 튜토리얼 재개 함수
+function checkAndResumeTutorial() {
+    const tutorialMode = sessionStorage.getItem('tutorial-mode');
+    const tutorialStep = sessionStorage.getItem('tutorial-step');
+    
+    if (tutorialMode === 'true' && window.yegamTutorial) {
+        console.log('🔄 튜토리얼 모드 감지 - 재개 중...');
+        
+        // 약간의 지연 후 튜토리얼 재개 (페이지 렌더링 완료 대기)
+        setTimeout(() => {
+            if (window.yegamTutorial && !window.yegamTutorial.isRunning) {
+                const step = parseInt(tutorialStep) || 0;
+                window.yegamTutorial.currentStep = step;
+                window.yegamTutorial.startTutorial();
+                
+                // 플래그 제거
+                sessionStorage.removeItem('tutorial-mode');
+                sessionStorage.removeItem('tutorial-step');
+            }
+        }, 1000);
+    }
+}
 
 // 개발자 도구용 헬퍼 함수들
 window.tutorialHelpers = {
