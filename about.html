@@ -281,7 +281,40 @@
     <script src="js/ui/issue-request-modal.js"></script>
     <script src="js/ui/premium-notifications.js"></script>
     <!-- 예겜 튜토리얼 시스템 (순수 JavaScript) -->
-    <script src="js/ui/tutorial.js?v=20250712-v3"></script>
+    <script src="js/ui/tutorial.js?v=20250712-v4"></script>
+    
+    <!-- 튜토리얼 로드 확인 및 즉시 테스트 -->
+    <script>
+    console.log('🚀 about.html: 튜토리얼 스크립트 로드 완료 확인');
+    
+    // DOM 로드 완료 후 즉시 테스트
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('📋 about.html: DOM 로드 완료, 튜토리얼 시스템 확인 중...');
+        
+        setTimeout(() => {
+            console.log('🔍 튜토리얼 시스템 상태:');
+            console.log('- window.yegamTutorial:', window.yegamTutorial ? '존재' : '없음');
+            console.log('- window.startTutorialDirectly:', typeof window.startTutorialDirectly);
+            
+            const btn = document.getElementById('start-tutorial-btn');
+            console.log('- 사용법 배우기 버튼:', btn ? '존재' : '없음');
+            
+            if (btn && window.startTutorialDirectly) {
+                console.log('✅ 튜토리얼 시스템 준비 완료 - 버튼 클릭 테스트 가능');
+                
+                // 테스트용 전역 함수 노출
+                window.testTutorialButton = () => {
+                    console.log('🧪 버튼 테스트 실행...');
+                    window.startTutorialDirectly();
+                };
+                console.log('💡 브라우저 콘솔에서 window.testTutorialButton() 실행으로 테스트 가능');
+            } else {
+                console.error('❌ 튜토리얼 시스템 초기화 실패');
+            }
+        }, 500);
+    });
+    </script>
+    
     <script type="module" src="js/app.js"></script>
 </body>
 </html>

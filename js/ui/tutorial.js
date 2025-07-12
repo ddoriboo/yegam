@@ -658,6 +658,16 @@ function initializeTutorial() {
         console.log('🎯 예겜 튜토리얼 시스템 초기화 시작...');
         window.yegamTutorial = new YegamTutorial();
         console.log('🎯 예겜 튜토리얼 시스템 로드 완료');
+        
+        // 즉시 버튼 존재 확인 및 테스트
+        setTimeout(() => {
+            const btn = document.getElementById('start-tutorial-btn');
+            console.log('🔍 튜토리얼 초기화 후 버튼 확인:', btn ? '존재함' : '없음');
+            if (btn) {
+                console.log('✅ 사용법 배우기 버튼 준비 완료');
+                console.log('🔧 테스트: window.startTutorialDirectly 함수:', typeof window.startTutorialDirectly);
+            }
+        }, 100);
     }
 }
 
@@ -772,4 +782,5 @@ if (typeof module !== 'undefined' && module.exports) {
     module.exports = YegamTutorial;
 }
 
-export default YegamTutorial;
+// ES6 export는 module 타입일 때만 사용 가능하므로 제거
+// export default YegamTutorial;
