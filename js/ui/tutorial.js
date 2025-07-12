@@ -55,13 +55,31 @@ class YegamTutorial {
             // 버튼에 시각적 피드백 추가
             startTutorialBtn.style.cursor = 'pointer';
             startTutorialBtn.title = '예겜 사용법 튜토리얼을 시작합니다';
+            
+            // 강제로 이벤트 리스너 재설정 (다중 보장)
+            setTimeout(() => {
+                startTutorialBtn.removeEventListener('click', this.handleStartTutorialClick);
+                startTutorialBtn.addEventListener('click', this.handleStartTutorialClick.bind(this));
+                console.log('🔄 사용법 배우기 버튼 이벤트 리스너 재설정 완료');
+            }, 500);
         }
+
+        // 전역 직접 호출 함수 설정 (onclick 폴백용)
+        window.startTutorialDirectly = () => {
+            console.log('🚀 직접 호출로 튜토리얼 시작');
+            this.handleStartTutorialClick({ 
+                target: document.getElementById('start-tutorial-btn'),
+                preventDefault: () => {},
+                stopPropagation: () => {}
+            });
+        };
 
         // 전역 클릭 디버깅 (개발용)
         if (!this.globalClickSetup) {
             document.addEventListener('click', (e) => {
                 if (e.target.id === 'start-tutorial-btn') {
                     console.log('🖱️ 사용법 배우기 버튼 클릭 감지:', e.target.id, e.target.textContent);
+                    console.log('🔍 이벤트 객체:', e);
                 }
             });
             this.globalClickSetup = true;
@@ -72,17 +90,21 @@ class YegamTutorial {
 
 
     handleStartTutorialClick(e) {
-        console.log('🎯 사용법 배우기 버튼 클릭됨!', e.target.id);
-        e.preventDefault();
-        e.stopPropagation();
+        console.log('🎯 사용법 배우기 버튼 클릭됨!', e.target?.id || 'direct call');
+        
+        if (e.preventDefault) e.preventDefault();
+        if (e.stopPropagation) e.stopPropagation();
         
         // 버튼 클릭 시각적 피드백
-        const btn = e.target;
-        btn.style.transform = 'scale(0.95)';
-        setTimeout(() => {
-            btn.style.transform = 'scale(1)';
-        }, 100);
+        const btn = e.target || document.getElementById('start-tutorial-btn');
+        if (btn) {
+            btn.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                btn.style.transform = 'scale(1)';
+            }, 100);
+        }
         
+        console.log('📋 튜토리얼 환영 모달 표시 시작...');
         // 튜토리얼 모달 표시
         this.showWelcomeModal();
     }
@@ -716,6 +738,28 @@ window.tutorialHelpers = {
         }
         console.warn('- 사용법 배우기 버튼을 찾을 수 없습니다');
         return false;
+    },
+    testDirectCall: () => {
+        console.log('🔧 직접 호출 테스트');
+        if (window.startTutorialDirectly) {
+            window.startTutorialDirectly();
+            return true;
+        }
+        console.warn('- startTutorialDirectly 함수를 찾을 수 없습니다');
+        return false;
+    },
+    checkButtonStatus: () => {
+        const btn = document.getElementById('start-tutorial-btn');
+        console.log('🔍 버튼 상태 확인:');
+        console.log('- 버튼 존재:', btn ? '예' : '아니오');
+        if (btn) {
+            console.log('- 버튼 텍스트:', btn.textContent.trim());
+            console.log('- onclick 속성:', btn.onclick ? '설정됨' : '없음');
+            console.log('- 클릭 이벤트 리스너:', btn._eventListeners ? '설정됨' : '확인불가');
+            console.log('- 버튼 스타일:', btn.style.cursor);
+            console.log('- title 속성:', btn.title);
+        }
+        return btn;
     },
     forceSetup: () => {
         console.log('🔧 강제 이벤트 리스너 재설정');
