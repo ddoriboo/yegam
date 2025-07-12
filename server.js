@@ -32,6 +32,8 @@ const discussionsRoutes = require('./routes/discussions');
 const { router: agentRoutes, initializeAgents } = require('./routes/agents');
 const visitorsRoutes = require('./routes/visitors');
 const testOpenAIRoutes = require('./routes/test-openai');
+const minigamesRoutes = require('./routes/minigames');
+const { initializeBustabitEngine } = require('./services/minigames/bustabit-engine');
 const { initDatabase } = require('./database/database');
 const { initAIAgentsDatabase } = require('./database/init-ai-agents');
 const issueScheduler = require('./services/scheduler');
@@ -162,6 +164,7 @@ app.use('/api/discussions', discussionsRoutes);
 app.use('/api/agents', agentRoutes);
 app.use('/api/visitors', visitorsRoutes);
 app.use('/api/test-openai', testOpenAIRoutes);
+app.use('/api/minigames', minigamesRoutes);
 app.use('/api/admin/comments', adminCommentRoutes);
 app.use('/api/admin-auth', secureAdminAuthRoutes); // 보안 관리자 인증 API
 app.use('/api/admin/audit', adminAuditRoutes); // 감사 로그 및 보안 모니터링 API
@@ -610,6 +613,16 @@ const startServer = async () => {
         } catch (agentError) {
             console.error('❌ AI 에이전트 초기화 실패:', agentError);
             console.error('❌ AI 에이전트 없이 서버 계속 실행');
+        }
+        
+        // Bustabit 게임 엔진 초기화
+        try {
+            console.log('🚀 Bustabit 게임 엔진 초기화 중...');
+            initializeBustabitEngine();
+            console.log('✅ Bustabit 게임 엔진 초기화 완료');
+        } catch (bustabitError) {
+            console.error('❌ Bustabit 엔진 초기화 실패:', bustabitError);
+            console.error('❌ Bustabit 게임 없이 서버 계속 실행');
         }
     } catch (err) {
         console.error('❌ 데이터베이스 초기화 실패:', err);

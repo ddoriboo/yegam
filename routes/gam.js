@@ -303,4 +303,263 @@ router.get('/stats/:userId', async (req, res) => {
     }
 });
 
+// =====================================
+// 미니게임 관련 GAM 처리 함수들
+// =====================================
+
+// 미니게임 베팅 처리
+router.post('/minigame-bet', authMiddleware, async (req, res) => {
+    const userId = req.user.id;
+    const { amount, gameType, gameData } = req.body;
+    
+    try {
+        console.log(`🎮 미니게임 베팅 요청: 사용자 ${userId}, 게임 ${gameType}, 금액 ${amount} GAM`);
+        
+        // 입력 값 검증
+        if (!amount || !gameType) {
+            return res.status(400).json({
+                success: false,
+                message: '베팅 금액과 게임 타입이 필요합니다'
+            });
+        }
+        
+        if (amount < 10 || amount > 10000) {
+            return res.status(400).json({
+                success: false,
+                message: '베팅 금액은 10 GAM에서 10,000 GAM 사이여야 합니다'
+            });
+        }
+        
+        const { query } = require('../database/postgres');
+        
+        // 트랜잭션 시작
+        await query('BEGIN');
+        
+        try {
+            // 사용자 잔액 확인 및 잠금
+            const userResult = await query(
+                'SELECT id, username, gam_balance FROM users WHERE id = $1 FOR UPDATE',
+                [userId]
+            );
+            
+            if (userResult.rows.length === 0) {
+                await query('ROLLBACK');
+                return res.status(404).json({
+                    success: false,
+                    message: '사용자를 찾을 수 없습니다'
+                });
+            }
+            
+            const user = userResult.rows[0];
+            
+            // 잔액 확인
+            if (user.gam_balance < amount) {
+                await query('ROLLBACK');
+                return res.status(400).json({
+                    success: false,
+                    message: '보유 GAM이 부족합니다'
+                });
+            }
+            
+            // GAM 차감
+            const newBalance = user.gam_balance - amount;
+            await query(
+                'UPDATE users SET gam_balance = $1 WHERE id = $2',
+                [newBalance, userId]
+            );
+            
+            // 미니게임 거래 기록 (별도 테이블 사용 예정)
+            // 현재는 기존 gam_transactions 테이블 활용
+            await query(
+                `INSERT INTO gam_transactions 
+                (user_id, type, category, amount, description, reference_id) 
+                VALUES ($1, $2, $3, $4, $5, $6)`,
+                [
+                    userId,
+                    'burn',
+                    'minigame_bet',
+                    amount,
+                    `${gameType} 게임 베팅`,
+                    JSON.stringify({ gameType, ...gameData })
+                ]
+            );
+            
+            await query('COMMIT');
+            
+            console.log(`✅ 미니게임 베팅 성공: 사용자 ${userId}, ${amount} GAM 차감, 잔액 ${newBalance}`);
+            
+            res.json({
+                success: true,
+                message: '베팅이 성공적으로 처리되었습니다',
+                newBalance: newBalance,
+                betAmount: amount,
+                gameType: gameType
+            });
+            
+        } catch (innerError) {
+            await query('ROLLBACK');
+            throw innerError;
+        }
+        
+    } catch (error) {
+        console.error('미니게임 베팅 실패:', error);
+        res.status(500).json({
+            success: false,
+            message: '베팅 처리 중 오류가 발생했습니다'
+        });
+    }
+});
+
+// 미니게임 수익 지급 처리
+router.post('/minigame-payout', authMiddleware, async (req, res) => {
+    const userId = req.user.id;
+    const { amount, gameType, gameData } = req.body;
+    
+    try {
+        console.log(`💰 미니게임 수익 지급 요청: 사용자 ${userId}, 게임 ${gameType}, 금액 ${amount} GAM`);
+        
+        // 입력 값 검증
+        if (!amount || !gameType) {
+            return res.status(400).json({
+                success: false,
+                message: '지급 금액과 게임 타입이 필요합니다'
+            });
+        }
+        
+        if (amount <= 0 || amount > 100000) {
+            return res.status(400).json({
+                success: false,
+                message: '잘못된 지급 금액입니다'
+            });
+        }
+        
+        const { query } = require('../database/postgres');
+        
+        // 트랜잭션 시작
+        await query('BEGIN');
+        
+        try {
+            // 사용자 잔액 확인 및 잠금
+            const userResult = await query(
+                'SELECT id, username, gam_balance FROM users WHERE id = $1 FOR UPDATE',
+                [userId]
+            );
+            
+            if (userResult.rows.length === 0) {
+                await query('ROLLBACK');
+                return res.status(404).json({
+                    success: false,
+                    message: '사용자를 찾을 수 없습니다'
+                });
+            }
+            
+            const user = userResult.rows[0];
+            
+            // GAM 지급 (최대 잔액 제한 확인)
+            const newBalance = Math.min(user.gam_balance + amount, 99999999);
+            const actualPayout = newBalance - user.gam_balance;
+            
+            await query(
+                'UPDATE users SET gam_balance = $1 WHERE id = $2',
+                [newBalance, userId]
+            );
+            
+            // 미니게임 수익 기록
+            await query(
+                `INSERT INTO gam_transactions 
+                (user_id, type, category, amount, description, reference_id) 
+                VALUES ($1, $2, $3, $4, $5, $6)`,
+                [
+                    userId,
+                    'earn',
+                    'minigame_win',
+                    actualPayout,
+                    `${gameType} 게임 수익`,
+                    JSON.stringify({ gameType, originalPayout: amount, ...gameData })
+                ]
+            );
+            
+            await query('COMMIT');
+            
+            console.log(`✅ 미니게임 수익 지급 성공: 사용자 ${userId}, ${actualPayout} GAM 지급, 잔액 ${newBalance}`);
+            
+            res.json({
+                success: true,
+                message: '수익이 성공적으로 지급되었습니다',
+                newBalance: newBalance,
+                payoutAmount: actualPayout,
+                gameType: gameType
+            });
+            
+        } catch (innerError) {
+            await query('ROLLBACK');
+            throw innerError;
+        }
+        
+    } catch (error) {
+        console.error('미니게임 수익 지급 실패:', error);
+        res.status(500).json({
+            success: false,
+            message: '수익 지급 처리 중 오류가 발생했습니다'
+        });
+    }
+});
+
+// 미니게임 접근 권한 확인
+router.get('/minigame-access-check', authMiddleware, async (req, res) => {
+    const userId = req.user.id;
+    const { gameType } = req.query;
+    
+    try {
+        const { query } = require('../database/postgres');
+        
+        // 사용자 정보 조회
+        const userResult = await query(
+            'SELECT id, username, gam_balance FROM users WHERE id = $1',
+            [userId]
+        );
+        
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: '사용자를 찾을 수 없습니다'
+            });
+        }
+        
+        const user = userResult.rows[0];
+        
+        // 게임별 접근 권한 확인
+        const gameAccessRules = {
+            'bustabit': { minBalance: 10, maxBet: 10000 },
+            'monster': { minBalance: 10, maxBet: 10000 },
+            'slots': { minBalance: 10, maxBet: 10000 }
+        };
+        
+        const gameRule = gameAccessRules[gameType];
+        if (!gameRule) {
+            return res.status(400).json({
+                success: false,
+                message: '지원하지 않는 게임입니다'
+            });
+        }
+        
+        const canPlay = user.gam_balance >= gameRule.minBalance;
+        
+        res.json({
+            success: canPlay,
+            message: canPlay ? '게임을 플레이할 수 있습니다' : '최소 GAM 잔액이 부족합니다',
+            userBalance: user.gam_balance,
+            minBalance: gameRule.minBalance,
+            maxBet: gameRule.maxBet
+        });
+        
+    } catch (error) {
+        console.error('미니게임 접근 권한 확인 실패:', error);
+        res.status(500).json({
+            success: false,
+            message: '접근 권한 확인 중 오류가 발생했습니다'
+        });
+    }
+});
+
 module.exports = router;

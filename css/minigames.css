@@ -1,0 +1,394 @@
+/* 미니게임방 전용 스타일 */
+
+/* 게임 카드 애니메이션 */
+.game-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.game-card:hover {
+    transform: translateY(-4px);
+}
+
+.game-card-header {
+    position: relative;
+    overflow: hidden;
+}
+
+.game-card-header::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+    transform: rotate(45deg);
+    transition: all 0.6s;
+    opacity: 0;
+}
+
+.game-card:hover .game-card-header::before {
+    opacity: 1;
+    transform: rotate(45deg) translate(50%, 50%);
+}
+
+/* 게임 플레이 버튼 */
+.game-play-btn {
+    position: relative;
+    overflow: hidden;
+}
+
+.game-play-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+
+.game-play-btn:hover::before {
+    left: 100%;
+}
+
+/* Bustabit 그래프 영역 */
+.bustabit-container {
+    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+    border-radius: 16px;
+    padding: 24px;
+    color: white;
+}
+
+.bustabit-graph {
+    background: #0f172a;
+    border-radius: 12px;
+    border: 2px solid #334155;
+    position: relative;
+    overflow: hidden;
+}
+
+.bustabit-graph-canvas {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+}
+
+/* 베팅 패널 */
+.betting-panel {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.betting-input {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    color: white;
+    padding: 12px 16px;
+    width: 100%;
+    transition: all 0.3s ease;
+}
+
+.betting-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.betting-input::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+/* 캐시아웃 버튼 */
+.cashout-btn {
+    background: linear-gradient(135deg, #10b981, #059669);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-weight: 600;
+    padding: 12px 24px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.cashout-btn:hover {
+    background: linear-gradient(135deg, #059669, #047857);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
+}
+
+.cashout-btn:disabled {
+    background: #6b7280;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* 베팅 버튼 */
+.bet-btn {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-weight: 600;
+    padding: 12px 24px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.bet-btn:hover {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+.bet-btn:disabled {
+    background: #6b7280;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* 멀티플라이어 표시 */
+.multiplier-display {
+    font-family: 'Inter', monospace;
+    font-size: 3rem;
+    font-weight: 800;
+    text-align: center;
+    margin: 20px 0;
+    text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+    transition: all 0.1s ease;
+}
+
+.multiplier-display.low-multiplier {
+    color: #3b82f6;
+    text-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+}
+
+.multiplier-display.medium-multiplier {
+    color: #f59e0b;
+    text-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
+}
+
+.multiplier-display.high-multiplier {
+    color: #10b981;
+    text-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+    animation: highMultiplierPulse 1s ease-in-out infinite;
+}
+
+.multiplier-display.crashed {
+    color: #ef4444;
+    animation: crashPulse 0.5s ease-in-out;
+}
+
+@keyframes crashPulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+@keyframes highMultiplierPulse {
+    0% { transform: scale(1); text-shadow: 0 0 20px rgba(16, 185, 129, 0.5); }
+    50% { transform: scale(1.05); text-shadow: 0 0 30px rgba(16, 185, 129, 0.8); }
+    100% { transform: scale(1); text-shadow: 0 0 20px rgba(16, 185, 129, 0.5); }
+}
+
+/* 게임 상태 표시 */
+.game-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.game-status.betting {
+    background: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.game-status.flying {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.game-status.crashed {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* 플레이어 목록 */
+.players-list {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: 16px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.player-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-bottom: 4px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.player-item.cashed-out {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.player-item.busted {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.3);
+    opacity: 0.7;
+}
+
+/* 게임 히스토리 */
+.game-history {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+    padding: 8px 0;
+}
+
+.history-item {
+    min-width: 60px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+    padding: 0 8px;
+}
+
+.history-item.low {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.history-item.medium {
+    background: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.history-item.high {
+    background: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+    .game-card {
+        margin-bottom: 20px;
+    }
+    
+    .multiplier-display {
+        font-size: 2rem;
+    }
+    
+    .bustabit-container {
+        padding: 16px;
+    }
+    
+    .betting-panel {
+        padding: 16px;
+    }
+}
+
+/* 로딩 애니메이션 */
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* 성공/실패 알림 */
+.game-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 16px 24px;
+    border-radius: 8px;
+    color: white;
+    font-weight: 600;
+    z-index: 10000;
+    animation: slideIn 0.3s ease-out;
+}
+
+.game-notification.success {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
+.game-notification.error {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+}
+
+.game-notification.warning {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* 스크롤바 스타일링 */
+.players-list::-webkit-scrollbar,
+.game-history::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.players-list::-webkit-scrollbar-track,
+.game-history::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+}
+
+.players-list::-webkit-scrollbar-thumb,
+.game-history::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+}
+
+.players-list::-webkit-scrollbar-thumb:hover,
+.game-history::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
