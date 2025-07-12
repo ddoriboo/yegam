@@ -1,224 +1,434 @@
-// 예겜 온보딩 튜토리얼 시스템
+// 예겜 온보딩 튜토리얼 시스템 (순수 JavaScript)
 class YegamTutorial {
     constructor() {
-        this.driver = null;
         this.currentStep = 0;
-        this.totalSteps = 7;
+        this.totalSteps = 0;
         this.isRunning = false;
         this.storageKey = 'yegam-tutorial-completed';
+        this.overlay = null;
+        this.tooltip = null;
+        this.steps = [];
         this.init();
     }
 
     init() {
-        // Driver.js 라이브러리가 로드되었는지 확인
-        if (typeof window.driver === 'undefined') {
-            console.warn('Driver.js가 로드되지 않았습니다. CDN을 확인해주세요.');
-            return;
-        }
-
-        this.setupDriver();
-        this.createTutorialButton();
-        this.checkFirstVisit();
+        this.setupEventListeners();
+        console.log('🎯 예겜 튜토리얼 시스템 초기화 완료');
     }
 
-    setupDriver() {
-        const driverObj = window.driver || window.Driver;
-        if (!driverObj) {
-            console.warn('Driver.js not loaded properly');
-            return;
+    setupEventListeners() {
+        // 데스크톱 튜토리얼 버튼
+        const desktopBtn = document.getElementById('tutorial-btn');
+        if (desktopBtn) {
+            desktopBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.showWelcomeModal();
+            });
         }
 
-        this.driver = driverObj({
-            overlayColor: 'rgba(0, 0, 0, 0.6)',
-            popoverClass: 'yegam-tutorial-popover',
-            showProgress: true,
-            progressText: '{{current}} / {{total}}',
-            nextBtnText: '다음',
-            prevBtnText: '이전',
-            doneBtnText: '완료',
-            closeBtnText: '×',
-            onDestroyed: () => {
-                this.isRunning = false;
-                this.markAsCompleted();
-            },
-            onPopoverRender: (popover, { config, state }) => {
-                this.addProgressBar(popover, state);
-            },
-            onHighlightStarted: (element, step, options) => {
-                console.log('Highlighting:', element);
-            },
-            onDeselected: (element, step, options) => {
-                console.log('Deselected:', element);
+        // 모바일 튜토리얼 버튼
+        const mobileBtn = document.getElementById('mobile-tutorial-btn');
+        if (mobileBtn) {
+            mobileBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.showWelcomeModal();
+            });
+        }
+
+        // ESC 키로 튜토리얼 종료
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.isRunning) {
+                this.endTutorial();
             }
         });
-    }
 
-    addProgressBar(popover, state) {
-        const { activeIndex = 0, totalElements = this.totalSteps } = state;
-        const progress = ((activeIndex + 1) / totalElements) * 100;
-        
-        const progressContainer = document.createElement('div');
-        progressContainer.className = 'driver-popover-progress';
-        progressContainer.innerHTML = `
-            <span>단계 ${activeIndex + 1} / ${totalElements}</span>
-            <div class="driver-popover-progress-bar">
-                <div class="driver-popover-progress-fill" style="width: ${progress}%"></div>
-            </div>
-        `;
-        
-        const description = popover.querySelector('.driver-popover-description');
-        if (description) {
-            description.insertAdjacentElement('afterend', progressContainer);
-        }
+        console.log('✅ 튜토리얼 이벤트 리스너 설정 완료');
     }
 
     getTutorialSteps() {
-        const steps = [
-            {
-                element: 'body',
-                popover: {
-                    title: '🎮 예겜에 오신 것을 환영합니다!',
-                    description: '예겜은 다양한 이슈에 대해 예측하고 GAM을 이용해 참여하는 예측 플랫폼입니다. 함께 주요 기능들을 살펴볼까요?',
-                    side: 'bottom',
-                    align: 'center'
-                }
-            },
-            {
-                element: '#header-user-actions',
-                popover: {
-                    title: '💰 GAM 잔액 & 출석 보상',
-                    description: '로그인하면 여기서 GAM 잔액을 확인할 수 있어요. 매일 로그인하면 출석 보상으로 5,000 GAM을 받을 수 있습니다! 연속 출석할수록 더 많은 보너스도 있어요.',
-                    side: 'bottom',
-                    align: 'end'
-                }
-            }
-        ];
+        const currentPage = window.location.pathname;
+        let steps = [];
 
-        // 카테고리 필터가 있는 경우 추가
-        if (document.querySelector('#category-filters') || document.querySelector('.category-filters')) {
+        // 환영 단계
+        steps.push({
+            target: 'body',
+            title: '🎮 예겜에 오신 것을 환영합니다!',
+            content: '예겜은 다양한 이슈에 대해 예측하고 GAM을 이용해 참여하는 예측 플랫폼입니다. 함께 주요 기능들을 살펴볼까요?',
+            position: 'center'
+        });
+
+        // 사용자 정보/GAM 잔액 설명
+        const userActions = document.getElementById('header-user-actions');
+        if (userActions && userActions.children.length > 0) {
             steps.push({
-                element: '#category-filters, .category-filters',
-                popover: {
-                    title: '🏷️ 8개 카테고리',
-                    description: '정치, 스포츠, 경제, 코인, 테크, 엔터, 날씨, 해외 등 8개 카테고리로 구분된 다양한 이슈들을 탐색해보세요.',
-                    side: 'bottom',
-                    align: 'center'
-                }
+                target: '#header-user-actions',
+                title: '💰 GAM 잔액 & 출석 보상',
+                content: '로그인하면 여기서 GAM 잔액을 확인할 수 있어요. 매일 로그인하면 출석 보상으로 5,000 GAM을 받을 수 있습니다! 연속 출석할수록 더 많은 보너스도 있어요.',
+                position: 'bottom'
+            });
+        } else {
+            steps.push({
+                target: '#header-user-actions',
+                title: '💰 GAM 시스템',
+                content: '로그인하면 여기에 GAM 잔액이 표시됩니다. 매일 로그인하여 출석 보상을 받고, 예측에 참여해보세요!',
+                position: 'bottom'
             });
         }
 
-        // 이슈 카드가 있는 경우 추가
-        const issueCard = document.querySelector('.issue-card') || document.querySelector('[data-id]');
-        if (issueCard) {
-            steps.push({
-                element: '.issue-card, [data-id]',
-                popover: {
-                    title: '📊 이슈 카드',
-                    description: '각 이슈에서 Yes/No로 예측할 수 있어요. 실시간 확률, 총 참여 GAM, 참여 인원을 확인하고 베팅에 참여해보세요!',
-                    side: 'top',
-                    align: 'center'
-                }
-            });
-
-            // 베팅 버튼이 있는 경우 추가
-            if (document.querySelector('.bet-btn') || document.querySelector('.bg-green-600')) {
-                steps.push({
-                    element: '.bet-btn, .bg-green-600',
-                    popover: {
-                        title: '🎯 예측 참여하기',
-                        description: 'Yes 또는 No 버튼을 클릭해서 예측에 참여하세요. 10~10,000 GAM 사이에서 베팅 금액을 선택할 수 있어요.',
-                        side: 'top',
-                        align: 'center'
-                    }
-                });
-            }
-
-            // 댓글 버튼이 있는 경우 추가
-            if (document.querySelector('.comments-toggle-btn')) {
-                steps.push({
-                    element: '.comments-toggle-btn',
-                    popover: {
-                        title: '💬 토론 참여하기',
-                        description: '이슈에 대한 의견을 댓글로 나누고, 좋아요를 누르거나 대댓글을 작성할 수 있어요. 다른 사용자들과 활발하게 소통해보세요!',
-                        side: 'top',
-                        align: 'center'
-                    }
-                });
-            }
+        // 페이지별 특화 단계들
+        if (currentPage.includes('index.html') || currentPage === '/') {
+            this.addHomePageSteps(steps);
+        } else if (currentPage.includes('issues.html')) {
+            this.addIssuesPageSteps(steps);
         }
 
-        // 이슈 신청 버튼이 표시되어 있는 경우에만 추가
+        // 이슈 신청 설명
         const issueRequestBtn = document.querySelector('#desktop-issue-request-btn:not(.hidden)') || 
                                document.querySelector('#mobile-issue-request-btn:not(.hidden)');
         if (issueRequestBtn) {
             steps.push({
-                element: '#desktop-issue-request-btn, #mobile-issue-request-btn',
-                popover: {
-                    title: '✏️ 이슈 신청하기',
-                    description: '원하는 예측 주제가 없다면 직접 이슈를 신청해보세요! 관리자 검토 후 승인되면 다른 사용자들과 함께 예측할 수 있어요. (로그인 필요)',
-                    side: 'bottom',
-                    align: 'center'
-                }
+                target: issueRequestBtn.id.includes('desktop') ? '#desktop-issue-request-btn' : '#mobile-issue-request-btn',
+                title: '✏️ 이슈 신청하기',
+                content: '원하는 예측 주제가 없다면 직접 이슈를 신청해보세요! 관리자 검토 후 승인되면 다른 사용자들과 함께 예측할 수 있어요.',
+                position: 'bottom'
             });
         } else {
-            // 이슈 신청 버튼이 없으면 설명만 추가
             steps.push({
-                element: 'nav',
-                popover: {
-                    title: '✏️ 이슈 신청하기',
-                    description: '로그인하면 네비게이션에 "이슈 신청" 버튼이 나타납니다. 원하는 예측 주제를 직접 제안해보세요!',
-                    side: 'bottom',
-                    align: 'center'
-                }
+                target: 'nav',
+                title: '✏️ 이슈 신청하기',
+                content: '로그인하면 네비게이션에 "이슈 신청" 버튼이 나타납니다. 원하는 예측 주제를 직접 제안해보세요!',
+                position: 'bottom'
             });
         }
 
+        this.steps = steps;
         this.totalSteps = steps.length;
         return steps;
     }
 
-    startTutorial() {
-        if (this.isRunning || !this.driver) return;
-        
-        this.isRunning = true;
-        this.currentStep = 0;
-        
-        const steps = this.getTutorialSteps();
-        
-        try {
-            // Driver.js 1.3.1 방식으로 실행
-            this.driver.setSteps(steps);
-            this.driver.drive();
-        } catch (error) {
-            console.error('튜토리얼 시작 오류:', error);
-            // 폴백: 단순 highlight 방식
-            this.driver.highlight({
-                element: steps[0].element,
-                popover: steps[0].popover
+    addHomePageSteps(steps) {
+        // 카테고리 필터 설명
+        const categoryFilters = document.querySelector('#category-filters') || 
+                               document.querySelector('.category-filters-desktop');
+        if (categoryFilters) {
+            steps.push({
+                target: '#category-filters, .category-filters-desktop',
+                title: '🏷️ 8개 카테고리',
+                content: '정치, 스포츠, 경제, 코인, 테크, 엔터, 날씨, 해외 등 8개 카테고리로 구분된 다양한 이슈들을 탐색해보세요.',
+                position: 'bottom'
+            });
+        }
+
+        // 인기 이슈 목록 설명 (데스크톱)
+        const popularList = document.querySelector('#popular-issues-list');
+        if (popularList && popularList.children.length > 0) {
+            steps.push({
+                target: '#popular-issues-list',
+                title: '⭐ 인기 이슈 목록',
+                content: '가장 많은 관심을 받고 있는 인기 이슈들입니다. 클릭하면 해당 이슈로 바로 이동해요!',
+                position: 'bottom'
+            });
+        }
+
+        // 모바일 인기 이슈 설명
+        const mobilePopular = document.querySelector('#popular-issues-mobile');
+        if (mobilePopular && mobilePopular.children.length > 0 && window.innerWidth <= 768) {
+            steps.push({
+                target: '#popular-issues-mobile',
+                title: '⭐ 인기 이슈 카드',
+                content: '인기 이슈들을 좌우로 스크롤하며 둘러보세요. 각 카드를 터치하면 상세 정보를 볼 수 있어요!',
+                position: 'bottom'
+            });
+        }
+
+        // 전체 이슈 그리드 설명
+        const allIssuesGrid = document.querySelector('#all-issues-grid');
+        if (allIssuesGrid && allIssuesGrid.children.length > 0) {
+            steps.push({
+                target: '#all-issues-grid',
+                title: '📊 예측 이슈 카드',
+                content: '각 이슈에서 Yes/No로 예측할 수 있어요. 실시간 확률, 총 참여 GAM, 참여 인원을 확인하고 베팅에 참여해보세요!',
+                position: 'top'
+            });
+
+            // 베팅 버튼 설명 (이슈 카드가 있을 때만)
+            const betButtons = document.querySelectorAll('.bet-btn');
+            if (betButtons.length > 0) {
+                steps.push({
+                    target: '.bet-btn',
+                    title: '🎯 예측 참여하기',
+                    content: 'Yes 또는 No 버튼을 클릭해서 예측에 참여하세요. 10~10,000 GAM 사이에서 베팅 금액을 선택할 수 있어요.',
+                    position: 'top'
+                });
+            }
+
+            // 댓글 버튼 설명
+            const commentButtons = document.querySelectorAll('.comments-toggle-btn');
+            if (commentButtons.length > 0) {
+                steps.push({
+                    target: '.comments-toggle-btn',
+                    title: '💬 토론 참여하기',
+                    content: '이슈에 대한 의견을 댓글로 나누고, 좋아요를 누르거나 대댓글을 작성할 수 있어요. 다른 사용자들과 활발하게 소통해보세요!',
+                    position: 'top'
+                });
+            }
+        }
+    }
+
+    addIssuesPageSteps(steps) {
+        // 필터 설명
+        const filters = document.querySelector('.filters-container');
+        if (filters) {
+            steps.push({
+                target: '.filters-container',
+                title: '🔍 필터 & 검색',
+                content: '카테고리, 진행상태, 정렬 방식을 선택하여 원하는 이슈를 쉽게 찾을 수 있어요. 검색 기능도 활용해보세요!',
+                position: 'bottom'
+            });
+        }
+
+        // 이슈 그리드 설명
+        const issueGrid = document.querySelector('#all-issues-grid');
+        if (issueGrid && issueGrid.children.length > 0) {
+            steps.push({
+                target: '#all-issues-grid',
+                title: '📊 전체 이슈 목록',
+                content: '모든 예측 이슈가 카드 형태로 표시됩니다. 각 카드를 클릭해서 상세 정보를 확인하고 예측에 참여해보세요!',
+                position: 'top'
             });
         }
     }
 
-    createTutorialButton() {
-        // 튜토리얼 시작 버튼이 이미 있는지 확인
-        if (document.querySelector('.tutorial-start-btn')) return;
+    createOverlay() {
+        this.overlay = document.createElement('div');
+        this.overlay.className = 'tutorial-overlay';
+        this.overlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(2px);
+            z-index: 49999;
+            pointer-events: none;
+        `;
+        document.body.appendChild(this.overlay);
+    }
 
-        const button = document.createElement('button');
-        button.className = 'tutorial-start-btn';
-        button.innerHTML = '?';
-        button.title = '튜토리얼 시작하기';
-        button.setAttribute('aria-label', '예겜 사용법 튜토리얼 시작하기');
+    createTooltip(step) {
+        this.tooltip = document.createElement('div');
+        this.tooltip.className = 'tutorial-tooltip';
+        this.tooltip.style.cssText = `
+            position: fixed;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            max-width: 360px;
+            padding: 1.5rem;
+            z-index: 50000;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        `;
+
+        const progress = Math.round(((this.currentStep + 1) / this.totalSteps) * 100);
         
-        button.addEventListener('click', () => {
-            this.showWelcomeModal();
+        this.tooltip.innerHTML = `
+            <div class="tutorial-progress" style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: #6b7280; margin-bottom: 0.75rem;">
+                <span>${this.currentStep + 1} / ${this.totalSteps}</span>
+                <div style="flex: 1; height: 3px; background: #e5e7eb; border-radius: 2px; overflow: hidden;">
+                    <div style="height: 100%; background: linear-gradient(90deg, #3b82f6, #1d4ed8); border-radius: 2px; width: ${progress}%; transition: width 0.3s ease;"></div>
+                </div>
+            </div>
+            <h3 style="font-size: 1.125rem; font-weight: 600; color: #111827; margin-bottom: 0.5rem; line-height: 1.4;">${step.title}</h3>
+            <p style="font-size: 0.875rem; color: #4b5563; line-height: 1.6; margin-bottom: 1rem;">${step.content}</p>
+            <div style="display: flex; justify-content: space-between; gap: 0.75rem;">
+                <button id="tutorial-prev" style="padding: 0.5rem 1rem; background: #f3f4f6; color: #6b7280; border: none; border-radius: 8px; font-size: 0.875rem; cursor: pointer; transition: all 0.2s ease;" ${this.currentStep === 0 ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>이전</button>
+                <button id="tutorial-next" style="padding: 0.5rem 1rem; background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; border: none; border-radius: 8px; font-size: 0.875rem; cursor: pointer; transition: all 0.2s ease;">${this.currentStep === this.totalSteps - 1 ? '완료' : '다음'}</button>
+            </div>
+        `;
+
+        document.body.appendChild(this.tooltip);
+
+        // 버튼 이벤트 리스너
+        const prevBtn = this.tooltip.querySelector('#tutorial-prev');
+        const nextBtn = this.tooltip.querySelector('#tutorial-next');
+
+        if (prevBtn && !prevBtn.disabled) {
+            prevBtn.addEventListener('click', () => this.prevStep());
+        }
+
+        if (nextBtn) {
+            nextBtn.addEventListener('click', () => {
+                if (this.currentStep === this.totalSteps - 1) {
+                    this.endTutorial();
+                } else {
+                    this.nextStep();
+                }
+            });
+        }
+    }
+
+    highlightElement(selector) {
+        // 기존 하이라이트 제거
+        document.querySelectorAll('.tutorial-highlight').forEach(el => {
+            el.classList.remove('tutorial-highlight');
         });
 
-        document.body.appendChild(button);
+        if (selector === 'body') return;
 
-        // 튜토리얼 완료 여부에 따라 버튼 표시/숨김
-        if (this.isCompleted()) {
-            button.style.opacity = '0.7';
+        const element = document.querySelector(selector);
+        if (element) {
+            element.classList.add('tutorial-highlight');
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
+    }
+
+    positionTooltip(step) {
+        if (!this.tooltip) return;
+
+        const target = step.target === 'body' ? null : document.querySelector(step.target);
+        
+        if (!target || step.position === 'center') {
+            // 화면 중앙에 배치
+            this.tooltip.style.top = '50%';
+            this.tooltip.style.left = '50%';
+            this.tooltip.style.transform = 'translate(-50%, -50%)';
+            return;
+        }
+
+        const rect = target.getBoundingClientRect();
+        const tooltipRect = this.tooltip.getBoundingClientRect();
+        
+        let top, left;
+
+        switch (step.position) {
+            case 'top':
+                top = rect.top - tooltipRect.height - 16;
+                left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+                break;
+            case 'bottom':
+                top = rect.bottom + 16;
+                left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+                break;
+            case 'left':
+                top = rect.top + (rect.height / 2) - (tooltipRect.height / 2);
+                left = rect.left - tooltipRect.width - 16;
+                break;
+            case 'right':
+                top = rect.top + (rect.height / 2) - (tooltipRect.height / 2);
+                left = rect.right + 16;
+                break;
+            default:
+                top = rect.bottom + 16;
+                left = rect.left + (rect.width / 2) - (tooltipRect.width / 2);
+        }
+
+        // 화면 경계 체크 및 조정
+        const margin = 16;
+        const maxLeft = window.innerWidth - tooltipRect.width - margin;
+        const maxTop = window.innerHeight - tooltipRect.height - margin;
+
+        left = Math.max(margin, Math.min(left, maxLeft));
+        top = Math.max(margin, Math.min(top, maxTop));
+
+        this.tooltip.style.top = `${top}px`;
+        this.tooltip.style.left = `${left}px`;
+        this.tooltip.style.transform = 'none';
+    }
+
+    showStep(stepIndex) {
+        const step = this.steps[stepIndex];
+        if (!step) return;
+
+        this.currentStep = stepIndex;
+
+        // 기존 툴팁 제거
+        if (this.tooltip) {
+            this.tooltip.remove();
+        }
+
+        // 요소 하이라이트
+        this.highlightElement(step.target);
+
+        // 툴팁 생성 및 배치
+        this.createTooltip(step);
+        
+        // 툴팁 위치 설정 (약간의 지연을 두어 렌더링 완료 대기)
+        setTimeout(() => {
+            this.positionTooltip(step);
+        }, 10);
+    }
+
+    nextStep() {
+        if (this.currentStep < this.totalSteps - 1) {
+            this.showStep(this.currentStep + 1);
+        }
+    }
+
+    prevStep() {
+        if (this.currentStep > 0) {
+            this.showStep(this.currentStep - 1);
+        }
+    }
+
+    startTutorial() {
+        if (this.isRunning) return;
+        
+        console.log('🎯 튜토리얼 시작');
+        this.isRunning = true;
+        this.currentStep = 0;
+        
+        this.getTutorialSteps();
+        this.createOverlay();
+        
+        // 하이라이트 스타일 추가
+        this.addHighlightStyles();
+        
+        this.showStep(0);
+    }
+
+    endTutorial() {
+        console.log('✅ 튜토리얼 종료');
+        this.isRunning = false;
+        
+        // 오버레이 제거
+        if (this.overlay) {
+            this.overlay.remove();
+            this.overlay = null;
+        }
+        
+        // 툴팁 제거
+        if (this.tooltip) {
+            this.tooltip.remove();
+            this.tooltip = null;
+        }
+        
+        // 하이라이트 제거
+        document.querySelectorAll('.tutorial-highlight').forEach(el => {
+            el.classList.remove('tutorial-highlight');
+        });
+        
+        // 완료 표시
+        this.markAsCompleted();
+    }
+
+    addHighlightStyles() {
+        if (document.querySelector('#tutorial-highlight-styles')) return;
+        
+        const style = document.createElement('style');
+        style.id = 'tutorial-highlight-styles';
+        style.textContent = `
+            .tutorial-highlight {
+                position: relative !important;
+                z-index: 50001 !important;
+                box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.5) !important;
+                border-radius: 8px !important;
+                transition: all 0.3s ease !important;
+            }
+        `;
+        document.head.appendChild(style);
     }
 
     showWelcomeModal() {
@@ -287,25 +497,13 @@ class YegamTutorial {
         // ESC 키로 닫기
         const handleEscape = (e) => {
             if (e.key === 'Escape') {
-                document.body.removeChild(modal);
+                if (document.body.contains(modal)) {
+                    document.body.removeChild(modal);
+                }
                 document.removeEventListener('keydown', handleEscape);
             }
         };
         document.addEventListener('keydown', handleEscape);
-    }
-
-    checkFirstVisit() {
-        // 신규 사용자이고 로그인되어 있지 않은 경우 자동으로 환영 모달 표시
-        if (!this.isCompleted() && !this.isLoggedIn()) {
-            setTimeout(() => {
-                this.showWelcomeModal();
-            }, 2000); // 2초 후 표시
-        }
-    }
-
-    isLoggedIn() {
-        // 로그인 상태 확인 (기존 auth 시스템 활용)
-        return localStorage.getItem('yegame-token') !== null;
     }
 
     isCompleted() {
@@ -314,8 +512,6 @@ class YegamTutorial {
 
     markAsCompleted() {
         localStorage.setItem(this.storageKey, 'true');
-        
-        // 완료 알림 표시
         this.showCompletionMessage();
     }
 
@@ -375,23 +571,13 @@ class YegamTutorial {
     resetTutorial() {
         localStorage.removeItem(this.storageKey);
         this.currentStep = 0;
-        
-        // 튜토리얼 버튼 스타일 초기화
-        const button = document.querySelector('.tutorial-start-btn');
-        if (button) {
-            button.style.opacity = '1';
-        }
+        console.log('🔄 튜토리얼 상태 초기화');
     }
 
-    // 특정 단계로 이동 (디버깅용)
+    // 디버깅용 메서드
     goToStep(stepIndex) {
-        if (stepIndex >= 0 && stepIndex < this.totalSteps) {
-            this.currentStep = stepIndex;
-            const steps = this.getTutorialSteps();
-            this.driver.highlight({
-                element: steps[stepIndex].element,
-                popover: steps[stepIndex].popover
-            });
+        if (stepIndex >= 0 && stepIndex < this.totalSteps && this.isRunning) {
+            this.showStep(stepIndex);
         }
     }
 }
@@ -401,12 +587,8 @@ window.yegamTutorial = null;
 
 // DOM 로드 완료 후 초기화
 document.addEventListener('DOMContentLoaded', () => {
-    // Driver.js가 로드되었는지 확인 후 초기화
-    if (typeof window.driver !== 'undefined') {
-        window.yegamTutorial = new YegamTutorial();
-    } else {
-        console.warn('Driver.js를 먼저 로드해주세요.');
-    }
+    window.yegamTutorial = new YegamTutorial();
+    console.log('🎯 예겜 튜토리얼 시스템 로드 완료');
 });
 
 // 개발자 도구용 헬퍼 함수들
@@ -414,7 +596,9 @@ window.tutorialHelpers = {
     start: () => window.yegamTutorial?.showWelcomeModal(),
     reset: () => window.yegamTutorial?.resetTutorial(),
     complete: () => window.yegamTutorial?.markAsCompleted(),
-    goToStep: (step) => window.yegamTutorial?.goToStep(step)
+    goToStep: (step) => window.yegamTutorial?.goToStep(step),
+    isRunning: () => window.yegamTutorial?.isRunning,
+    currentStep: () => window.yegamTutorial?.currentStep
 };
 
 // 모듈 내보내기 (ES6 modules 사용 시)
