@@ -73,11 +73,21 @@ class YegamTutorial {
             }
         });
 
+        // 소개 섹션 내 "사용법 배우기" 버튼
+        const startTutorialBtn = document.getElementById('start-tutorial-btn');
+        console.log('🎯 사용법 배우기 버튼 찾기:', startTutorialBtn ? '성공' : '실패');
+        
+        if (startTutorialBtn) {
+            startTutorialBtn.removeEventListener('click', this.handleStartTutorialClick);
+            startTutorialBtn.addEventListener('click', this.handleStartTutorialClick.bind(this));
+            console.log('✅ 사용법 배우기 버튼 이벤트 리스너 설정 완료');
+        }
+
         // 전역 클릭 디버깅 (개발용)
         if (!this.globalClickSetup) {
             document.addEventListener('click', (e) => {
-                if (e.target.id === 'tutorial-btn' || e.target.id === 'mobile-tutorial-btn') {
-                    console.log('🖱️ 튜토리얼 버튼 클릭 감지:', e.target.id, e.target.textContent);
+                if (e.target.id === 'tutorial-btn' || e.target.id === 'mobile-tutorial-btn' || e.target.id === 'start-tutorial-btn') {
+                    console.log('🖱️ 버튼 클릭 감지:', e.target.id, e.target.textContent);
                 }
             });
             this.globalClickSetup = true;
@@ -87,7 +97,7 @@ class YegamTutorial {
     }
 
     handleTutorialClick(e) {
-        console.log('🎯 튜토리얼 버튼 클릭됨!', e.target.id);
+        console.log('🎯 예겜 소개 버튼 클릭됨!', e.target.id);
         e.preventDefault();
         e.stopPropagation();
         
@@ -98,6 +108,58 @@ class YegamTutorial {
             btn.style.transform = 'scale(1)';
         }, 100);
         
+        // 예겜 소개 섹션으로 스크롤
+        this.scrollToAboutSection();
+    }
+
+    scrollToAboutSection() {
+        console.log('📜 예겜 소개 섹션으로 스크롤 이동');
+        const aboutSection = document.getElementById('about-yegam');
+        
+        if (aboutSection) {
+            // 현재 페이지에 소개 섹션이 있으면 스크롤
+            aboutSection.scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'start',
+                inline: 'nearest'
+            });
+            
+            // 소개 섹션 하이라이트 효과
+            aboutSection.style.boxShadow = '0 0 20px rgba(59, 130, 246, 0.3)';
+            setTimeout(() => {
+                aboutSection.style.boxShadow = '';
+            }, 2000);
+            
+            console.log('✅ 예겜 소개 섹션으로 이동 완료');
+        } else {
+            // 다른 페이지에 있다면 홈페이지로 이동
+            console.log('📝 홈페이지 예겜 소개 섹션으로 페이지 이동');
+            const currentPage = window.location.pathname;
+            
+            if (currentPage.includes('issues.html') || currentPage.includes('discussions.html') || currentPage !== '/' && currentPage !== '/index.html') {
+                // 홈페이지의 소개 섹션으로 이동
+                window.location.href = 'index.html#about-yegam';
+            } else {
+                // 폴백: 튜토리얼 모달 표시
+                console.warn('⚠️ 예겜 소개 섹션을 찾을 수 없습니다');
+                this.showWelcomeModal();
+            }
+        }
+    }
+
+    handleStartTutorialClick(e) {
+        console.log('🎯 사용법 배우기 버튼 클릭됨!', e.target.id);
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // 버튼 클릭 시각적 피드백
+        const btn = e.target;
+        btn.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            btn.style.transform = 'scale(1)';
+        }, 100);
+        
+        // 튜토리얼 모달 표시
         this.showWelcomeModal();
     }
 
@@ -703,24 +765,43 @@ window.tutorialHelpers = {
         // 버튼 존재 여부 확인
         const desktopBtn = document.getElementById('tutorial-btn');
         const mobileBtn = document.getElementById('mobile-tutorial-btn');
-        console.log('- 데스크톱 버튼:', desktopBtn ? '존재' : '없음');
-        console.log('- 모바일 버튼:', mobileBtn ? '존재' : '없음');
+        const startTutorialBtn = document.getElementById('start-tutorial-btn');
+        const aboutSection = document.getElementById('about-yegam');
+        
+        console.log('- 데스크톱 예겜 소개 버튼:', desktopBtn ? '존재' : '없음');
+        console.log('- 모바일 예겜 소개 버튼:', mobileBtn ? '존재' : '없음');
+        console.log('- 사용법 배우기 버튼:', startTutorialBtn ? '존재' : '없음');
+        console.log('- 예겜 소개 섹션:', aboutSection ? '존재' : '없음');
         
         if (desktopBtn) {
-            console.log('- 데스크톱 버튼 텍스트:', desktopBtn.textContent);
-            console.log('- 데스크톱 버튼 클릭 테스트...');
-            desktopBtn.click();
+            console.log('- 데스크톱 버튼 텍스트:', desktopBtn.textContent.trim());
         }
         
         return {
             tutorial,
             desktopBtn,
             mobileBtn,
+            startTutorialBtn,
+            aboutSection,
             isRunning: tutorial?.isRunning,
             currentStep: tutorial?.currentStep,
             totalSteps: tutorial?.totalSteps,
             isCompleted: tutorial?.isCompleted()
         };
+    },
+    scrollToAbout: () => {
+        console.log('🔧 개발자 도구에서 예겜 소개 섹션으로 이동');
+        return window.yegamTutorial?.scrollToAboutSection();
+    },
+    testIntroButton: () => {
+        console.log('🔧 예겜 소개 버튼 테스트');
+        const desktopBtn = document.getElementById('tutorial-btn');
+        if (desktopBtn) {
+            console.log('- 데스크톱 버튼 클릭 테스트...');
+            desktopBtn.click();
+            return true;
+        }
+        return false;
     },
     forceSetup: () => {
         console.log('🔧 강제 이벤트 리스너 재설정');

@@ -107,6 +107,70 @@
 
         <!-- Main Content -->
         <main class="flex-grow">
+            <!-- 예겜 소개 섹션 -->
+            <section id="about-yegam" class="bg-gradient-to-br from-blue-50 to-indigo-100 py-16 lg:py-24">
+                <div class="container mx-auto px-4 lg:px-8">
+                    <div class="max-w-4xl mx-auto text-center">
+                        <div class="flex items-center justify-center mb-6">
+                            <img src="logo.png" alt="예겜 로고" class="h-16 w-auto mr-4">
+                            <h1 class="text-4xl lg:text-6xl font-bold text-gray-900">예겜</h1>
+                        </div>
+                        <p class="text-xl lg:text-2xl text-gray-700 mb-8 leading-relaxed">
+                            <span class="font-semibold text-blue-600">예측과 게임</span>이 만나는 혁신적인 플랫폼
+                        </p>
+                        <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                            <div class="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
+                                <div class="text-3xl mb-3">🎯</div>
+                                <h3 class="font-semibold text-gray-900 mb-2">실시간 예측</h3>
+                                <p class="text-sm text-gray-600">다양한 이슈에 대한 실시간 예측 참여</p>
+                            </div>
+                            <div class="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
+                                <div class="text-3xl mb-3">💰</div>
+                                <h3 class="font-semibold text-gray-900 mb-2">GAM 시스템</h3>
+                                <p class="text-sm text-gray-600">가상화폐 GAM으로 안전한 예측 게임</p>
+                            </div>
+                            <div class="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
+                                <div class="text-3xl mb-3">🏆</div>
+                                <h3 class="font-semibold text-gray-900 mb-2">티어 시스템</h3>
+                                <p class="text-sm text-gray-600">예측 성과에 따른 등급 시스템</p>
+                            </div>
+                            <div class="bg-white/70 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
+                                <div class="text-3xl mb-3">💬</div>
+                                <h3 class="font-semibold text-gray-900 mb-2">활발한 토론</h3>
+                                <p class="text-sm text-gray-600">사용자들과의 실시간 의견 교환</p>
+                            </div>
+                        </div>
+                        <div class="bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-xl">
+                            <h2 class="text-2xl font-bold text-gray-900 mb-4">8개 다양한 카테고리</h2>
+                            <div class="flex flex-wrap justify-center gap-3 mb-6">
+                                <span class="px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm font-medium">정치</span>
+                                <span class="px-4 py-2 bg-cyan-100 text-cyan-700 rounded-full text-sm font-medium">스포츠</span>
+                                <span class="px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-medium">경제</span>
+                                <span class="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-full text-sm font-medium">코인</span>
+                                <span class="px-4 py-2 bg-purple-100 text-purple-700 rounded-full text-sm font-medium">테크</span>
+                                <span class="px-4 py-2 bg-pink-100 text-pink-700 rounded-full text-sm font-medium">엔터</span>
+                                <span class="px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">날씨</span>
+                                <span class="px-4 py-2 bg-indigo-100 text-indigo-700 rounded-full text-sm font-medium">해외</span>
+                            </div>
+                            <p class="text-gray-600 mb-6">
+                                정치부터 엔터테인먼트까지, 관심있는 분야의 이슈에 참여하고<br>
+                                다른 사용자들과 예측을 공유해보세요!
+                            </p>
+                            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                                <button id="start-tutorial-btn" class="px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2">
+                                    <span>🎯</span>
+                                    사용법 배우기
+                                </button>
+                                <a href="#popular-issues" class="px-8 py-3 bg-white hover:bg-gray-50 text-gray-900 rounded-lg font-medium transition-colors border border-gray-200 flex items-center justify-center gap-2">
+                                    <span>⭐</span>
+                                    인기 이슈 보기
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <!-- Filters and Sort Section -->
             <section class="container mx-auto px-4 lg:px-8 py-3 border-b border-gray-100">
                 <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3">
@@ -147,7 +211,7 @@
             </section>
 
             <!-- Popular Issues Section -->
-            <section class="container mx-auto px-4 lg:px-8 py-2 md:py-12">
+            <section id="popular-issues" class="container mx-auto px-4 lg:px-8 py-2 md:py-12">
                 <div class="flex items-center justify-between mb-4 md:mb-6">
                     <h2 class="text-xl md:text-2xl font-bold text-gray-900" id="section-title">인기 예측 이슈</h2>
                     <button id="scroll-to-all-issues" class="flex items-center text-blue-600 hover:text-blue-700 transition-colors font-medium">
