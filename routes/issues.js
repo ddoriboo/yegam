@@ -23,13 +23,22 @@ router.get('/', async (req, res) => {
         const result = await query(`
             SELECT 
                 i.*,
-                COALESCE(c.comment_count, 0) as comment_count
+                COALESCE(c.comment_count, 0) as comment_count,
+                COALESCE(b.participant_count, 0) as participant_count,
+                COALESCE(b.total_volume, 0) as total_volume
             FROM issues i
             LEFT JOIN (
                 SELECT issue_id, COUNT(*) as comment_count
                 FROM comments
                 GROUP BY issue_id
             ) c ON i.id = c.issue_id
+            LEFT JOIN (
+                SELECT issue_id, 
+                       COUNT(DISTINCT user_id) as participant_count,
+                       SUM(amount) as total_volume
+                FROM bets
+                GROUP BY issue_id
+            ) b ON i.id = b.issue_id
             WHERE i.status = $1 
             ORDER BY i.created_at DESC
         `, ['active']);
@@ -71,6 +80,8 @@ router.get('/', async (req, res) => {
                     ...issue,
                     isPopular: Boolean(issue.is_popular),
                     commentCount: parseInt(issue.comment_count) || 0,
+                    participantCount: parseInt(issue.participant_count) || 0,
+                    totalVolume: parseInt(issue.total_volume) || 0,
                     end_date: processedEndDate,
                     // 🔍 디버깅을 위한 시간 정보
                     end_date_debug: {

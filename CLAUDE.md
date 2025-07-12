@@ -18,6 +18,9 @@ npm run dev
 # Run production server
 npm start
 
+# Build (placeholder - no actual build process)
+npm run build
+
 # Create admin account (default: admin@yegam.com / admin123)
 node scripts/create-admin.js
 
@@ -25,7 +28,17 @@ node scripts/create-admin.js
 node database/migrate-coins-to-gam.sql  # Migrate old coins to GAM currency
 node database/migrate-ai-usernames.js   # Update AI agent usernames
 node database/setup-ai-users.js         # Setup AI agent users
+
+# OAuth columns setup (run once)
+node scripts/add-oauth-columns.js
 ```
+
+## System Requirements
+
+- **Node.js**: >= 18.0.0
+- **npm**: >= 8.0.0
+- **PostgreSQL**: Required (no SQLite fallback)
+- **Environment**: Development/Production parity maintained
 
 ## Architecture Overview
 
@@ -117,11 +130,37 @@ When adding new features:
 5. Add API calls to `/js/api.js`
 6. Update HTML pages as needed
 
+### System Infrastructure
+
+#### Health Monitoring
+- **Basic Health Check**: `/health` - Simple status endpoint
+- **Detailed Health Check**: `/health/detailed` - Database, memory, uptime metrics
+- **Health Check Utility**: `utils/health-check.js` - Comprehensive system monitoring
+
+#### Environment Management
+- **Environment Validator**: `utils/env-validator.js` - Validates all environment variables on startup
+- **Security Checks**: Validates JWT secret strength, database connections
+- **Development Fallbacks**: Auto-generates temporary secrets for development
+
+#### Logging & Monitoring
+- **Winston Logger**: Structured logging with file rotation
+- **Log Files**: 
+  - `/logs/issue-changes.log` - Issue modification tracking
+  - `/logs/security-alerts.log` - Security events
+  - `/logs/error.log` - Application errors
+- **Audit System**: Full change tracking for all issue modifications
+
+#### Security Systems
+- **AdminBot Blocker**: `middleware/adminbot-blocker.js` - Prevents automated admin attacks
+- **AI Agent Restrictions**: `middleware/ai-agent-restrictions.js` - Limits AI agent actions
+- **Rate Limiting**: Express rate limiting with IP-based restrictions
+- **Security Alerts**: `utils/security-alert.js` - Automated security notifications
+
 ### Testing & Deployment
 - No automated tests configured (manual testing required)
-- Deploy to Railway using `railway up`
-- Health check endpoint: `/health`
-- Logs managed by Winston logger
+- Deploy to Railway using `railway up` or auto-deploy from GitHub
+- Railway configuration: `railway.toml` with health check and restart policies
+- Logs managed by Winston logger with structured output
 
 ### Production URLs
 - Railway App URL: `yegam-production.up.railway.app`
@@ -135,6 +174,14 @@ When adding new features:
 - Auto-deployment: Railway automatically deploys from GitHub main branch
 - Local `.env` may not reflect production changes due to auto-deployment setup
 - **Important**: Always commit and push changes automatically when requested
+
+### Railway Deployment Configuration
+- **Build Command**: Uses Nixpacks builder (automatic)
+- **Start Command**: `npm start` (server.js)
+- **Health Check**: `/` endpoint with 100s timeout
+- **Restart Policy**: On failure restart
+- **Environment**: Production variables set via `railway.toml`
+- **Database**: PostgreSQL service automatically provisioned and connected
 
 ### OAuth Setup
 - Google/GitHub OAuth fully implemented in codebase
@@ -238,6 +285,32 @@ GITHUB_CLIENT_SECRET=your-github-client-secret (optional)
 - ✅ GAM currency system
 - ✅ Prediction betting system
 - ✅ Real-time user information sync
+
+## Critical Architecture Notes
+
+### No Testing Framework
+- **Important**: No automated testing is configured (Jest, Mocha, Cypress)
+- All testing is manual - be extremely careful with changes
+- Always test changes locally before deployment
+- Use health check endpoints to verify system state
+
+### Database-Only Architecture
+- **PostgreSQL Required**: No SQLite fallback or development database
+- Production and development use same database technology
+- Connection pooling implemented for production scalability
+- All database operations use parameterized queries for security
+
+### File Upload Architecture
+- **Cloudinary Integration**: All images stored in Cloudinary
+- **Multer Configuration**: Handles multipart/form-data uploads
+- **Image Validation**: File type and size restrictions implemented
+- **Admin Only**: Image uploads restricted to admin users
+
+### AI Agent System
+- **OpenAI Integration**: GPT-based AI agents for automated betting
+- **Scheduled Activities**: AI agents run on cron schedules
+- **Restrictions**: AI agents have rate limits and betting restrictions
+- **Database Tables**: Separate `ai_agents` table for agent configuration
 
 ## 2025년 1월 9일 세션 업데이트
 
