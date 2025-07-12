@@ -48,6 +48,7 @@ function formatDate(endDate) {
 export function createIssueCard(issue) {
     const yesPrice = issue.yesPrice;
     const noPrice = 100 - yesPrice;
+    const isClosed = issue.status === 'closed';
     let userBetDisplay = '';
     
     if (auth.isLoggedIn()) {
@@ -60,14 +61,17 @@ export function createIssueCard(issue) {
     }
 
     return `
-    <div class="issue-card" data-id="${issue.id}">
+    <div class="issue-card ${isClosed ? 'opacity-75' : ''}" data-id="${issue.id}">
         <div class="flex-grow">
             <div class="flex justify-between items-start mb-4">
-                <span style="${getCategoryBadgeStyle(issue.category)} padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.75rem; font-weight: 500;">${issue.category}</span>
+                <div class="flex items-center space-x-2">
+                    <span style="${getCategoryBadgeStyle(issue.category)} padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.75rem; font-weight: 500;">${issue.category}</span>
+                    ${isClosed ? '<span class="px-2 py-1 rounded-full text-xs font-medium bg-gray-500 text-white">종료됨</span>' : ''}
+                </div>
                 <div class="text-xs text-gray-500 flex items-center">
                     <i data-lucide="clock" class="w-3 h-3 mr-1.5 flex-shrink-0"></i>
                     <div class="flex flex-col leading-tight">
-                        <span class="font-medium">${timeUntil(issue.end_date || issue.endDate)}</span>
+                        <span class="font-medium">${isClosed ? '종료됨' : timeUntil(issue.end_date || issue.endDate)}</span>
                         <span class="text-gray-400 text-[10px]">${formatDate(issue.end_date || issue.endDate)}</span>
                     </div>
                 </div>
@@ -114,17 +118,22 @@ export function createIssueCard(issue) {
         
         <!-- Prediction Buttons -->
         <div class="mb-6">
-            <div class="bet-controls ${userBetDisplay ? 'hidden' : ''}">
-                <div class="flex space-x-3">
-                    <button data-choice="Yes" class="bet-btn w-full" style="background: linear-gradient(135deg, #10B981, #059669); color: white; border: none; border-radius: 12px; padding: 0.875rem 1.5rem; font-weight: 600; font-size: 0.875rem; cursor: pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); transition: all 0.2s ease; position: relative; overflow: hidden;">
-                        <span style="position: relative; z-index: 10;">Yes ${yesPrice}%</span>
-                    </button>
-                    <button data-choice="No" class="bet-btn w-full" style="background: linear-gradient(135deg, #EF4444, #DC2626); color: white; border: none; border-radius: 12px; padding: 0.875rem 1.5rem; font-weight: 600; font-size: 0.875rem; cursor: pointer; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); transition: all 0.2s ease; position: relative; overflow: hidden;">
-                        <span style="position: relative; z-index: 10;">No ${noPrice}%</span>
-                    </button>
+            ${isClosed ? 
+                `<div class="w-full bg-gray-300 text-gray-600 py-3 px-4 rounded-lg font-medium text-center">
+                    이슈가 종료되었습니다
+                </div>` :
+                `<div class="bet-controls ${userBetDisplay ? 'hidden' : ''}">
+                    <div class="flex space-x-3">
+                        <button data-choice="Yes" class="bet-btn w-full" style="background: linear-gradient(135deg, #10B981, #059669); color: white; border: none; border-radius: 12px; padding: 0.875rem 1.5rem; font-weight: 600; font-size: 0.875rem; cursor: pointer; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); transition: all 0.2s ease; position: relative; overflow: hidden;">
+                            <span style="position: relative; z-index: 10;">Yes ${yesPrice}%</span>
+                        </button>
+                        <button data-choice="No" class="bet-btn w-full" style="background: linear-gradient(135deg, #EF4444, #DC2626); color: white; border: none; border-radius: 12px; padding: 0.875rem 1.5rem; font-weight: 600; font-size: 0.875rem; cursor: pointer; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); transition: all 0.2s ease; position: relative; overflow: hidden;">
+                            <span style="position: relative; z-index: 10;">No ${noPrice}%</span>
+                        </button>
+                    </div>
                 </div>
-            </div>
-            ${userBetDisplay || '<div class="bet-feedback"></div>'}
+                ${userBetDisplay || '<div class="bet-feedback"></div>'}`
+            }
         </div>
         
         <!-- Volume Info -->

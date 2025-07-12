@@ -20,6 +20,21 @@ const router = express.Router();
 // 모든 이슈 조회
 router.get('/', async (req, res) => {
     try {
+        const status = req.query.status || 'active'; // 기본값은 active
+        let whereClause = '';
+        let params = [];
+        
+        if (status === 'all') {
+            whereClause = 'WHERE i.status != $1';
+            params = ['deleted']; // deleted 상태만 제외
+        } else if (status === 'closed') {
+            whereClause = 'WHERE i.status = $1';
+            params = ['closed'];
+        } else {
+            whereClause = 'WHERE i.status = $1';
+            params = ['active'];
+        }
+        
         const result = await query(`
             SELECT 
                 i.*,
@@ -39,9 +54,9 @@ router.get('/', async (req, res) => {
                 FROM bets
                 GROUP BY issue_id
             ) b ON i.id = b.issue_id
-            WHERE i.status = $1 
+            ${whereClause}
             ORDER BY i.created_at DESC
-        `, ['active']);
+        `, params);
         const issues = result.rows;
         
         // 🔍 시간 데이터 상세 분석

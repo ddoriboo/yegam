@@ -2002,17 +2002,21 @@ function createIssueCard(issue) {
     const noPrice = 100 - yesPrice;
     const timeLeft = getTimeLeft(issue.end_date || issue.endDate);
     const volume = issue.total_volume || issue.totalVolume || 0;
+    const isClosed = issue.status === 'closed';
     
     return `
-        <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow" data-id="${issue.id}">
+        <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow ${isClosed ? 'opacity-75' : ''}" data-id="${issue.id}">
             <div class="flex justify-between items-start mb-4">
-                <span class="px-3 py-1 rounded-full text-xs font-medium" style="${getCategoryBadgeStyle(issue.category)}">
-                    ${issue.category}
-                </span>
+                <div class="flex items-center space-x-2">
+                    <span class="px-3 py-1 rounded-full text-xs font-medium" style="${getCategoryBadgeStyle(issue.category)}">
+                        ${issue.category}
+                    </span>
+                    ${isClosed ? '<span class="px-2 py-1 rounded-full text-xs font-medium bg-gray-500 text-white">종료됨</span>' : ''}
+                </div>
                 <div class="text-xs text-gray-500 flex items-center">
                     <i data-lucide="clock" class="w-3 h-3 mr-1.5 flex-shrink-0"></i>
                     <div class="flex flex-col leading-tight">
-                        <span class="font-medium">${timeLeft}</span>
+                        <span class="font-medium">${isClosed ? '종료됨' : timeLeft}</span>
                         <span class="text-gray-400 text-[10px]">${formatEndDate(issue.end_date || issue.endDate)}</span>
                     </div>
                 </div>
@@ -2065,14 +2069,19 @@ function createIssueCard(issue) {
             </div>
             
             <div class="flex space-x-3 mb-4">
-                <button class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
-                        onclick="placeBet(${issue.id}, 'Yes')">
-                    Yes ${yesPrice}%
-                </button>
-                <button class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
-                        onclick="placeBet(${issue.id}, 'No')">
-                    No ${noPrice}%
-                </button>
+                ${isClosed ? 
+                    `<div class="flex-1 bg-gray-300 text-gray-600 py-2 px-4 rounded-lg font-medium text-center">
+                        이슈가 종료되었습니다
+                    </div>` :
+                    `<button class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                            onclick="placeBet(${issue.id}, 'Yes')">
+                        Yes ${yesPrice}%
+                    </button>
+                    <button class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                            onclick="placeBet(${issue.id}, 'No')">
+                        No ${noPrice}%
+                    </button>`
+                }
             </div>
             
             <div class="pt-4 border-t border-gray-200">
@@ -3738,26 +3747,36 @@ async function initIssuesPage() {
     console.log('Initializing Issues page...');
     
     try {
-        // Load issues from API
-        const response = await fetch(`/api/issues?_t=${Date.now()}`);
-        const data = await response.json();
-        
-        if (data.success) {
-            allIssues = data.issues.sort((a, b) => 
-                new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt)
-            );
-            issues = allIssues; // Keep for backward compatibility
-            console.log('Loaded', allIssues.length, 'issues on Issues page');
-            
-            setupIssuesPageEvents();
-            renderAllIssuesOnPage();
-            
-        } else {
-            throw new Error(data.message || 'Failed to load issues');
-        }
+        // Load issues from API with status filter
+        await loadIssuesWithStatus();
+        setupIssuesPageEvents();
+        renderAllIssuesOnPage();
     } catch (error) {
         console.error('Failed to load issues on Issues page:', error);
         showError('이슈를 불러오는데 실패했습니다.');
+    }
+}
+
+// 상태별 이슈 로드 함수
+async function loadIssuesWithStatus() {
+    const statusMap = {
+        'open': 'active',
+        'closed': 'closed', 
+        'all': 'all'
+    };
+    
+    const status = statusMap[currentOpenFilter] || 'active';
+    const response = await fetch(`/api/issues?status=${status}&_t=${Date.now()}`);
+    const data = await response.json();
+    
+    if (data.success) {
+        allIssues = data.issues.sort((a, b) => 
+            new Date(b.created_at || b.createdAt) - new Date(a.created_at || a.createdAt)
+        );
+        issues = allIssues; // Keep for backward compatibility
+        console.log('Loaded', allIssues.length, 'issues on Issues page with status:', status);
+    } else {
+        throw new Error(data.message || 'Failed to load issues');
     }
 }
 
@@ -3798,10 +3817,18 @@ function setupIssuesPageEvents() {
     }
     
     if (openFilter) {
-        openFilter.addEventListener('change', (e) => {
+        openFilter.addEventListener('change', async (e) => {
             currentOpenFilter = e.target.value;
             currentPage = 1;
-            renderAllIssuesOnPage();
+            
+            // API에서 새로운 상태의 이슈들을 다시 로드
+            try {
+                await loadIssuesWithStatus();
+                renderAllIssuesOnPage();
+            } catch (error) {
+                console.error('Failed to reload issues with new status:', error);
+                showError('이슈를 불러오는데 실패했습니다.');
+            }
         });
     }
     
@@ -3841,15 +3868,8 @@ function renderAllIssuesOnPage() {
         );
     }
     
-    // Apply open/closed filter
-    if (currentOpenFilter !== 'all') {
-        const now = new Date();
-        filteredIssues = filteredIssues.filter(issue => {
-            const endDate = new Date(issue.end_date || issue.endDate);
-            const isOpen = endDate > now;
-            return currentOpenFilter === 'open' ? isOpen : !isOpen;
-        });
-    }
+    // Open/closed filter is now handled by backend API
+    // No need for client-side filtering
     
     // Apply time filter
     if (currentTimeFilter !== 'ALL') {
