@@ -1021,14 +1021,18 @@ class YegamTutorial {
         });
 
         modal.querySelector('#tutorial-skip').addEventListener('click', () => {
-            console.log('⏭️ 튜토리얼 나중에 하기 클릭');
+            console.log('⏭️ 튜토리얼 나중에 하기 클릭 - 완전 종료');
             document.body.removeChild(modal);
+            // 튜토리얼 완전 종료
+            this.endTutorial();
         });
 
         // 모달 외부 클릭시 닫기
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
+                console.log('⏭️ 모달 외부 클릭으로 튜토리얼 종료');
                 document.body.removeChild(modal);
+                this.endTutorial();
             }
         });
 
@@ -1036,7 +1040,9 @@ class YegamTutorial {
         const handleEscape = (e) => {
             if (e.key === 'Escape') {
                 if (document.body.contains(modal)) {
+                    console.log('⏭️ ESC 키로 튜토리얼 종료');
                     document.body.removeChild(modal);
+                    this.endTutorial();
                 }
                 document.removeEventListener('keydown', handleEscape);
             }

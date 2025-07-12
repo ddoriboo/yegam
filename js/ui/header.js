@@ -44,20 +44,49 @@ export function updateUserWallet(forceBalance = null) {
 
 // 튜토리얼 프로모션 말풍선 추가
 function addTutorialPromotion() {
+    console.log('🎁 addTutorialPromotion 호출됨');
+    
     // 튜토리얼 완료 여부 체크
     const tutorialCompleted = localStorage.getItem('yegam-tutorial-completed') === 'true';
+    const isLoggedIn = auth.isLoggedIn();
+    
+    console.log('📊 튜토리얼 프로모션 상태:', {
+        tutorialCompleted,
+        isLoggedIn
+    });
     
     // 로그인하지 않았거나 이미 완료한 경우 표시하지 않음
-    if (!auth.isLoggedIn() || tutorialCompleted) {
+    if (!isLoggedIn || tutorialCompleted) {
+        console.log('❌ 튜토리얼 프로모션 표시하지 않음:', { 
+            reason: !isLoggedIn ? '로그인 안됨' : '튜토리얼 완료됨' 
+        });
         return;
     }
+    
+    console.log('✅ 튜토리얼 프로모션 표시 조건 충족');
     
     // 예겜 소개 링크들 찾기 (데스크톱 + 모바일)
     const aboutLinks = document.querySelectorAll('a[href="about.html"]');
     
+    console.log('🔍 예겜 소개 링크 찾기:', {
+        found: aboutLinks.length,
+        links: Array.from(aboutLinks).map(link => ({
+            text: link.textContent.trim(),
+            href: link.href,
+            id: link.id,
+            className: link.className
+        }))
+    });
+    
     aboutLinks.forEach((link, index) => {
+        console.log(`🔗 링크 처리 중 [${index}]:`, link.textContent.trim());
+        
         // 이미 프로모션이 있으면 스킵
-        if (link.querySelector('.tutorial-promotion-bubble')) return;
+        const existingBubble = link.querySelector('.tutorial-promotion-bubble');
+        if (existingBubble) {
+            console.log('⚠️ 이미 프로모션 버블 존재, 스킵');
+            return;
+        }
         
         // 링크를 상대 위치로 변경
         link.style.position = 'relative';
@@ -75,12 +104,18 @@ function addTutorialPromotion() {
         
         // 데스크톱에서만 표시 (모바일은 공간이 좁음)
         if (index === 0) {
+            console.log('✨ 첫 번째 링크에 프로모션 버블 추가');
             link.appendChild(bubble);
+            console.log('📌 프로모션 버블 DOM 추가 완료');
+        } else {
+            console.log('📱 모바일 링크 스킵 (데스크톱 전용)');
         }
     });
     
     // 말풍선 스타일 추가
-    if (!document.querySelector('#tutorial-promotion-styles')) {
+    const existingStyles = document.querySelector('#tutorial-promotion-styles');
+    if (!existingStyles) {
+        console.log('🎨 프로모션 스타일 추가 중...');
         const style = document.createElement('style');
         style.id = 'tutorial-promotion-styles';
         style.textContent = `
@@ -171,7 +206,12 @@ function addTutorialPromotion() {
             }
         `;
         document.head.appendChild(style);
+        console.log('✅ 프로모션 스타일 DOM에 추가 완료');
+    } else {
+        console.log('📋 프로모션 스타일 이미 존재');
     }
+    
+    console.log('🎁 addTutorialPromotion 완료');
 }
 
 export function updateHeader() {
