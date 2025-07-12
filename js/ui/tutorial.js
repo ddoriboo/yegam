@@ -12,37 +12,93 @@ class YegamTutorial {
     }
 
     init() {
+        // 즉시 이벤트 리스너 설정 시도
         this.setupEventListeners();
+        
+        // DOM이 완전히 로드된 후 다시 시도
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                this.setupEventListeners();
+            });
+        }
+        
+        // 조금 더 기다린 후 다시 시도 (다른 스크립트가 DOM을 변경할 수 있음)
+        setTimeout(() => {
+            this.setupEventListeners();
+        }, 1000);
+        
         console.log('🎯 예겜 튜토리얼 시스템 초기화 완료');
     }
 
     setupEventListeners() {
+        console.log('🔧 튜토리얼 이벤트 리스너 설정 시도...');
+        
         // 데스크톱 튜토리얼 버튼
         const desktopBtn = document.getElementById('tutorial-btn');
+        console.log('📱 데스크톱 버튼 찾기:', desktopBtn ? '성공' : '실패');
+        
         if (desktopBtn) {
-            desktopBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.showWelcomeModal();
-            });
+            // 기존 리스너 제거 (중복 방지)
+            desktopBtn.removeEventListener('click', this.handleTutorialClick);
+            // 새 리스너 추가
+            desktopBtn.addEventListener('click', this.handleTutorialClick.bind(this));
+            console.log('✅ 데스크톱 버튼 이벤트 리스너 설정 완료');
+            
+            // 버튼에 시각적 피드백 추가
+            desktopBtn.style.cursor = 'pointer';
+            desktopBtn.title = '예겜 사용법 안내를 시작합니다';
         }
 
         // 모바일 튜토리얼 버튼
         const mobileBtn = document.getElementById('mobile-tutorial-btn');
+        console.log('📱 모바일 버튼 찾기:', mobileBtn ? '성공' : '실패');
+        
         if (mobileBtn) {
-            mobileBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.showWelcomeModal();
-            });
+            // 기존 리스너 제거 (중복 방지)
+            mobileBtn.removeEventListener('click', this.handleTutorialClick);
+            // 새 리스너 추가
+            mobileBtn.addEventListener('click', this.handleTutorialClick.bind(this));
+            console.log('✅ 모바일 버튼 이벤트 리스너 설정 완료');
+            
+            // 버튼에 시각적 피드백 추가
+            mobileBtn.style.cursor = 'pointer';
+            mobileBtn.title = '예겜 사용법 안내를 시작합니다';
         }
 
         // ESC 키로 튜토리얼 종료
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && this.isRunning) {
+                console.log('⌨️ ESC 키로 튜토리얼 종료');
                 this.endTutorial();
             }
         });
 
+        // 전역 클릭 디버깅 (개발용)
+        if (!this.globalClickSetup) {
+            document.addEventListener('click', (e) => {
+                if (e.target.id === 'tutorial-btn' || e.target.id === 'mobile-tutorial-btn') {
+                    console.log('🖱️ 튜토리얼 버튼 클릭 감지:', e.target.id, e.target.textContent);
+                }
+            });
+            this.globalClickSetup = true;
+        }
+
         console.log('✅ 튜토리얼 이벤트 리스너 설정 완료');
+    }
+
+    handleTutorialClick(e) {
+        console.log('🎯 튜토리얼 버튼 클릭됨!', e.target.id);
+        e.preventDefault();
+        e.stopPropagation();
+        
+        // 버튼 클릭 시각적 피드백
+        const btn = e.target;
+        btn.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            btn.style.transform = 'scale(1)';
+        }, 100);
+        
+        this.showWelcomeModal();
     }
 
     getTutorialSteps() {
@@ -432,12 +488,13 @@ class YegamTutorial {
     }
 
     showWelcomeModal() {
+        console.log('🎮 환영 모달 표시');
         const modal = document.createElement('div');
         modal.className = 'tutorial-welcome-modal';
         modal.innerHTML = `
             <div class="tutorial-welcome-content">
                 <div class="tutorial-welcome-title">
-                    🎮 예겜 사용법 안내
+                    🎮 예겜 소개
                 </div>
                 <div class="tutorial-welcome-subtitle">
                     예겜의 주요 기능들을 단계별로 알아보세요!
@@ -479,11 +536,13 @@ class YegamTutorial {
 
         // 버튼 이벤트 리스너
         modal.querySelector('#tutorial-start').addEventListener('click', () => {
+            console.log('🚀 튜토리얼 시작 버튼 클릭');
             document.body.removeChild(modal);
             this.startTutorial();
         });
 
         modal.querySelector('#tutorial-skip').addEventListener('click', () => {
+            console.log('⏭️ 튜토리얼 나중에 하기 클릭');
             document.body.removeChild(modal);
         });
 
@@ -585,20 +644,88 @@ class YegamTutorial {
 // 전역 접근을 위한 인스턴스 생성
 window.yegamTutorial = null;
 
-// DOM 로드 완료 후 초기화
-document.addEventListener('DOMContentLoaded', () => {
-    window.yegamTutorial = new YegamTutorial();
-    console.log('🎯 예겜 튜토리얼 시스템 로드 완료');
+// 즉시 초기화 시도 (DOM이 이미 로드되었을 수 있음)
+function initializeTutorial() {
+    if (!window.yegamTutorial) {
+        console.log('🎯 예겜 튜토리얼 시스템 초기화 시작...');
+        window.yegamTutorial = new YegamTutorial();
+        console.log('🎯 예겜 튜토리얼 시스템 로드 완료');
+    }
+}
+
+// 다양한 시점에 초기화 시도
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeTutorial);
+} else {
+    // DOM이 이미 로드됨
+    initializeTutorial();
+}
+
+// 페이지 완전 로드 후에도 다시 시도
+window.addEventListener('load', () => {
+    if (!window.yegamTutorial) {
+        initializeTutorial();
+    } else {
+        // 이미 초기화되었다면 이벤트 리스너만 다시 설정
+        window.yegamTutorial.setupEventListeners();
+    }
 });
 
 // 개발자 도구용 헬퍼 함수들
 window.tutorialHelpers = {
-    start: () => window.yegamTutorial?.showWelcomeModal(),
-    reset: () => window.yegamTutorial?.resetTutorial(),
-    complete: () => window.yegamTutorial?.markAsCompleted(),
-    goToStep: (step) => window.yegamTutorial?.goToStep(step),
+    start: () => {
+        console.log('🔧 개발자 도구에서 튜토리얼 시작');
+        return window.yegamTutorial?.showWelcomeModal();
+    },
+    reset: () => {
+        console.log('🔧 개발자 도구에서 튜토리얼 리셋');
+        return window.yegamTutorial?.resetTutorial();
+    },
+    complete: () => {
+        console.log('🔧 개발자 도구에서 튜토리얼 완료 표시');
+        return window.yegamTutorial?.markAsCompleted();
+    },
+    goToStep: (step) => {
+        console.log('🔧 개발자 도구에서 특정 단계로 이동:', step);
+        return window.yegamTutorial?.goToStep(step);
+    },
     isRunning: () => window.yegamTutorial?.isRunning,
-    currentStep: () => window.yegamTutorial?.currentStep
+    currentStep: () => window.yegamTutorial?.currentStep,
+    debug: () => {
+        const tutorial = window.yegamTutorial;
+        console.log('🔍 튜토리얼 시스템 디버그 정보:');
+        console.log('- 튜토리얼 객체:', tutorial);
+        console.log('- 실행 중:', tutorial?.isRunning);
+        console.log('- 현재 단계:', tutorial?.currentStep);
+        console.log('- 전체 단계:', tutorial?.totalSteps);
+        console.log('- 완료 여부:', tutorial?.isCompleted());
+        
+        // 버튼 존재 여부 확인
+        const desktopBtn = document.getElementById('tutorial-btn');
+        const mobileBtn = document.getElementById('mobile-tutorial-btn');
+        console.log('- 데스크톱 버튼:', desktopBtn ? '존재' : '없음');
+        console.log('- 모바일 버튼:', mobileBtn ? '존재' : '없음');
+        
+        if (desktopBtn) {
+            console.log('- 데스크톱 버튼 텍스트:', desktopBtn.textContent);
+            console.log('- 데스크톱 버튼 클릭 테스트...');
+            desktopBtn.click();
+        }
+        
+        return {
+            tutorial,
+            desktopBtn,
+            mobileBtn,
+            isRunning: tutorial?.isRunning,
+            currentStep: tutorial?.currentStep,
+            totalSteps: tutorial?.totalSteps,
+            isCompleted: tutorial?.isCompleted()
+        };
+    },
+    forceSetup: () => {
+        console.log('🔧 강제 이벤트 리스너 재설정');
+        return window.yegamTutorial?.setupEventListeners();
+    }
 };
 
 // 모듈 내보내기 (ES6 modules 사용 시)
