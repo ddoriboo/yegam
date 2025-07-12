@@ -2075,12 +2075,21 @@ function createIssueCard(issue) {
                 </button>
             </div>
             
-            <div class="pt-4 border-t border-gray-200 flex justify-between items-center">
-                <span class="text-sm text-gray-600">총 참여 GAM</span>
-                <span class="font-semibold text-gray-900 flex items-center">
-                    <i data-lucide="coins" class="w-4 h-4 mr-1 text-yellow-500"></i>
-                    ${formatVolume(volume)}
-                </span>
+            <div class="pt-4 border-t border-gray-200">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm text-gray-600">총 참여 GAM</span>
+                    <span class="font-semibold text-gray-900 flex items-center">
+                        <i data-lucide="coins" class="w-4 h-4 mr-1 text-yellow-500"></i>
+                        ${formatVolume(volume)}
+                    </span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-sm text-gray-600">총 참여 인원</span>
+                    <span class="font-semibold text-gray-900 flex items-center">
+                        <i data-lucide="users" class="w-4 h-4 mr-1 text-blue-500"></i>
+                        ${(issue.participantCount || issue.participant_count || 0).toLocaleString()}명
+                    </span>
+                </div>
             </div>
             
             <!-- Comments Section -->
