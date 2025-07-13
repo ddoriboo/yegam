@@ -1,6 +1,12 @@
 // 미니게임방 메인 페이지 관리
 class MinigamesPage {
     constructor() {
+        // 메모리 누수 방지를 위한 정리 배열
+        this.intervals = [];
+        this.timeouts = [];
+        this.eventListeners = [];
+        this.isDestroyed = false;
+        
         this.games = {
             bustabit: {
                 name: 'Bustabit',
@@ -49,29 +55,37 @@ class MinigamesPage {
     setupEventListeners() {
         console.log('🔧 미니게임방 이벤트 리스너 설정');
         
-        // 게임 플레이 버튼 클릭
-        document.addEventListener('click', (e) => {
+        // 게임 플레이 버튼 클릭 (이벤트 리스너 추적)
+        const gamePlayHandler = (e) => {
             if (e.target.matches('.game-play-btn')) {
                 const gameType = e.target.getAttribute('data-game');
                 this.handleGameStart(gameType);
             }
-        });
+        };
+        document.addEventListener('click', gamePlayHandler);
+        this.eventListeners.push({ element: document, event: 'click', handler: gamePlayHandler });
         
-        // 게임 카드 클릭 (상세 정보)
-        document.addEventListener('click', (e) => {
+        // 게임 카드 클릭 (상세 정보) (이벤트 리스너 추적)
+        const gameCardHandler = (e) => {
             const gameCard = e.target.closest('.game-card');
             if (gameCard && !e.target.matches('.game-play-btn')) {
                 const gameType = gameCard.getAttribute('data-game');
                 this.showGameDetails(gameType);
             }
-        });
+        };
+        document.addEventListener('click', gameCardHandler);
+        this.eventListeners.push({ element: document, event: 'click', handler: gameCardHandler });
         
-        // 검색 기능
+        // 검색 기능 (이벤트 리스너 추적)
         const searchInput = document.getElementById('header-search-input');
         if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
+            const searchHandler = (e) => {
                 this.handleSearch(e.target.value);
-            });
+            };
+            searchInput.addEventListener('input', searchHandler);
+            
+            // 정리를 위해 배열에 추가
+            this.eventListeners.push({ element: searchInput, event: 'input', handler: searchHandler });
         }
     }
     
@@ -93,10 +107,17 @@ class MinigamesPage {
             console.error('게임 통계 로드 실패:', error);
         }
         
-        // 주기적으로 업데이트 (5초마다)
-        setInterval(() => {
+        // 주기적으로 업데이트 (5초마다) - 메모리 누수 방지
+        const statsInterval = setInterval(() => {
+            if (this.isDestroyed) {
+                clearInterval(statsInterval);
+                return;
+            }
             this.loadGameStats();
         }, 5000);
+        
+        // 정리를 위해 배열에 추가
+        this.intervals.push(statsInterval);
     }
     
     updateGameStats(gameType, stats) {
@@ -239,9 +260,9 @@ class MinigamesPage {
                     </div>
                 </div>
                 
-                <!-- 게임 히스토리 (여백 더 축소) -->
-                <div class="mt-0 sm:mt-1 flex-shrink-0">
-                    <h4 class="text-white font-semibold mb-1 sm:mb-2 text-sm">최근 결과</h4>
+                <!-- 게임 히스토리 (최소 간격) -->
+                <div class="flex-shrink-0">
+                    <h4 class="text-white font-semibold mb-0 text-sm">최근 결과</h4>
                     <div class="game-history flex gap-1 overflow-x-auto" id="game-history">
                         <!-- 게임 히스토리가 여기에 표시됩니다 -->
                     </div>
@@ -251,11 +272,17 @@ class MinigamesPage {
         
         document.body.appendChild(modal);
         
-        // 모달 종료 함수
+        // 모달 종료 함수 (완전한 리소스 정리)
         const closeModal = () => {
-            // Bustabit 클라이언트 정리
+            console.log('🗑️ Bustabit 모달 종료 시작...');
+            
+            // Bustabit 클라이언트 완전 정리
             if (this.bustabitClient) {
-                this.bustabitClient.destroy();
+                try {
+                    this.bustabitClient.destroy();
+                } catch (error) {
+                    console.error('Bustabit 클라이언트 정리 오류:', error);
+                }
                 this.bustabitClient = null;
             }
             
@@ -267,7 +294,12 @@ class MinigamesPage {
             // 이벤트 리스너 정리
             document.removeEventListener('keydown', handleEscape);
             
-            console.log('🗑️ Bustabit 모달 및 리소스 정리 완료');
+            // 강제 가비지 콜렉션 (메모리 정리)
+            if (window.gc) {
+                window.gc();
+            }
+            
+            console.log('✅ Bustabit 모달 및 리소스 완전 정리 완룼');
         };
         
         // 모달 이벤트 리스너
@@ -409,11 +441,100 @@ class MinigamesPage {
     showWarning(message) {
         this.showNotification(message, 'warning');
     }
+    
+    // 완전한 리소스 정리 (메모리 누수 방지)
+    destroy() {
+        console.log('🗑️ MinigamesPage 정리 시작...');
+        
+        this.isDestroyed = true;
+        
+        // 모든 interval 정리
+        this.intervals.forEach(interval => {
+            try {
+                clearInterval(interval);
+            } catch (error) {
+                console.error('Interval 정리 오류:', error);
+            }
+        });
+        this.intervals = [];
+        
+        // 모든 timeout 정리
+        this.timeouts.forEach(timeout => {
+            try {
+                clearTimeout(timeout);
+            } catch (error) {
+                console.error('Timeout 정리 오류:', error);
+            }
+        });
+        this.timeouts = [];
+        
+        // 모든 이벤트 리스너 정리
+        this.eventListeners.forEach(({ element, event, handler }) => {
+            try {
+                element.removeEventListener(event, handler);
+            } catch (error) {
+                console.error('이벤트 리스너 정리 오류:', error);
+            }
+        });
+        this.eventListeners = [];
+        
+        // Bustabit 클라이언트 정리
+        if (this.bustabitClient) {
+            try {
+                this.bustabitClient.destroy();
+            } catch (error) {
+                console.error('Bustabit 클라이언트 정리 오류:', error);
+            }
+            this.bustabitClient = null;
+        }
+        
+        console.log('✅ MinigamesPage 리소스 완전 정리 완료');
+    }
 }
 
-// 페이지 로드 시 초기화
+// 페이지 로드 시 초기화 (리소스 정리 포함)
 document.addEventListener('DOMContentLoaded', () => {
+    // 기존 인스턴스 정리
+    if (window.minigamesPage) {
+        try {
+            window.minigamesPage.destroy();
+        } catch (error) {
+            console.error('기존 MinigamesPage 정리 오류:', error);
+        }
+    }
+    
     window.minigamesPage = new MinigamesPage();
+});
+
+// 페이지 언로드 시 정리
+window.addEventListener('beforeunload', () => {
+    if (window.minigamesPage) {
+        try {
+            window.minigamesPage.destroy();
+        } catch (error) {
+            console.error('MinigamesPage 언로드 정리 오류:', error);
+        }
+    }
+});
+
+// 페이지 숨김 시 리소스 절약
+document.addEventListener('visibilitychange', () => {
+    if (window.minigamesPage && document.hidden) {
+        // 페이지가 숨겨지면 성능 최적화
+        console.log('😴 페이지 비활성 - 성능 최적화 모드');
+        
+        // Bustabit 클라이언트 성능 모드 활성화
+        if (window.minigamesPage.bustabitClient) {
+            window.minigamesPage.bustabitClient.performanceMode = true;
+        }
+    } else if (window.minigamesPage && !document.hidden) {
+        console.log('😄 페이지 활성 - 정상 모드');
+        
+        // 페이지가 다시 활성화되면 성능 모드 해제
+        if (window.minigamesPage.bustabitClient) {
+            window.minigamesPage.bustabitClient.performanceMode = false;
+        }
+    }
 });
 
 console.log('✅ 미니게임방 페이지 스크립트 로드 완료');

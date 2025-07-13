@@ -257,6 +257,12 @@ class BustabitClient extends MinigameBase {
                 this.consecutiveErrors++;
                 console.warn(`게임 상태 업데이트 실패 (${this.consecutiveErrors}/${this.maxErrors}):`, error);
                 
+                // 오류가 많이 발생하면 성능 모드 활성화
+                if (this.consecutiveErrors >= this.maxErrors) {
+                    this.performanceMode = true; // 성능 모드 활성화
+                    console.warn('성능 모드 활성화 - 리소스 사용량 감소');
+                }
+                
                 // 지수 백오프 적용
                 this.pollingInterval = Math.min(this.pollingInterval * 2, 5000);
                 
@@ -1112,6 +1118,8 @@ class BustabitClient extends MinigameBase {
         // 종료 플래그 설정
         this.isDestroyed = true;
         this.isRenderLoopActive = false;
+        this.isPollingActive = false;
+        this.performanceMode = true; // 완전 종료 시 성능 모드
         
         // 타이머 정리
         if (this.updateInterval) {
