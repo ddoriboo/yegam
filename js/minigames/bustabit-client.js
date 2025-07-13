@@ -64,9 +64,14 @@ class BustabitClient extends MinigameBase {
         return { currentMultiplier, maxMultiplier };
     }
     
-    // Y좌표 계산 함수 (모든 곳에서 동일하게 사용)
+    // Y좌표 계산 함수 (모든 곳에서 동일하게 사용, 1.0x = 하단 기준)
     calculateYPosition(multiplier, maxMultiplier, margin, graphHeight) {
-        const normalizedPosition = (multiplier - 1) / (maxMultiplier - 1);
+        // 1.0x가 정확히 하단에 오도록 계산
+        if (multiplier <= 1.0) {
+            return margin.top + graphHeight; // 1.0x는 정확히 하단
+        }
+        
+        const normalizedPosition = (multiplier - 1.0) / (maxMultiplier - 1.0);
         return margin.top + graphHeight - (normalizedPosition * graphHeight);
     }
     
@@ -201,42 +206,18 @@ class BustabitClient extends MinigameBase {
                 return;
             }
             
-            // 16.67ms (60fps) 간격 제한
-            if (currentTime - this.lastRenderTime >= 16.67) {
-                // 게임 중일 때만 연속 렌더링
-                if (this.gameState === 'playing') {
-                    this.updateMultiplierDisplay();
-                    this.optimizedDrawGraph();
-                } else if (this.gameState === 'crashed') {
-                    // 크래시 상태는 한 번만 렌더링
-                    if (!this.crashRendered) {
-                        this.optimizedDrawGraph();
-                        this.crashRendered = true;
-                    }
-                } else if (this.gameState === 'betting') {
-                    // 베팅 상태는 카운트다운 변경 시만 렌더링
-                    if (this.lastBettingCountdown !== this.bettingCountdown) {
-                        this.drawGraph();
-                        this.lastBettingCountdown = this.bettingCountdown;
-                    }
-                }
-                
-                this.lastRenderTime = currentTime;
+            // 항상 부드러운 60fps 렌더링 (게임 중일 때는 실시간 업데이트)
+            if (this.gameState === 'playing') {
+                this.updateMultiplierDisplay(); // 실시간 배수 계산
+                this.optimizedDrawGraph(); // 부드러운 곡선 그리기
+            } else {
+                // 다른 상태에서도 기본 렌더링
+                this.optimizedDrawGraph();
             }
             
-            // 안전한 재귀 호출 (메모리 누수 방지)
+            // 연속 렌더링 (부드러운 애니메이션)
             if (this.isRenderLoopActive && !this.isDestroyed) {
-                if (this.gameState === 'playing' || this.gameState === 'betting') {
-                    // 활성 상태에서만 연속 렌더링
-                    this.renderRequestId = requestAnimationFrame(renderFrame);
-                } else {
-                    // 대기 상태에서는 3초마다 체크 (리소스 절약)
-                    this.renderTimeoutId = setTimeout(() => {
-                        if (this.isRenderLoopActive && !this.isDestroyed) {
-                            this.renderRequestId = requestAnimationFrame(renderFrame);
-                        }
-                    }, 3000);
-                }
+                this.renderRequestId = requestAnimationFrame(renderFrame);
             }
         };
         
@@ -566,11 +547,15 @@ class BustabitClient extends MinigameBase {
         if (this.multiplierDisplay) {
             let displayMultiplier = this.currentMultiplier;
             
-            // 게임 중일 때 실시간 계산된 배수 사용
+            // 게임 중일 때 실시간 계산된 배수 사용 (부드러운 애니메이션)
             if (this.gameState === 'playing' && this.gameStartTime) {
                 const now = Date.now();
                 const currentTimeSeconds = (now - this.gameStartTime) / 1000;
                 displayMultiplier = Math.pow(Math.E, 0.06 * currentTimeSeconds);
+                
+                // 실제 배수 업데이트 (곡선 그리기용)
+                this.currentMultiplier = displayMultiplier;
+                this.elapsedTime = now - this.gameStartTime;
             }
             
             const multiplierText = displayMultiplier.toFixed(2) + 'x';
@@ -808,8 +793,14 @@ class BustabitClient extends MinigameBase {
             ctx.fillText(`${t}s`, x, margin.top + graphHeight + 20);
         }
         
-        // 가로 그리드 선 (배수) - 1.0x부터 시작, 정확한 위치 계산
-        for (let m = 1; m <= maxMultiplier; m += multiplierStep) {
+        // 가로 그리드 선 (배수) - 1.0x부터 시작, 정확한 위치 계산  
+        // 1.0x는 항상 표시하고, 그 이후는 스텝에 따라
+        const gridMultipliers = [1.0]; // 1.0x는 항상 포함
+        for (let m = 1 + multiplierStep; m <= maxMultiplier; m += multiplierStep) {
+            gridMultipliers.push(m);
+        }
+        
+        gridMultipliers.forEach(m => {
             // Y좌표 계산: 통일된 함수 사용으로 정확한 정렬 보장
             const y = this.calculateYPosition(m, maxMultiplier, margin, graphHeight);
             
@@ -818,13 +809,13 @@ class BustabitClient extends MinigameBase {
             ctx.lineTo(margin.left + graphWidth, y);
             ctx.stroke();
             
-            // 배수 레이블 (소수점 표시 개선)
+            // 배수 레이블 (1.0x는 항상 표시)
             ctx.fillStyle = '#64748b';
             ctx.font = '12px Inter';
             ctx.textAlign = 'right';
-            const label = multiplierStep < 1 ? m.toFixed(1) : m.toFixed(m >= 10 ? 0 : 1);
+            const label = m === 1.0 ? '1.0' : (multiplierStep < 1 ? m.toFixed(1) : m.toFixed(m >= 10 ? 0 : 1));
             ctx.fillText(`${label}x`, margin.left - 10, y + 4);
-        }
+        });
         
         // 축 레이블
         ctx.fillStyle = '#94a3b8';
@@ -950,9 +941,8 @@ class BustabitClient extends MinigameBase {
             for (let i = 0; i <= steps; i++) {
                 const t = (i / steps) * currentTimeSeconds;
                 
-                // 서버 데이터 기준 정확한 비례 계산
-                const ratio = currentTimeSeconds > 0 ? t / currentTimeSeconds : 0;
-                const multiplier = 1.0 + (currentMultiplier - 1.0) * ratio;
+                // 실제 Bustabit 공식 사용 (부드러운 실시간 곡선)
+                const multiplier = Math.pow(Math.E, 0.06 * t);
                 
                 const x = margin.left + (t / maxTime) * graphWidth;
                 // Y좌표 계산: 통일된 함수 사용으로 정확한 정렬 보장
@@ -974,8 +964,9 @@ class BustabitClient extends MinigameBase {
         // 현재 포인트 강조 (실시간 위치)
         if (this.gameState === 'playing' && currentTimeSeconds > 0) {
             const currentX = margin.left + (currentTimeSeconds / maxTime) * graphWidth;
-            // Y좌표 계산: 통일된 함수 사용으로 정확한 정렬 보장
-            const currentY = this.calculateYPosition(currentMultiplier, maxMultiplier, margin, graphHeight);
+            // 실시간 배수 계산 (정확한 현재 위치)
+            const realTimeMultiplier = Math.pow(Math.E, 0.06 * currentTimeSeconds);
+            const currentY = this.calculateYPosition(realTimeMultiplier, maxMultiplier, margin, graphHeight);
             
             // 현재 위치 점 (펄싱 애니메이션)
             const pulseSize = 6 + Math.sin(Date.now() / 200) * 2; // 펄싱 효과
@@ -998,7 +989,7 @@ class BustabitClient extends MinigameBase {
             ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 16px Inter';
             ctx.textAlign = 'center';
-            ctx.fillText(`${currentMultiplier.toFixed(2)}x`, currentX, currentY - 12);
+            ctx.fillText(`${realTimeMultiplier.toFixed(2)}x`, currentX, currentY - 12);
         }
     }
     
