@@ -4,7 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 에이전트 관리 - 예겜 관리자</title>
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <style>
         .dashboard-container {
             max-width: 1400px;
@@ -263,17 +269,120 @@
         }
     </style>
 </head>
-<body>
-    <div class="header-section">
-        <div class="dashboard-container">
-            <h1>🤖 AI 에이전트 관리 시스템</h1>
-            <p>예겜 커뮤니티 AI 어시스턴트 관리 대시보드</p>
-            <div class="nav-links">
-                <a href="admin.html">← 메인 관리자</a>
-                <a href="index.html">← 메인 페이지</a>
+<body class="bg-white text-gray-900 font-sans">
+
+    <div id="app-container" class="min-h-screen flex flex-col">
+
+        <!-- Header -->
+        <header class="bg-white/90 backdrop-blur-sm sticky top-0 border-b border-gray-200" style="z-index: 50000; overflow: visible !important;">
+            <nav class="container mx-auto px-4 lg:px-8 py-3 flex justify-between items-center">
+                <a href="index.html" class="flex items-center space-x-2">
+                    <img src="logo.png" alt="예겜 로고" class="h-8 w-auto">
+                    <span class="text-xl font-bold tracking-tight text-gray-900 hidden sm:block">예겜</span>
+                </a>
+                
+                <!-- Desktop Navigation -->
+                <div class="hidden md:flex items-center space-x-6 text-sm font-medium text-gray-600">
+                    <a href="about.html" class="hover:text-gray-900 transition-colors">예겜 소개</a>
+                    <a href="issues.html" class="hover:text-gray-900 transition-colors">전체 이슈</a>
+                    <a href="minigames.html" class="hover:text-gray-900 transition-colors">미니게임방</a>
+                    <a href="discussions.html" class="hover:text-gray-900 transition-colors">분석방</a>
+                    <a href="tier_guide.html" class="hover:text-gray-900 transition-colors">업적 안내</a>
+                    <a href="mypage.html" class="hover:text-gray-900 transition-colors">내 정보</a>
+                    <a href="admin.html" class="hover:text-gray-900 transition-colors text-red-600">관리자</a>
+                </div>
+                
+                <!-- Mobile & User Actions Container -->
+                <div class="flex items-center space-x-1 sm:space-x-2">
+                    <!-- Search Button -->
+                    <button id="header-search-btn" class="p-2.5 rounded-md hover:bg-gray-100 transition-colors touch-manipulation">
+                        <i data-lucide="search" class="w-5 h-5 text-gray-600"></i>
+                    </button>
+                    
+                    <!-- Mobile Menu Button -->
+                    <button id="mobile-menu-btn" class="md:hidden p-2.5 rounded-md hover:bg-gray-100 transition-colors touch-manipulation">
+                        <i data-lucide="menu" class="w-5 h-5 text-gray-600"></i>
+                    </button>
+                    
+                    <!-- User Info & Wallet -->
+                    <div id="header-user-section" class="hidden">
+                        <!-- GAM 잔액 표시 -->
+                        <div class="hidden sm:flex items-center bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-3 py-1.5 rounded-full text-sm font-medium shadow-sm mr-2">
+                            <i data-lucide="coins" class="w-4 h-4 mr-1"></i>
+                            <span id="header-gam-balance">0</span>
+                            <span class="ml-1 text-xs opacity-90">GAM</span>
+                        </div>
+                        
+                        <!-- 알림 버튼 -->
+                        <button id="header-notification-btn" class="relative p-2.5 rounded-md hover:bg-gray-100 transition-colors touch-manipulation mr-1">
+                            <i data-lucide="bell" class="w-5 h-5 text-gray-600"></i>
+                            <span id="notification-badge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">0</span>
+                        </button>
+                        
+                        <!-- 사용자 메뉴 -->
+                        <div class="relative">
+                            <button id="header-user-menu-btn" class="flex items-center space-x-2 p-2 rounded-md hover:bg-gray-100 transition-colors touch-manipulation">
+                                <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                                    <span id="header-user-initial" class="text-white text-sm font-medium">U</span>
+                                </div>
+                                <span id="header-username" class="hidden sm:block text-sm font-medium text-gray-700 max-w-20 truncate">사용자</span>
+                                <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 hidden sm:block"></i>
+                            </button>
+                            
+                            <!-- 사용자 드롭다운 메뉴 -->
+                            <div id="header-user-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 py-1" style="z-index: 50001;">
+                                <div class="px-4 py-2 border-b border-gray-100">
+                                    <p class="text-sm font-medium text-gray-900" id="dropdown-username">사용자</p>
+                                    <p class="text-xs text-gray-500" id="dropdown-user-email">user@example.com</p>
+                                </div>
+                                <a href="mypage.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">내 정보</a>
+                                <a href="tier_guide.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">업적 안내</a>
+                                <button id="header-logout-btn" class="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">로그아웃</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 로그인 버튼 (비로그인 시) -->
+                    <div id="header-auth-section" class="flex items-center space-x-2">
+                        <a href="login.html" class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors px-3 py-2">로그인</a>
+                        <a href="login.html" class="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-blue-700 transition-colors">회원가입</a>
+                    </div>
+                </div>
+            </nav>
+            
+            <!-- Mobile Menu -->
+            <div id="mobile-menu" class="hidden md:hidden border-t border-gray-200 bg-white/95 backdrop-blur-sm">
+                <div class="container mx-auto px-4 py-3 space-y-2">
+                    <a href="about.html" class="block py-2 text-sm font-medium text-gray-600 hover:text-gray-900">예겜 소개</a>
+                    <a href="issues.html" class="block py-2 text-sm font-medium text-gray-600 hover:text-gray-900">전체 이슈</a>
+                    <a href="minigames.html" class="block py-2 text-sm font-medium text-gray-600 hover:text-gray-900">미니게임방</a>
+                    <a href="discussions.html" class="block py-2 text-sm font-medium text-gray-600 hover:text-gray-900">분석방</a>
+                    <a href="tier_guide.html" class="block py-2 text-sm font-medium text-gray-600 hover:text-gray-900">업적 안내</a>
+                    <a href="mypage.html" class="block py-2 text-sm font-medium text-gray-600 hover:text-gray-900">내 정보</a>
+                    <a href="admin.html" class="block py-2 text-sm font-medium text-red-600 hover:text-red-700">관리자</a>
+                    
+                    <!-- Mobile GAM Balance -->
+                    <div id="mobile-gam-balance" class="hidden mt-3 pt-3 border-t border-gray-200">
+                        <div class="flex items-center justify-center bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 rounded-lg">
+                            <i data-lucide="coins" class="w-4 h-4 mr-2"></i>
+                            <span id="mobile-header-gam-balance">0</span>
+                            <span class="ml-1 text-sm opacity-90">GAM</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="header-section">
+            <div class="dashboard-container">
+                <h1>🤖 AI 에이전트 관리 시스템</h1>
+                <p>예겜 커뮤니티 AI 어시스턴트 관리 대시보드</p>
+                <div class="nav-links">
+                    <a href="admin.html">← 메인 관리자</a>
+                    <a href="index.html">← 메인 페이지</a>
+                </div>
             </div>
         </div>
-    </div>
 
     <div class="dashboard-container">
         <div class="emergency-controls">
@@ -938,5 +1047,17 @@
             addLog('AI 에이전트 대시보드가 시작되었습니다');
         };
     </script>
+    
+    <!-- Header JavaScript -->
+    <script src="js/app.js"></script>
+    <script src="js/ui/header.js"></script>
+    <script>
+        // Lucide 아이콘 초기화
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    </script>
+    
+    </div> <!-- app-container 닫기 -->
 </body>
 </html>
