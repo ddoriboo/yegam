@@ -251,19 +251,42 @@ class MinigamesPage {
         
         document.body.appendChild(modal);
         
+        // 모달 종료 함수
+        const closeModal = () => {
+            // Bustabit 클라이언트 정리
+            if (this.bustabitClient) {
+                this.bustabitClient.destroy();
+                this.bustabitClient = null;
+            }
+            
+            // 모달 제거
+            if (modal.parentNode) {
+                document.body.removeChild(modal);
+            }
+            
+            // 이벤트 리스너 정리
+            document.removeEventListener('keydown', handleEscape);
+            
+            console.log('🗑️ Bustabit 모달 및 리소스 정리 완료');
+        };
+        
         // 모달 이벤트 리스너
-        document.getElementById('close-bustabit').addEventListener('click', () => {
-            document.body.removeChild(modal);
-        });
+        document.getElementById('close-bustabit').addEventListener('click', closeModal);
         
         // ESC 키로 닫기
         const handleEscape = (e) => {
             if (e.key === 'Escape') {
-                document.body.removeChild(modal);
-                document.removeEventListener('keydown', handleEscape);
+                closeModal();
             }
         };
         document.addEventListener('keydown', handleEscape);
+        
+        // 모달 외부 클릭으로 닫기
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
+        });
         
         // Bustabit 게임 초기화
         this.initBustabitGame(modal);
