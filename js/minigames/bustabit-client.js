@@ -34,8 +34,9 @@ class BustabitClient extends MinigameBase {
         this.renderInterval = null;
         this.renderAnimationFrame = null;
         
-        // 게임 히스토리
+        // 게임 히스토리 (메모리 제한)
         this.gameHistory = [];
+        this.maxHistorySize = 50;
         
         console.log('🚀 Bustabit 클라이언트 초기화 (메모리 누수 방지 적용)');
     }

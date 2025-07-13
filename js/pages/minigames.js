@@ -6,6 +6,9 @@ class MinigamesPage {
         this.timeouts = [];
         this.eventListeners = [];
         this.isDestroyed = false;
+        this.statsInitialized = false;
+        this.errorCount = 0;
+        this.currentDelay = 10000;
         
         this.games = {
             bustabit: {
@@ -90,34 +93,85 @@ class MinigamesPage {
     }
     
     async loadGameStats() {
-        console.log('📊 게임 통계 로드 중...');
-        
-        try {
-            // Bustabit 실시간 플레이어 수 로드
-            const response = await fetch('/api/minigames/bustabit/state');
-            const result = await response.json();
+        // 재귀 호출 대신 단일 interval만 사용
+        if (!this.statsInitialized) {
+            this.statsInitialized = true;
+            this.errorCount = 0;
+            this.currentDelay = 10000; // 기본 10초
             
-            if (result.success) {
-                this.updateGameStats('bustabit', {
-                    currentPlayers: result.gameState.playerCount,
-                    gameState: result.gameState.gameState
-                });
-            }
-        } catch (error) {
-            console.error('게임 통계 로드 실패:', error);
+            // 단일 interval 설정
+            const statsInterval = setInterval(async () => {
+                if (this.isDestroyed) {
+                    clearInterval(statsInterval);
+                    return;
+                }
+                
+                // 페이지가 숨겨져 있으면 API 호출 건너뛰기
+                if (document.hidden) {
+                    return;
+                }
+                
+                try {
+                    // Bustabit 실시간 플레이어 수 로드
+                    const response = await fetch('/api/minigames/bustabit/state');
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        this.updateGameStats('bustabit', {
+                            currentPlayers: result.gameState.playerCount,
+                            gameState: result.gameState.gameState
+                        });
+                        
+                        // 성공 시 에러 카운트 리셋
+                        this.errorCount = 0;
+                        this.currentDelay = 10000;
+                    }
+                } catch (error) {
+                    this.errorCount++;
+                    console.error(`게임 통계 로드 실패 (${this.errorCount}회):`, error.message);
+                    
+                    // 에러가 5회 이상 발생하면 interval 중단
+                    if (this.errorCount >= 5) {
+                        console.error('🛑 게임 통계 로드 중단 - 너무 많은 에러 발생');
+                        clearInterval(statsInterval);
+                        
+                        // 30초 후 재시도
+                        const retryTimeout = setTimeout(() => {
+                            if (!this.isDestroyed) {
+                                this.statsInitialized = false;
+                                this.loadGameStats();
+                            }
+                        }, 30000);
+                        this.timeouts.push(retryTimeout);
+                    }
+                }
+            }, this.currentDelay);
+            
+            // 정리를 위해 배열에 추가
+            this.intervals.push(statsInterval);
         }
         
-        // 주기적으로 업데이트 (5초마다) - 메모리 누수 방지
-        const statsInterval = setInterval(() => {
-            if (this.isDestroyed) {
-                clearInterval(statsInterval);
-                return;
+        // 초기 로드 (interval과 별도)
+        if (!document.hidden) {
+            try {
+                const response = await fetch('/api/minigames/bustabit/state');
+                const result = await response.json();
+                
+                if (result.success) {
+                    this.updateGameStats('bustabit', {
+                        currentPlayers: result.gameState.playerCount,
+                        gameState: result.gameState.gameState
+                    });
+                }
+            } catch (error) {
+                console.error('초기 게임 통계 로드 실패:', error.message);
             }
-            this.loadGameStats();
-        }, 5000);
-        
-        // 정리를 위해 배열에 추가
-        this.intervals.push(statsInterval);
+        }
     }
     
     updateGameStats(gameType, stats) {
