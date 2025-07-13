@@ -133,7 +133,7 @@ router.post('/issues',
                 sessionId: req.sessionID
             });
             
-            // end_date가 이미 UTC ISO string으로 전달되므로 직접 사용
+            // end_date는 프론트엔드에서 UTC ISO string으로 변환되어 전달됨
             const result = await client.query(`
                 INSERT INTO issues (title, category, description, image_url, yes_price, end_date, is_popular, created_at, updated_at)
                 VALUES ($1, $2, $3, $4, $5, $6::timestamptz, $7, NOW(), NOW())
@@ -196,7 +196,7 @@ router.put('/issues/:id',
                 });
             }
             
-            // end_date가 이미 UTC ISO string으로 전달되므로 직접 사용
+            // end_date는 프론트엔드에서 UTC ISO string으로 변환되어 전달됨
             const result = await client.query(`
                 UPDATE issues 
                 SET title = $1, category = $2, description = $3, image_url = $4, 

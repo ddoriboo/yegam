@@ -15,18 +15,19 @@ const timezoneUtils = {
         const [year, month, day] = datePart.split('-').map(Number);
         const [hours, minutes] = timePart.split(':').map(Number);
         
-        // 🔧 수정: 한국 시간으로 로컬 Date 객체 생성 후 UTC로 변환
-        // 이전 버그: Date.UTC() 사용 후 다시 9시간을 빼는 이중 변환 오류
-        const koreaTime = new Date(year, month - 1, day, hours, minutes);
-        const utcTime = koreaTime.getTime() - (9 * 60 * 60 * 1000);
+        // 🔧 수정: 정확한 한국 시간 → UTC 변환
+        // datetime-local은 사용자가 입력한 시간을 한국 시간으로 간주
+        // Date.UTC()를 사용하여 직접 UTC 시간 생성 (브라우저 타임존 무관)
+        const utcTimestamp = Date.UTC(year, month - 1, day, hours - 9, minutes);
         
-        return new Date(utcTime).toISOString();
+        return new Date(utcTimestamp).toISOString();
     },
     
     // Convert UTC ISO string to datetime-local format for display
     utcToDatetimeLocal(utcIsoString) {
         if (!utcIsoString) return '';
         
+        // UTC 시간을 한국 시간으로 변환하여 datetime-local 형식으로 표시
         const utcDate = new Date(utcIsoString);
         const koreaOffset = 9 * 60; // 분 단위 (+9시간)
         const koreaTime = new Date(utcDate.getTime() + (koreaOffset * 60 * 1000));

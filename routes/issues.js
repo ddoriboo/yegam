@@ -61,53 +61,16 @@ router.get('/', async (req, res) => {
         `, params);
         const issues = result.rows;
         
-        // 🔍 시간 데이터 상세 분석
-        console.log('🔍 DB에서 가져온 시간 데이터 분석:');
-        issues.slice(0, 3).forEach((issue, index) => {
-            console.log(`${index + 1}. "${issue.title}"`);
-            if (issue.end_date) {
-                const rawEndDate = issue.end_date;
-                const parsedDate = new Date(rawEndDate);
-                
-                console.log(`   📊 원본 DB 데이터: ${rawEndDate}`);
-                console.log(`   📊 JavaScript 파싱: ${parsedDate.toISOString()}`);
-                console.log(`   📊 KST 표시: ${parsedDate.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`);
-                console.log(`   📊 브라우저 로컬: ${parsedDate.toLocaleString('ko-KR')}`);
-                console.log(`   📊 타입: ${typeof rawEndDate}, 값: ${rawEndDate}`);
-                console.log(`   📊 UTC 타임스탬프: ${parsedDate.getTime()}`);
-                console.log('   ---');
-            }
-        });
-        
         res.json({
             success: true,
-            issues: issues.map(issue => {
-                // 🔧 올바른 UTC → KST 변환
-                // DB에서 받은 UTC 시간을 프론트엔드에서 사용할 수 있도록 처리
-                let processedEndDate = issue.end_date;
-                
-                if (issue.end_date) {
-                    // UTC 시간을 받아서 그대로 ISO string으로 전송
-                    // 프론트엔드에서 로컬 시간대에 맞게 변환하도록 함
-                    const utcDate = new Date(issue.end_date);
-                    processedEndDate = utcDate.toISOString();
-                }
-                
-                return {
-                    ...issue,
-                    isPopular: Boolean(issue.is_popular),
-                    commentCount: parseInt(issue.comment_count) || 0,
-                    participantCount: parseInt(issue.participant_count) || 0,
-                    totalVolume: parseInt(issue.total_volume) || 0,
-                    end_date: processedEndDate,
-                    // 🔍 디버깅을 위한 시간 정보
-                    end_date_debug: {
-                        original_utc: issue.end_date,
-                        processed: processedEndDate,
-                        timestamp: issue.end_date ? new Date(issue.end_date).getTime() : null
-                    }
-                };
-            })
+            issues: issues.map(issue => ({
+                ...issue,
+                isPopular: Boolean(issue.is_popular),
+                commentCount: parseInt(issue.comment_count) || 0,
+                participantCount: parseInt(issue.participant_count) || 0,
+                totalVolume: parseInt(issue.total_volume) || 0,
+                end_date: issue.end_date ? new Date(issue.end_date).toISOString() : null
+            }))
         });
     } catch (error) {
         console.error('이슈 조회 오류:', error);
@@ -269,8 +232,7 @@ router.post('/',
             });
         }
         
-        // 🇰🇷 KST 기준으로 시간 저장 (변환 없음)
-        // PostgreSQL 타임존이 Asia/Seoul로 설정되어 있음
+        // PostgreSQL에 UTC 시간으로 저장
         const insertQuery = `
             INSERT INTO issues (title, category, description, image_url, end_date, yes_price, is_popular, created_at, updated_at) 
             VALUES ($1, $2, $3, $4, $5::timestamptz, $6, $7, NOW(), NOW())
@@ -282,7 +244,7 @@ router.post('/',
             category, 
             description || null, 
             imageUrl || null, 
-            endDate, // KST 기준 시간
+            endDate, // UTC ISO string
             yesPrice || 50, 
             isPopular ? true : false
         ]);
@@ -315,7 +277,7 @@ router.put('/:id',
         const issueId = req.params.id;
         const { title, category, description, imageUrl, endDate, yesPrice, isPopular } = req.body;
         
-        // 🇰🇷 KST 기준으로 시간 업데이트 (변환 없음)
+        // PostgreSQL에 UTC 시간으로 업데이트
         const updateQuery = `
             UPDATE issues 
             SET title = $1, category = $2, description = $3, image_url = $4, 
@@ -328,7 +290,7 @@ router.put('/:id',
             category, 
             description || null, 
             imageUrl || null, 
-            endDate, // KST 기준 시간
+            endDate, // UTC ISO string
             yesPrice, 
             isPopular ? true : false, 
             issueId
