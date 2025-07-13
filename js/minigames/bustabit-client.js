@@ -9,6 +9,7 @@ class BustabitClient extends MinigameBase {
         this.currentBet = 0;
         this.hasBet = false;
         this.hasCashedOut = false;
+        this.gameStartTime = null;
         
         // UI 요소들
         this.canvas = null;
@@ -152,28 +153,25 @@ class BustabitClient extends MinigameBase {
         console.log('🔄 게임 상태 폴링 및 최적화된 렌더링 시작');
     }
     
-    // 최적화된 렌더링 루프
+    // 최적화된 렌더링 루프 (60fps 보장)
     startRenderLoop() {
         const renderFrame = (currentTime) => {
-            // 16.67ms (60fps) 간격으로 렌더링 제한
+            // 60fps 렌더링 (16.67ms 간격)
             if (currentTime - this.lastRenderTime >= 16.67) {
-                if (this.gameState === 'playing' || this.gameState === 'crashed') {
+                // 게임 중일 때 실시간 배수 업데이트
+                if (this.gameState === 'playing') {
+                    this.updateMultiplierDisplay(); // 실시간 배수 표시 업데이트
                     this.optimizedDrawGraph();
+                } else if (this.gameState === 'crashed') {
+                    this.optimizedDrawGraph(); // 크래시 상태 유지
                 } else if (this.gameState === 'betting') {
                     this.drawGraph(); // 베팅 중일 때는 오버레이만
                 }
                 this.lastRenderTime = currentTime;
             }
             
-            // 다음 프레임 요청 (게임이 활성 상태일 때만)
-            if (this.gameState === 'playing' || this.gameState === 'betting') {
-                this.renderRequestId = requestAnimationFrame(renderFrame);
-            } else {
-                // 게임이 대기 상태이면 저주파수로 업데이트
-                setTimeout(() => {
-                    this.renderRequestId = requestAnimationFrame(renderFrame);
-                }, 200);
-            }
+            // 모든 게임 상태에서 연속 렌더링 (부드러운 애니메이션 보장)
+            this.renderRequestId = requestAnimationFrame(renderFrame);
         };
         
         this.renderRequestId = requestAnimationFrame(renderFrame);
@@ -219,6 +217,7 @@ class BustabitClient extends MinigameBase {
         // 새 게임 시작 시 차트 데이터 초기화
         if (this.gameState === 'betting' && prevState !== 'betting') {
             this.chartData = [];
+            this.gameStartTime = null; // 게임 시작 시간 리셋
             this.isBackgroundDirty = true;
         }
         
@@ -428,17 +427,26 @@ class BustabitClient extends MinigameBase {
         }
     }
     
-    // 배수 표시 업데이트
+    // 배수 표시 업데이트 (실시간 보간 적용)
     updateMultiplierDisplay() {
         if (this.multiplierDisplay) {
-            const multiplierText = this.currentMultiplier.toFixed(2) + 'x';
+            let displayMultiplier = this.currentMultiplier;
+            
+            // 게임 중일 때 실시간 계산된 배수 사용
+            if (this.gameState === 'playing' && this.gameStartTime) {
+                const now = Date.now();
+                const currentTimeSeconds = (now - this.gameStartTime) / 1000;
+                displayMultiplier = Math.pow(Math.E, 0.06 * currentTimeSeconds);
+            }
+            
+            const multiplierText = displayMultiplier.toFixed(2) + 'x';
             this.multiplierDisplay.textContent = multiplierText;
             
             // 배수에 따른 색상 변경
             this.multiplierDisplay.className = 'multiplier-display text-white';
-            if (this.currentMultiplier >= 10) {
+            if (displayMultiplier >= 10) {
                 this.multiplierDisplay.classList.add('high-multiplier');
-            } else if (this.currentMultiplier >= 5) {
+            } else if (displayMultiplier >= 5) {
                 this.multiplierDisplay.classList.add('medium-multiplier');
             } else {
                 this.multiplierDisplay.classList.add('low-multiplier');
@@ -637,12 +645,14 @@ class BustabitClient extends MinigameBase {
         ctx.strokeStyle = '#1e293b';
         ctx.lineWidth = 1;
         
-        // 시간 범위 계산 (0초부터 현재 경과 시간 + 여유분)
-        const maxTime = Math.max(this.elapsedTime / 1000 + 5, 10); // 최소 10초
+        // 시간 범위 계산 (곡선과 동일하게 통일)
+        const currentTimeSeconds = this.elapsedTime ? this.elapsedTime / 1000 : 0;
+        const maxTime = Math.max(currentTimeSeconds + 5, 10); // 최소 10초
         const timeStep = maxTime <= 20 ? 2 : maxTime <= 60 ? 5 : 10;
         
-        // 배수 범위 계산
-        const maxMultiplier = Math.max(this.currentMultiplier * 1.5, 5);
+        // 배수 범위 계산 (곡선과 동일하게 통일)
+        const currentMultiplier = this.currentMultiplier || 1.0;
+        const maxMultiplier = Math.max(currentMultiplier * 1.5, 5);
         const multiplierStep = maxMultiplier <= 10 ? 1 : maxMultiplier <= 50 ? 5 : 10;
         
         // 세로 그리드 선 (시간)
@@ -746,66 +756,95 @@ class BustabitClient extends MinigameBase {
         }
     }
     
-    // 최적화된 배수 곡선 그리기 (차트 데이터 기반)
+    // 최적화된 배수 곡선 그리기 (실시간 보간 적용)
     drawMultiplierCurveOptimized(margin, graphWidth, graphHeight) {
-        if (this.chartData.length < 2) return;
-        
         const ctx = this.ctx;
         
-        // 현재 시간 범위 계산
-        const latestTime = this.chartData[this.chartData.length - 1].time;
-        const maxTime = Math.max(latestTime + 2, 10);
-        const maxMultiplier = Math.max(this.currentMultiplier * 1.2, 5);
+        // 실시간 시간 계산 (더 정확한 타이밍)
+        const now = Date.now();
+        if (!this.gameStartTime && this.gameState === 'playing') {
+            this.gameStartTime = now - (this.elapsedTime || 0);
+        }
+        
+        let currentTimeSeconds;
+        let currentMultiplier;
+        
+        if (this.gameState === 'playing' && this.gameStartTime) {
+            // 실시간 보간으로 부드러운 애니메이션 구현
+            currentTimeSeconds = (now - this.gameStartTime) / 1000;
+            currentMultiplier = Math.pow(Math.E, 0.06 * currentTimeSeconds);
+        } else {
+            // 게임이 끝났을 때는 최종 값 사용
+            currentTimeSeconds = this.elapsedTime ? this.elapsedTime / 1000 : 0;
+            currentMultiplier = this.currentMultiplier || 1.0;
+        }
+        
+        // 시간 범위 계산 (배경 그리드와 동일하게)
+        const maxTime = Math.max(currentTimeSeconds + 5, 10);
+        const maxMultiplier = Math.max(currentMultiplier * 1.5, 5);
         
         // 곡선 스타일 설정
         ctx.strokeStyle = this.gameState === 'crashed' ? '#ef4444' : '#10b981';
         ctx.lineWidth = 3;
-        ctx.shadowColor = this.gameState === 'crashed' ? 'none' : '#10b981';
-        ctx.shadowBlur = this.gameState === 'crashed' ? 0 : 10;
+        ctx.shadowColor = this.gameState === 'crashed' ? 'transparent' : '#10b981';
+        ctx.shadowBlur = this.gameState === 'crashed' ? 0 : 8;
         
-        // Path2D 사용으로 성능 향상
-        const path = new Path2D();
-        let firstPoint = true;
-        
-        // 차트 데이터를 직접 사용해서 곡선 그리기
-        for (let i = 0; i < this.chartData.length; i++) {
-            const point = this.chartData[i];
-            const x = margin.left + (point.time / maxTime) * graphWidth;
-            const y = margin.top + graphHeight - ((point.multiplier - 1) / (maxMultiplier - 1)) * graphHeight;
+        // 실시간 부드러운 곡선 그리기
+        if (currentTimeSeconds > 0) {
+            const path = new Path2D();
             
-            if (firstPoint) {
-                path.moveTo(x, y);
-                firstPoint = false;
-            } else {
-                path.lineTo(x, y);
+            // 부드러운 곡선을 위한 적응적 스텝 계산
+            const steps = Math.min(Math.max(currentTimeSeconds * 30, 60), 300);
+            
+            for (let i = 0; i <= steps; i++) {
+                const t = (i / steps) * currentTimeSeconds;
+                
+                // 실제 bustabit 스타일 지수 증가 공식
+                const multiplier = Math.pow(Math.E, 0.06 * t);
+                
+                const x = margin.left + (t / maxTime) * graphWidth;
+                const y = margin.top + graphHeight - ((multiplier - 1) / (maxMultiplier - 1)) * graphHeight;
+                
+                if (i === 0) {
+                    path.moveTo(x, y);
+                } else {
+                    path.lineTo(x, y);
+                }
             }
+            
+            ctx.stroke(path);
         }
-        
-        ctx.stroke(path);
         
         // 그림자 효과 리셋
         ctx.shadowBlur = 0;
         
-        // 현재 포인트 강조 (마지막 데이터 포인트)
-        if (this.gameState === 'playing' && this.chartData.length > 0) {
-            const lastPoint = this.chartData[this.chartData.length - 1];
-            const currentX = margin.left + (lastPoint.time / maxTime) * graphWidth;
-            const currentY = margin.top + graphHeight - ((lastPoint.multiplier - 1) / (maxMultiplier - 1)) * graphHeight;
+        // 현재 포인트 강조 (실시간 위치)
+        if (this.gameState === 'playing' && currentTimeSeconds > 0) {
+            const currentX = margin.left + (currentTimeSeconds / maxTime) * graphWidth;
+            const currentY = margin.top + graphHeight - ((currentMultiplier - 1) / (maxMultiplier - 1)) * graphHeight;
             
-            // 현재 위치 점
+            // 현재 위치 점 (펄싱 애니메이션)
+            const pulseSize = 6 + Math.sin(Date.now() / 200) * 2; // 펄싱 효과
             ctx.fillStyle = '#10b981';
             ctx.beginPath();
-            ctx.arc(currentX, currentY, 6, 0, Math.PI * 2);
+            ctx.arc(currentX, currentY, pulseSize, 0, Math.PI * 2);
             ctx.fill();
             
-            // 배수 텍스트 (배경과 함께)
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-            ctx.fillRect(currentX - 25, currentY - 25, 50, 20);
+            // 더 선명한 외곽선
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(currentX, currentY, pulseSize, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // 배수 텍스트 (개선된 스타일)
+            ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+            ctx.fillRect(currentX - 30, currentY - 30, 60, 22);
             
             ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 14px Inter';
+            ctx.font = 'bold 16px Inter';
             ctx.textAlign = 'center';
-            ctx.fillText(`${lastPoint.multiplier.toFixed(2)}x`, currentX, currentY - 10);
+            ctx.fillText(`${currentMultiplier.toFixed(2)}x`, currentX, currentY - 12);
         }
     }
     
