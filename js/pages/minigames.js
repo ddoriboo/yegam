@@ -172,44 +172,40 @@ class MinigamesPage {
         const modal = document.createElement('div');
         modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50';
         modal.innerHTML = `
-            <div class="bustabit-container max-w-6xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-3xl font-bold text-white">🚀 Bustabit</h2>
+            <div class="bustabit-container max-w-6xl w-full mx-2 sm:mx-4 h-[95vh] flex flex-col">
+                <!-- 헤더 -->
+                <div class="flex justify-between items-center mb-4 flex-shrink-0">
+                    <h2 class="text-2xl sm:text-3xl font-bold text-white">🚀 Bustabit</h2>
                     <button id="close-bustabit" class="text-white hover:text-gray-300 text-2xl">✕</button>
                 </div>
                 
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <!-- 게임 영역 -->
-                    <div class="lg:col-span-2">
-                        <div class="bustabit-graph mb-4" style="height: 400px;">
+                <!-- 메인 게임 영역 (모바일 최적화) -->
+                <div class="flex-1 flex flex-col lg:grid lg:grid-cols-3 gap-4 min-h-0">
+                    <!-- 그래프 영역 -->
+                    <div class="lg:col-span-2 flex flex-col">
+                        <!-- 배수 및 상태 표시 (모바일에서 상단) -->
+                        <div class="flex justify-between items-center mb-2 lg:order-2">
+                            <div class="multiplier-display text-white text-2xl sm:text-3xl font-bold" id="multiplier-display">
+                                1.00x
+                            </div>
+                            <div class="game-status betting text-white text-sm sm:text-base" id="game-status">
+                                베팅 시간
+                            </div>
+                        </div>
+                        
+                        <!-- 그래프 (높이 반응형) -->
+                        <div class="bustabit-graph lg:order-1 flex-1" style="min-height: 200px; height: 40vh; max-height: 400px;">
                             <canvas id="bustabit-canvas" class="bustabit-graph-canvas w-full h-full"></canvas>
-                        </div>
-                        
-                        <div class="multiplier-display text-white" id="multiplier-display">
-                            1.00x
-                        </div>
-                        
-                        <div class="game-status betting" id="game-status">
-                            베팅 시간
                         </div>
                     </div>
                     
-                    <!-- 베팅 패널 -->
-                    <div class="lg:col-span-1">
-                        <div class="betting-panel mb-4">
-                            <h3 class="text-white font-semibold mb-4">베팅</h3>
+                    <!-- 베팅 패널 (모바일에서 하단 고정) -->
+                    <div class="lg:col-span-1 flex-shrink-0">
+                        <div class="betting-panel p-4 bg-gray-800/50 rounded-lg">
+                            <h3 class="text-white font-semibold mb-3 text-sm sm:text-base">베팅</h3>
                             
-                            <div class="mb-4">
-                                <label class="block text-white text-sm mb-2">베팅 금액</label>
-                                <input type="number" id="bet-amount" class="betting-input" placeholder="10 - 10,000 GAM" min="10" max="10000">
-                            </div>
-                            
-                            <div class="grid grid-cols-2 gap-2 mb-4">
-                                <button class="bet-btn" id="bet-btn">베팅하기</button>
-                                <button class="cashout-btn" id="cashout-btn" disabled>캐시아웃</button>
-                            </div>
-                            
-                            <div class="text-white text-sm">
+                            <!-- 현재 상태 표시 (모바일 우선) -->
+                            <div class="text-white text-xs sm:text-sm mb-3 p-2 bg-gray-700/50 rounded">
                                 <div class="flex justify-between mb-1">
                                     <span>보유 GAM:</span>
                                     <span id="user-balance">-</span>
@@ -219,22 +215,34 @@ class MinigamesPage {
                                     <span id="current-bet">0 GAM</span>
                                 </div>
                             </div>
-                        </div>
-                        
-                        <!-- 플레이어 목록 -->
-                        <div class="players-list">
-                            <h4 class="text-white font-semibold mb-2">플레이어 목록</h4>
-                            <div id="players-container">
-                                <!-- 플레이어 목록이 여기에 표시됩니다 -->
+                            
+                            <!-- 베팅 입력 -->
+                            <div class="mb-3">
+                                <label class="block text-white text-xs sm:text-sm mb-1">베팅 금액</label>
+                                <input type="number" id="bet-amount" class="betting-input w-full p-2 text-sm rounded bg-gray-700 text-white border border-gray-600" placeholder="10 - 10,000 GAM" min="10" max="10000">
+                            </div>
+                            
+                            <!-- 베팅 버튼 -->
+                            <div class="grid grid-cols-2 gap-2 mb-3">
+                                <button class="bet-btn py-2 px-3 text-sm font-medium bg-green-600 hover:bg-green-700 text-white rounded transition-colors" id="bet-btn">베팅하기</button>
+                                <button class="cashout-btn py-2 px-3 text-sm font-medium bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors disabled:bg-gray-600 disabled:cursor-not-allowed" id="cashout-btn" disabled>캐시아웃</button>
+                            </div>
+                            
+                            <!-- 플레이어 목록 (모바일에서 축소) -->
+                            <div class="players-list">
+                                <h4 class="text-white font-semibold mb-2 text-xs sm:text-sm">플레이어 (<span id="player-count">0</span>)</h4>
+                                <div id="players-container" class="max-h-20 sm:max-h-32 overflow-y-auto text-xs">
+                                    <!-- 플레이어 목록이 여기에 표시됩니다 -->
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                <!-- 게임 히스토리 -->
-                <div class="mt-6">
-                    <h4 class="text-white font-semibold mb-2">최근 결과</h4>
-                    <div class="game-history" id="game-history">
+                <!-- 게임 히스토리 (모바일에서 축소) -->
+                <div class="mt-2 flex-shrink-0">
+                    <h4 class="text-white font-semibold mb-2 text-sm">최근 결과</h4>
+                    <div class="game-history flex gap-1 overflow-x-auto" id="game-history">
                         <!-- 게임 히스토리가 여기에 표시됩니다 -->
                     </div>
                 </div>

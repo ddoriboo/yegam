@@ -650,10 +650,23 @@ class BustabitClient extends MinigameBase {
         const maxTime = Math.max(currentTimeSeconds + 5, 10); // 최소 10초
         const timeStep = maxTime <= 20 ? 2 : maxTime <= 60 ? 5 : 10;
         
-        // 배수 범위 계산 (곡선과 동일하게 통일)
+        // 배수 범위 계산 (현재 배수에 적응적으로 조정)
         const currentMultiplier = this.currentMultiplier || 1.0;
-        const maxMultiplier = Math.max(currentMultiplier * 1.5, 5);
-        const multiplierStep = maxMultiplier <= 10 ? 1 : maxMultiplier <= 50 ? 5 : 10;
+        
+        // 적응적 Y축 범위 계산
+        let maxMultiplier;
+        if (currentMultiplier < 2) {
+            maxMultiplier = 2; // 1.0x ~ 2.0x
+        } else if (currentMultiplier < 5) {
+            maxMultiplier = Math.ceil(currentMultiplier + 1); // +1 여유분
+        } else if (currentMultiplier < 10) {
+            maxMultiplier = Math.ceil(currentMultiplier + 2); // +2 여유분
+        } else {
+            maxMultiplier = Math.ceil(currentMultiplier * 1.2); // 20% 여유분
+        }
+        
+        // 적응적 스텝 계산
+        const multiplierStep = maxMultiplier <= 3 ? 0.5 : maxMultiplier <= 10 ? 1 : maxMultiplier <= 50 ? 5 : 10;
         
         // 세로 그리드 선 (시간)
         for (let t = 0; t <= maxTime; t += timeStep) {
@@ -671,20 +684,22 @@ class BustabitClient extends MinigameBase {
             ctx.fillText(`${t}s`, x, margin.top + graphHeight + 20);
         }
         
-        // 가로 그리드 선 (배수)
+        // 가로 그리드 선 (배수) - 1.0x부터 시작
         for (let m = 1; m <= maxMultiplier; m += multiplierStep) {
-            const y = margin.top + graphHeight - ((m - 1) / (maxMultiplier - 1)) * graphHeight;
+            // Y좌표 계산: 1.0x가 하단, maxMultiplier가 상단
+            const y = margin.top + graphHeight * (1 - (m - 1) / (maxMultiplier - 1));
             
             ctx.beginPath();
             ctx.moveTo(margin.left, y);
             ctx.lineTo(margin.left + graphWidth, y);
             ctx.stroke();
             
-            // 배수 레이블
+            // 배수 레이블 (소수점 표시 개선)
             ctx.fillStyle = '#64748b';
             ctx.font = '12px Inter';
             ctx.textAlign = 'right';
-            ctx.fillText(`${m.toFixed(m >= 10 ? 0 : 1)}x`, margin.left - 10, y + 4);
+            const label = multiplierStep < 1 ? m.toFixed(1) : m.toFixed(m >= 10 ? 0 : 1);
+            ctx.fillText(`${label}x`, margin.left - 10, y + 4);
         }
         
         // 축 레이블
@@ -711,7 +726,19 @@ class BustabitClient extends MinigameBase {
         const ctx = this.ctx;
         const currentTimeSeconds = this.elapsedTime / 1000;
         const maxTime = Math.max(currentTimeSeconds + 5, 10);
-        const maxMultiplier = Math.max(this.currentMultiplier * 1.5, 5);
+        
+        // Y축 범위 계산 (적응적)
+        const currentMultiplier = this.currentMultiplier || 1.0;
+        let maxMultiplier;
+        if (currentMultiplier < 2) {
+            maxMultiplier = 2;
+        } else if (currentMultiplier < 5) {
+            maxMultiplier = Math.ceil(currentMultiplier + 1);
+        } else if (currentMultiplier < 10) {
+            maxMultiplier = Math.ceil(currentMultiplier + 2);
+        } else {
+            maxMultiplier = Math.ceil(currentMultiplier * 1.2);
+        }
         
         // 곡선 색상 (게임 상태에 따라)
         ctx.strokeStyle = this.gameState === 'crashed' ? '#ef4444' : '#10b981';
@@ -727,7 +754,7 @@ class BustabitClient extends MinigameBase {
             const multiplier = Math.pow(Math.E, 0.06 * t); // 실제 bustabit 스타일
             
             const x = margin.left + (t / maxTime) * graphWidth;
-            const y = margin.top + graphHeight - ((multiplier - 1) / (maxMultiplier - 1)) * graphHeight;
+            const y = margin.top + graphHeight * (1 - (multiplier - 1) / (maxMultiplier - 1));
             
             if (i === 0) {
                 ctx.moveTo(x, y);
@@ -741,7 +768,7 @@ class BustabitClient extends MinigameBase {
         // 현재 포인트 강조
         if (this.gameState === 'playing') {
             const currentX = margin.left + (currentTimeSeconds / maxTime) * graphWidth;
-            const currentY = margin.top + graphHeight - ((this.currentMultiplier - 1) / (maxMultiplier - 1)) * graphHeight;
+            const currentY = margin.top + graphHeight * (1 - (this.currentMultiplier - 1) / (maxMultiplier - 1));
             
             ctx.fillStyle = '#10b981';
             ctx.beginPath();
@@ -781,7 +808,18 @@ class BustabitClient extends MinigameBase {
         
         // 시간 범위 계산 (배경 그리드와 동일하게)
         const maxTime = Math.max(currentTimeSeconds + 5, 10);
-        const maxMultiplier = Math.max(currentMultiplier * 1.5, 5);
+        
+        // Y축 범위 계산 (그리드와 동일하게)
+        let maxMultiplier;
+        if (currentMultiplier < 2) {
+            maxMultiplier = 2;
+        } else if (currentMultiplier < 5) {
+            maxMultiplier = Math.ceil(currentMultiplier + 1);
+        } else if (currentMultiplier < 10) {
+            maxMultiplier = Math.ceil(currentMultiplier + 2);
+        } else {
+            maxMultiplier = Math.ceil(currentMultiplier * 1.2);
+        }
         
         // 곡선 스타일 설정
         ctx.strokeStyle = this.gameState === 'crashed' ? '#ef4444' : '#10b981';
@@ -803,7 +841,7 @@ class BustabitClient extends MinigameBase {
                 const multiplier = Math.pow(Math.E, 0.06 * t);
                 
                 const x = margin.left + (t / maxTime) * graphWidth;
-                const y = margin.top + graphHeight - ((multiplier - 1) / (maxMultiplier - 1)) * graphHeight;
+                const y = margin.top + graphHeight * (1 - (multiplier - 1) / (maxMultiplier - 1));
                 
                 if (i === 0) {
                     path.moveTo(x, y);
@@ -821,7 +859,7 @@ class BustabitClient extends MinigameBase {
         // 현재 포인트 강조 (실시간 위치)
         if (this.gameState === 'playing' && currentTimeSeconds > 0) {
             const currentX = margin.left + (currentTimeSeconds / maxTime) * graphWidth;
-            const currentY = margin.top + graphHeight - ((currentMultiplier - 1) / (maxMultiplier - 1)) * graphHeight;
+            const currentY = margin.top + graphHeight * (1 - (currentMultiplier - 1) / (maxMultiplier - 1));
             
             // 현재 위치 점 (펄싱 애니메이션)
             const pulseSize = 6 + Math.sin(Date.now() / 200) * 2; // 펄싱 효과
