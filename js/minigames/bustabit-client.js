@@ -881,9 +881,10 @@ class BustabitClient extends MinigameBase {
         let currentMultiplier;
         
         if (this.gameState === 'playing' && this.gameStartTime) {
-            // 실시간 보간으로 부드러운 애니메이션 구현
+            // 서버 데이터 기반 실시간 보간 (더 정확함)
             currentTimeSeconds = (now - this.gameStartTime) / 1000;
-            currentMultiplier = Math.pow(Math.E, 0.06 * currentTimeSeconds);
+            // 서버에서 받은 currentMultiplier를 우선 사용하여 정확성 보장
+            currentMultiplier = this.currentMultiplier || Math.pow(Math.E, 0.06 * currentTimeSeconds);
         } else {
             // 게임이 끝났을 때는 최종 값 사용
             currentTimeSeconds = this.elapsedTime ? this.elapsedTime / 1000 : 0;
@@ -921,11 +922,19 @@ class BustabitClient extends MinigameBase {
             for (let i = 0; i <= steps; i++) {
                 const t = (i / steps) * currentTimeSeconds;
                 
-                // 실제 bustabit 스타일 지수 증가 공식
-                const multiplier = Math.pow(Math.E, 0.06 * t);
+                // 서버 데이터 기반 정확한 배수 계산
+                let multiplier;
+                if (t >= currentTimeSeconds) {
+                    // 현재 시점은 서버 데이터 사용
+                    multiplier = currentMultiplier;
+                } else {
+                    // 이전 시점은 비례 계산 (더 정확함)
+                    const ratio = currentTimeSeconds > 0 ? t / currentTimeSeconds : 0;
+                    multiplier = 1.0 + (currentMultiplier - 1.0) * ratio;
+                }
                 
                 const x = margin.left + (t / maxTime) * graphWidth;
-                // Y좌표 계산: 그리드와 동일한 공식 사용하여 정확한 정렬
+                // Y좌표 계산: 정확한 정렬을 위해 통일된 공식 사용
                 const normalizedPosition = (multiplier - 1) / (maxMultiplier - 1);
                 const y = margin.top + graphHeight - (normalizedPosition * graphHeight);
                 

@@ -172,19 +172,19 @@ class MinigamesPage {
         const modal = document.createElement('div');
         modal.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50';
         modal.innerHTML = `
-            <div class="bustabit-container max-w-6xl w-full mx-2 sm:mx-4 h-[95vh] flex flex-col">
-                <!-- 헤더 -->
-                <div class="flex justify-between items-center mb-4 flex-shrink-0">
+            <div class="bustabit-container max-w-6xl w-full mx-2 sm:mx-4 h-[95vh] flex flex-col pt-4 sm:pt-6">
+                <!-- 헤더 (모바일 상단 여백 추가) -->
+                <div class="flex justify-between items-center mb-3 sm:mb-4 flex-shrink-0">
                     <h2 class="text-2xl sm:text-3xl font-bold text-white">🚀 Bustabit</h2>
                     <button id="close-bustabit" class="text-white hover:text-gray-300 text-2xl">✕</button>
                 </div>
                 
                 <!-- 메인 게임 영역 (모바일 최적화) -->
-                <div class="flex-1 flex flex-col lg:grid lg:grid-cols-3 gap-4 min-h-0">
+                <div class="flex-1 flex flex-col lg:grid lg:grid-cols-3 gap-3 sm:gap-4 min-h-0">
                     <!-- 그래프 영역 -->
                     <div class="lg:col-span-2 flex flex-col">
                         <!-- 배수 및 상태 표시 (모바일에서 상단) -->
-                        <div class="flex justify-between items-center mb-2 lg:order-2">
+                        <div class="flex justify-between items-center mb-1 sm:mb-2 lg:order-2">
                             <div class="multiplier-display text-white text-2xl sm:text-3xl font-bold" id="multiplier-display">
                                 1.00x
                             </div>
@@ -239,9 +239,9 @@ class MinigamesPage {
                     </div>
                 </div>
                 
-                <!-- 게임 히스토리 (모바일에서 축소) -->
-                <div class="mt-2 flex-shrink-0">
-                    <h4 class="text-white font-semibold mb-2 text-sm">최근 결과</h4>
+                <!-- 게임 히스토리 (여백 축소) -->
+                <div class="mt-1 sm:mt-2 flex-shrink-0">
+                    <h4 class="text-white font-semibold mb-1 sm:mb-2 text-sm">최근 결과</h4>
                     <div class="game-history flex gap-1 overflow-x-auto" id="game-history">
                         <!-- 게임 히스토리가 여기에 표시됩니다 -->
                     </div>
