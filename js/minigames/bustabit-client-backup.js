@@ -11,10 +11,6 @@ class BustabitClient extends MinigameBase {
         this.hasCashedOut = false;
         this.gameStartTime = null;
         
-        // 메모리 누수 방지
-        this.isDestroyed = false;
-        this.isRenderLoopActive = false;
-        
         // UI 요소들
         this.canvas = null;
         this.ctx = null;
@@ -32,42 +28,11 @@ class BustabitClient extends MinigameBase {
         // 업데이트 타이머
         this.updateInterval = null;
         this.renderInterval = null;
-        this.renderAnimationFrame = null;
         
         // 게임 히스토리
         this.gameHistory = [];
         
-        console.log('🚀 Bustabit 클라이언트 초기화 (메모리 누수 방지 적용)');
-    }
-    
-    // Y축 범위 계산 (통일된 함수로 정확한 정렬 보장)
-    calculateYAxisRange() {
-        const currentMultiplier = this.currentMultiplier || 1.0;
-        
-        // 적응적 Y축 범위 계산 (현재 배수에 맞춰 동적 조정)
-        let maxMultiplier;
-        if (currentMultiplier <= 1.1) {
-            maxMultiplier = 2; // 게임 시작 시 기본 범위
-        } else if (currentMultiplier <= 2) {
-            maxMultiplier = Math.max(3, currentMultiplier * 1.5); // 50% 여유분
-        } else if (currentMultiplier <= 5) {
-            maxMultiplier = Math.max(currentMultiplier + 2, currentMultiplier * 1.4); // 최소 +2 또는 40% 여유분
-        } else if (currentMultiplier <= 10) {
-            maxMultiplier = currentMultiplier * 1.3; // 30% 여유분
-        } else {
-            maxMultiplier = currentMultiplier * 1.2; // 20% 여유분
-        }
-        
-        // 소수점 반올림으로 깔끔한 스케일
-        maxMultiplier = Math.ceil(maxMultiplier * 2) / 2; // 0.5 단위로 반올림
-        
-        return { currentMultiplier, maxMultiplier };
-    }
-    
-    // Y좌표 계산 함수 (모든 곳에서 동일하게 사용)
-    calculateYPosition(multiplier, maxMultiplier, margin, graphHeight) {
-        const normalizedPosition = (multiplier - 1) / (maxMultiplier - 1);
-        return margin.top + graphHeight - (normalizedPosition * graphHeight);
+        console.log('🚀 Bustabit 클라이언트 초기화 (렌더링 최적화 적용)');
     }
     
     // 게임 UI 초기화
@@ -677,11 +642,9 @@ class BustabitClient extends MinigameBase {
         }).join('');
     }
     
-    // 최적화된 그래프 그리기 (메인 메서드, 메모리 누수 방지)
+    // 최적화된 그래프 그리기 (메인 메서드)
     optimizedDrawGraph() {
-        if (!this.ctx || !this.canvas || this.isDestroyed || !this.isRenderLoopActive) {
-            return;
-        }
+        if (!this.ctx || !this.canvas) return;
         
         const width = this.canvas.width / (window.devicePixelRatio || 1);
         const height = this.canvas.height / (window.devicePixelRatio || 1);
@@ -786,8 +749,25 @@ class BustabitClient extends MinigameBase {
         const maxTime = Math.max(currentTimeSeconds + 5, 10); // 최소 10초
         const timeStep = maxTime <= 20 ? 2 : maxTime <= 60 ? 5 : 10;
         
-        // Y축 범위 계산: 정확한 정렬을 위해 통일된 함수 사용
-        const { maxMultiplier } = this.calculateYAxisRange();
+        // 배수 범위 계산 (현재 배수에 적응적으로 조정)
+        const currentMultiplier = this.currentMultiplier || 1.0;
+        
+        // 적응적 Y축 범위 계산 (현재 배수에 맞춰 동적 조정)
+        let maxMultiplier;
+        if (currentMultiplier <= 1.1) {
+            maxMultiplier = 2; // 게임 시작 시 기본 범위
+        } else if (currentMultiplier <= 2) {
+            maxMultiplier = Math.max(3, currentMultiplier * 1.5); // 50% 여유분
+        } else if (currentMultiplier <= 5) {
+            maxMultiplier = Math.max(currentMultiplier + 2, currentMultiplier * 1.4); // 최소 +2 또는 40% 여유분
+        } else if (currentMultiplier <= 10) {
+            maxMultiplier = currentMultiplier * 1.3; // 30% 여유분
+        } else {
+            maxMultiplier = currentMultiplier * 1.2; // 20% 여유분
+        }
+        
+        // 소수점 반올림으로 깔끔한 스케일
+        maxMultiplier = Math.ceil(maxMultiplier * 2) / 2; // 0.5 단위로 반올림
         
         // 적응적 스텝 계산
         const multiplierStep = maxMultiplier <= 3 ? 0.5 : maxMultiplier <= 10 ? 1 : maxMultiplier <= 50 ? 5 : 10;
@@ -810,8 +790,9 @@ class BustabitClient extends MinigameBase {
         
         // 가로 그리드 선 (배수) - 1.0x부터 시작, 정확한 위치 계산
         for (let m = 1; m <= maxMultiplier; m += multiplierStep) {
-            // Y좌표 계산: 통일된 함수 사용으로 정확한 정렬 보장
-            const y = this.calculateYPosition(m, maxMultiplier, margin, graphHeight);
+            // Y좌표 계산: 1.0x가 정확히 하단에 위치하도록 개선
+            const normalizedPosition = (m - 1) / (maxMultiplier - 1);
+            const y = margin.top + graphHeight - (normalizedPosition * graphHeight);
             
             ctx.beginPath();
             ctx.moveTo(margin.left, y);
@@ -931,8 +912,20 @@ class BustabitClient extends MinigameBase {
         // 시간 범위 계산 (그리드와 완전 동일)
         const maxTime = Math.max(currentTimeSeconds + 5, 10);
         
-        // Y축 범위 계산: 통일된 함수 사용으로 정확한 정렬 보장
-        const { maxMultiplier } = this.calculateYAxisRange();
+        // Y축 범위 계산 (그리드와 완전 동일한 로직)
+        let maxMultiplier;
+        if (currentMultiplier <= 1.1) {
+            maxMultiplier = 2;
+        } else if (currentMultiplier <= 2) {
+            maxMultiplier = Math.max(3, currentMultiplier * 1.5);
+        } else if (currentMultiplier <= 5) {
+            maxMultiplier = Math.max(currentMultiplier + 2, currentMultiplier * 1.4);
+        } else if (currentMultiplier <= 10) {
+            maxMultiplier = currentMultiplier * 1.3;
+        } else {
+            maxMultiplier = currentMultiplier * 1.2;
+        }
+        maxMultiplier = Math.ceil(maxMultiplier * 2) / 2;
         
         // 곡선 스타일 설정
         ctx.strokeStyle = this.gameState === 'crashed' ? '#ef4444' : '#10b981';
@@ -955,8 +948,9 @@ class BustabitClient extends MinigameBase {
                 const multiplier = 1.0 + (currentMultiplier - 1.0) * ratio;
                 
                 const x = margin.left + (t / maxTime) * graphWidth;
-                // Y좌표 계산: 통일된 함수 사용으로 정확한 정렬 보장
-                const y = this.calculateYPosition(multiplier, maxMultiplier, margin, graphHeight);
+                // Y좌표 계산: 정확한 정렬을 위해 통일된 공식 사용
+                const normalizedPosition = (multiplier - 1) / (maxMultiplier - 1);
+                const y = margin.top + graphHeight - (normalizedPosition * graphHeight);
                 
                 if (i === 0) {
                     path.moveTo(x, y);
@@ -974,8 +968,9 @@ class BustabitClient extends MinigameBase {
         // 현재 포인트 강조 (실시간 위치)
         if (this.gameState === 'playing' && currentTimeSeconds > 0) {
             const currentX = margin.left + (currentTimeSeconds / maxTime) * graphWidth;
-            // Y좌표 계산: 통일된 함수 사용으로 정확한 정렬 보장
-            const currentY = this.calculateYPosition(currentMultiplier, maxMultiplier, margin, graphHeight);
+            // Y좌표 계산: 그리드와 동일한 공식 사용
+            const normalizedPosition = (currentMultiplier - 1) / (maxMultiplier - 1);
+            const currentY = margin.top + graphHeight - (normalizedPosition * graphHeight);
             
             // 현재 위치 점 (펄싱 애니메이션)
             const pulseSize = 6 + Math.sin(Date.now() / 200) * 2; // 펄싱 효과
@@ -1114,13 +1109,9 @@ class BustabitClient extends MinigameBase {
         this.updateCurrentBetDisplay();
     }
     
-    // 완전한 리소스 정리 (메모리 누수 방지)
+    // 완전한 리소스 정리
     destroy() {
-        console.log('🗑️ Bustabit 클라이언트 종료 시작...');
-        
-        // 종료 플래그 설정
-        this.isDestroyed = true;
-        this.isRenderLoopActive = false;
+        console.log('🗑️ Bustabit 클라이언트 정리 시작...');
         
         // 타이머 정리
         if (this.updateInterval) {
@@ -1138,11 +1129,6 @@ class BustabitClient extends MinigameBase {
             this.renderRequestId = null;
         }
         
-        if (this.renderAnimationFrame) {
-            cancelAnimationFrame(this.renderAnimationFrame);
-            this.renderAnimationFrame = null;
-        }
-        
         // 캔버스 메모리 정리
         if (this.ctx) {
             this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
@@ -1151,22 +1137,9 @@ class BustabitClient extends MinigameBase {
             this.backgroundCtx.clearRect(0, 0, this.backgroundCanvas.width, this.backgroundCanvas.height);
         }
         
-        // 이벤트 리스너 정리
-        if (typeof window !== 'undefined' && this.resizeHandler) {
-            window.removeEventListener('resize', this.resizeHandler);
-        }
-        
         // 데이터 정리
         this.chartData = [];
         this.gameHistory = [];
-        
-        // 객체 참조 해제
-        this.canvas = null;
-        this.ctx = null;
-        this.backgroundCanvas = null;
-        this.backgroundCtx = null;
-        this.multiplierDisplay = null;
-        this.statusDisplay = null;
         
         // 상태 리셋
         this.gameState = 'waiting';
@@ -1175,7 +1148,7 @@ class BustabitClient extends MinigameBase {
         this.consecutiveErrors = 0;
         
         super.destroy();
-        console.log('✅ Bustabit 클라이언트 리소스 정리 완료');
+        console.log('✅ Bustabit 클라이언트 정리 완료 (성능 최적화 버전)');
     }
 }
 

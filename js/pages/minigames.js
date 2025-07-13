@@ -239,8 +239,8 @@ class MinigamesPage {
                     </div>
                 </div>
                 
-                <!-- 게임 히스토리 (여백 축소) -->
-                <div class="mt-1 sm:mt-2 flex-shrink-0">
+                <!-- 게임 히스토리 (여백 더 축소) -->
+                <div class="mt-0 sm:mt-1 flex-shrink-0">
                     <h4 class="text-white font-semibold mb-1 sm:mb-2 text-sm">최근 결과</h4>
                     <div class="game-history flex gap-1 overflow-x-auto" id="game-history">
                         <!-- 게임 히스토리가 여기에 표시됩니다 -->
