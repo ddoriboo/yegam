@@ -148,20 +148,21 @@ class BustabitEngine {
         const houseEdge = this.config.houseEdge;
         
         // 하우스 엣지를 고려한 크래시 포인트 계산
+        // 더 부드러운 확률 분포: 60%, 30%, 7%, 3%
         let crashPoint;
         
-        if (random < 0.5) {
-            // 50% 확률로 1.01x ~ 2.00x
-            crashPoint = 1.01 + (random * 2) * 0.99;
-        } else if (random < 0.8) {
-            // 30% 확률로 2.00x ~ 5.00x
-            crashPoint = 2.00 + ((random - 0.5) / 0.3) * 3.00;
-        } else if (random < 0.95) {
-            // 15% 확률로 5.00x ~ 20.00x
-            crashPoint = 5.00 + ((random - 0.8) / 0.15) * 15.00;
+        if (random < 0.6) {
+            // 60% 확률로 1.01x ~ 2.00x (낮은 배수, 안전한 구간)
+            crashPoint = 1.01 + (random / 0.6) * 0.99;
+        } else if (random < 0.9) {
+            // 30% 확률로 2.00x ~ 5.00x (중간 배수)
+            crashPoint = 2.00 + ((random - 0.6) / 0.3) * 3.00;
+        } else if (random < 0.97) {
+            // 7% 확률로 5.00x ~ 20.00x (높은 배수)
+            crashPoint = 5.00 + ((random - 0.9) / 0.07) * 15.00;
         } else {
-            // 5% 확률로 20.00x ~ 100.00x
-            crashPoint = 20.00 + ((random - 0.95) / 0.05) * 80.00;
+            // 3% 확률로 20.00x ~ 100.00x (매우 높은 배수, 잭팟)
+            crashPoint = 20.00 + ((random - 0.97) / 0.03) * 80.00;
         }
         
         // 하우스 엣지 적용
