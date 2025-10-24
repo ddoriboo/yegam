@@ -161,14 +161,67 @@ function setupCreateIssueModal() {
     createBtn.addEventListener('click', () => openModal(modal));
     closeBtn?.addEventListener('click', () => closeModal(modal, form));
     cancelBtn?.addEventListener('click', () => closeModal(modal, form));
-    
+
     modal.addEventListener('click', (e) => {
         if (e.target === modal) closeModal(modal, form);
     });
 
+    // 카테고리 버튼 핸들러
+    const categoryButtons = document.querySelectorAll('.category-btn');
+    categoryButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            // 모든 버튼에서 선택 상태 제거
+            categoryButtons.forEach(b => {
+                b.classList.remove('border-blue-500', 'bg-blue-50');
+                b.classList.add('border-gray-200');
+            });
+            // 클릭된 버튼 선택 상태 추가
+            btn.classList.remove('border-gray-200');
+            btn.classList.add('border-blue-500', 'bg-blue-50');
+            // hidden input에 값 설정
+            document.getElementById('issue-category').value = btn.dataset.category;
+        });
+    });
+
+    // 확률 슬라이더 핸들러
+    const slider = document.getElementById('issue-yes-price-slider');
+    const display = document.getElementById('yes-price-display');
+    const hiddenInput = document.getElementById('issue-yes-price');
+
+    if (slider && display && hiddenInput) {
+        slider.addEventListener('input', (e) => {
+            const value = e.target.value;
+            display.textContent = `${value}%`;
+            hiddenInput.value = value;
+        });
+    }
+
+    // 빠른 날짜 선택 버튼 핸들러
+    const quickDateButtons = document.querySelectorAll('.quick-date-btn');
+    const dateInput = document.getElementById('issue-end-date');
+
+    quickDateButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const days = parseInt(btn.dataset.days);
+            const now = new Date();
+            now.setDate(now.getDate() + days);
+
+            // datetime-local 형식으로 변환
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+
+            dateInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+        });
+    });
+
     // Form submission
     form.addEventListener('submit', handleCreateIssue);
-    
+
     // Setup edit modal
     setupEditIssueModal();
 }
@@ -296,45 +349,88 @@ async function renderAdminIssueTable() {
     try {
         const response = await window.adminFetch('/api/admin/issues');
         const data = await response.json();
-        
+
         if (!data.success) {
             throw new Error(data.message || '데이터 로딩 실패');
         }
-        
-        const issues = data.issues;
-        const tbody = document.getElementById('issues-table-body');
-        
-        if (!tbody) return;
 
-        tbody.innerHTML = issues.map(issue => `
-        <tr>
-            <td class="px-6 py-4">
-                <div class="text-sm font-medium text-gray-900">${issue.title}</div>
-                <div class="text-sm text-gray-500">ID: ${issue.id}</div>
-            </td>
-            <td class="px-6 py-4">
-                <span style="${getCategoryBadgeStyle(issue.category)} padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500;">
-                    ${issue.category}
-                </span>
-            </td>
-            <td class="px-6 py-4">
-                <div class="text-sm font-medium text-gray-900">${timeUntil(issue.end_date || issue.endDate)}</div>
-                <div class="text-xs text-gray-500">${formatDate(issue.end_date || issue.endDate)}</div>
-            </td>
-            <td class="px-6 py-4 text-sm text-gray-900">${issue.yesPrice}%</td>
-            <td class="px-6 py-4 text-sm text-gray-900">${formatVolume(issue.totalVolume)} 감</td>
-            <td class="px-6 py-4">
-                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${issue.isPopular ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
-                    ${issue.isPopular ? '인기' : '일반'}
-                </span>
-            </td>
-            <td class="px-6 py-4 text-sm space-x-2">
-                <button onclick="editIssue(${issue.id})" class="text-blue-600 hover:text-blue-900">수정</button>
-                <button onclick="closeIssueManually(${issue.id})" class="text-orange-600 hover:text-orange-900">수동마감</button>
-                <button onclick="deleteIssue(${issue.id})" class="text-red-600 hover:text-red-900">삭제</button>
-            </td>
-        </tr>
-    `).join('');
+        const issues = data.issues;
+
+        // 데스크톱 테이블 렌더링
+        const tbody = document.getElementById('issues-table-body');
+        if (tbody) {
+            tbody.innerHTML = issues.map(issue => `
+            <tr>
+                <td class="px-6 py-4">
+                    <div class="text-sm font-medium text-gray-900">${issue.title}</div>
+                    <div class="text-sm text-gray-500">ID: ${issue.id}</div>
+                </td>
+                <td class="px-6 py-4">
+                    <span style="${getCategoryBadgeStyle(issue.category)} padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500;">
+                        ${issue.category}
+                    </span>
+                </td>
+                <td class="px-6 py-4">
+                    <div class="text-sm font-medium text-gray-900">${timeUntil(issue.end_date || issue.endDate)}</div>
+                    <div class="text-xs text-gray-500">${formatDate(issue.end_date || issue.endDate)}</div>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-900">${issue.yesPrice}%</td>
+                <td class="px-6 py-4 text-sm text-gray-900">${formatVolume(issue.totalVolume)} 감</td>
+                <td class="px-6 py-4">
+                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${issue.isPopular ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+                        ${issue.isPopular ? '인기' : '일반'}
+                    </span>
+                </td>
+                <td class="px-6 py-4 text-sm space-x-2">
+                    <button onclick="editIssue(${issue.id})" class="text-blue-600 hover:text-blue-900">수정</button>
+                    <button onclick="closeIssueManually(${issue.id})" class="text-orange-600 hover:text-orange-900">수동마감</button>
+                    <button onclick="deleteIssue(${issue.id})" class="text-red-600 hover:text-red-900">삭제</button>
+                </td>
+            </tr>
+        `).join('');
+        }
+
+        // 모바일 카드 렌더링
+        const cardsContainer = document.getElementById('issues-cards-container');
+        if (cardsContainer) {
+            cardsContainer.innerHTML = issues.map(issue => `
+            <div class="p-4 space-y-3">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <div class="font-medium text-gray-900 mb-1">${issue.title}</div>
+                        <div class="text-xs text-gray-500">ID: ${issue.id}</div>
+                    </div>
+                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${issue.isPopular ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+                        ${issue.isPopular ? '인기' : '일반'}
+                    </span>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <span style="${getCategoryBadgeStyle(issue.category)} padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500;">
+                        ${issue.category}
+                    </span>
+                    <span class="text-sm text-gray-600">Yes ${issue.yesPrice}%</span>
+                </div>
+
+                <div class="text-sm text-gray-600">
+                    <div class="flex items-center justify-between">
+                        <span>마감시간:</span>
+                        <span class="font-medium">${timeUntil(issue.end_date || issue.endDate)}</span>
+                    </div>
+                    <div class="flex items-center justify-between mt-1">
+                        <span>참여량:</span>
+                        <span class="font-medium">${formatVolume(issue.totalVolume)} 감</span>
+                    </div>
+                </div>
+
+                <div class="flex space-x-2 pt-2">
+                    <button onclick="editIssue(${issue.id})" class="flex-1 px-3 py-2 text-sm bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100 transition-colors touch-manipulation">수정</button>
+                    <button onclick="closeIssueManually(${issue.id})" class="flex-1 px-3 py-2 text-sm bg-orange-50 text-orange-600 rounded-md hover:bg-orange-100 transition-colors touch-manipulation">수동마감</button>
+                    <button onclick="deleteIssue(${issue.id})" class="flex-1 px-3 py-2 text-sm bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors touch-manipulation">삭제</button>
+                </div>
+            </div>
+        `).join('');
+        }
     } catch (error) {
         console.error('데이터 로딩 중 오류가 발생했습니다:', error);
         if (error.message && error.message.includes('인증')) {
@@ -342,7 +438,11 @@ async function renderAdminIssueTable() {
         } else {
             const tbody = document.getElementById('issues-table-body');
             if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-red-600">데이터 로딩 중 오류가 발생했습니다: ' + error.message + '</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-4 text-center text-red-600">데이터 로딩 중 오류가 발생했습니다: ' + error.message + '</td></tr>';
+            }
+            const cardsContainer = document.getElementById('issues-cards-container');
+            if (cardsContainer) {
+                cardsContainer.innerHTML = '<div class="p-4 text-center text-red-600">데이터 로딩 중 오류가 발생했습니다: ' + error.message + '</div>';
             }
         }
     }
