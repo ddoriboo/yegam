@@ -8,36 +8,58 @@ const timezoneUtils = {
     // Convert datetime-local input to UTC ISO string for storage
     datetimeLocalToUTC(datetimeLocalValue) {
         if (!datetimeLocalValue) return null;
-        
+
         // Parse the datetime-local value as Korean time
         // datetime-local format: "2025-01-10T15:00"
         const [datePart, timePart] = datetimeLocalValue.split('T');
         const [year, month, day] = datePart.split('-').map(Number);
         const [hours, minutes] = timePart.split(':').map(Number);
-        
-        // 🔧 수정: 정확한 한국 시간 → UTC 변환
-        // datetime-local은 사용자가 입력한 시간을 한국 시간으로 간주
-        // Date.UTC()를 사용하여 직접 UTC 시간 생성 (브라우저 타임존 무관)
+
+        // 한국 시간(KST, UTC+9)을 UTC로 변환
+        // 사용자가 입력한 시간을 한국 시간으로 간주하고 UTC로 변환
         const utcTimestamp = Date.UTC(year, month - 1, day, hours - 9, minutes);
-        
+
         return new Date(utcTimestamp).toISOString();
     },
-    
+
     // Convert UTC ISO string to datetime-local format for display
     utcToDatetimeLocal(utcIsoString) {
         if (!utcIsoString) return '';
-        
+
         // UTC 시간을 한국 시간으로 변환하여 datetime-local 형식으로 표시
         const utcDate = new Date(utcIsoString);
         const koreaOffset = 9 * 60; // 분 단위 (+9시간)
         const koreaTime = new Date(utcDate.getTime() + (koreaOffset * 60 * 1000));
-        
+
         const year = koreaTime.getFullYear();
         const month = String(koreaTime.getMonth() + 1).padStart(2, '0');
         const day = String(koreaTime.getDate()).padStart(2, '0');
         const hours = String(koreaTime.getHours()).padStart(2, '0');
         const minutes = String(koreaTime.getMinutes()).padStart(2, '0');
-        
+
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+    },
+
+    // Get current Korean time and add days to it
+    // Returns datetime-local format string for input
+    getKoreanTimeAfterDays(days) {
+        // 현재 UTC 시간 가져오기
+        const now = new Date();
+
+        // 한국 시간으로 변환 (UTC + 9시간)
+        const koreaOffset = 9 * 60; // 분 단위
+        const koreaTime = new Date(now.getTime() + (koreaOffset * 60 * 1000));
+
+        // 지정된 일수 추가
+        koreaTime.setDate(koreaTime.getDate() + days);
+
+        // datetime-local 형식으로 변환
+        const year = koreaTime.getFullYear();
+        const month = String(koreaTime.getMonth() + 1).padStart(2, '0');
+        const day = String(koreaTime.getDate()).padStart(2, '0');
+        const hours = String(koreaTime.getHours()).padStart(2, '0');
+        const minutes = String(koreaTime.getMinutes()).padStart(2, '0');
+
         return `${year}-${month}-${day}T${hours}:${minutes}`;
     }
 };
@@ -197,7 +219,7 @@ function setupCreateIssueModal() {
         });
     }
 
-    // 빠른 날짜 선택 버튼 핸들러
+    // 빠른 날짜 선택 버튼 핸들러 (한국 시간 기준)
     const quickDateButtons = document.querySelectorAll('.quick-date-btn');
     const dateInput = document.getElementById('issue-end-date');
 
@@ -205,17 +227,12 @@ function setupCreateIssueModal() {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
             const days = parseInt(btn.dataset.days);
-            const now = new Date();
-            now.setDate(now.getDate() + days);
 
-            // datetime-local 형식으로 변환
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const day = String(now.getDate()).padStart(2, '0');
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
+            // 한국 시간 기준으로 날짜 계산
+            const koreanDateTime = timezoneUtils.getKoreanTimeAfterDays(days);
+            dateInput.value = koreanDateTime;
 
-            dateInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+            console.log(`빠른 날짜 선택: ${days}일 후 → ${koreanDateTime} (한국 시간)`);
         });
     });
 
@@ -260,11 +277,16 @@ function closeModal(modal, form) {
 async function handleCreateIssue(e) {
     e.preventDefault();
     const formData = new FormData(e.target);
-    
+
     // 한국 시간대로 마감일 처리
     const endDateLocal = formData.get('endDate');
     const endDateKST = timezoneUtils.datetimeLocalToUTC(endDateLocal);
-    
+
+    console.log('=== 이슈 생성 시간 변환 ===');
+    console.log('입력된 시간 (datetime-local):', endDateLocal);
+    console.log('변환된 UTC 시간:', endDateKST);
+    console.log('다시 한국 시간으로 확인:', timezoneUtils.utcToDatetimeLocal(endDateKST));
+
     const issueData = {
         title: formData.get('title'),
         category: formData.get('category'),
@@ -280,9 +302,9 @@ async function handleCreateIssue(e) {
             method: 'POST',
             body: JSON.stringify(issueData)
         });
-        
+
         const result = await response.json();
-        
+
         if (result.success) {
             alert('이슈가 성공적으로 생성되었습니다!');
             closeModal(document.getElementById('create-issue-modal'), e.target);
