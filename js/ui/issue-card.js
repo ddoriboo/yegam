@@ -188,7 +188,7 @@ export function updateCardAfterBet(cardElement, choice, amount) {
     buttons.forEach(btn => btn.disabled = true);
 }
 
-function getCategoryBadgeStyle(category) {
+export function getCategoryBadgeStyle(category) {
     const categoryColors = {
         '정치': 'background: linear-gradient(135deg, #EF4444, #F87171); color: white;',
         '스포츠': 'background: linear-gradient(135deg, #06B6D4, #67E8F9); color: white;',
@@ -199,6 +199,6 @@ function getCategoryBadgeStyle(category) {
         '날씨': 'background: linear-gradient(135deg, #3B82F6, #60A5FA); color: white;',
         '해외': 'background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white;'
     };
-    
+
     return categoryColors[category] || 'background: linear-gradient(135deg, #6B7280, #9CA3AF); color: white;';
 }
