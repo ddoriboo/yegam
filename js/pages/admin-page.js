@@ -639,16 +639,16 @@ function handleAdminLogout() {
 async function showAdminProfile() {
     try {
         const response = await window.adminFetch('/api/admin-auth/profile');
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
             const admin = data.admin;
             alert(`관리자 정보:
 이름: ${admin.username}
 이메일: ${admin.email}
 가입일: ${new Date(admin.memberSince).toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' })}
-관리자 등록일: ${new Date(admin.adminSince).toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' })}`);}
+관리자 등록일: ${new Date(admin.adminSince).toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' })}`);
         } else {
             alert('프로필 정보를 불러올 수 없습니다.');
         }
