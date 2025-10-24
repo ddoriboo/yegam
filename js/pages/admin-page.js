@@ -171,16 +171,39 @@ async function handleAdminLogin(e) {
 }
 
 function setupCreateIssueModal() {
+    console.log('🔧 setupCreateIssueModal() 시작');
+
     const createBtn = document.getElementById('create-issue-btn');
     const modal = document.getElementById('create-issue-modal');
     const closeBtn = document.getElementById('close-modal-btn');
     const cancelBtn = document.getElementById('cancel-btn');
     const form = document.getElementById('create-issue-form');
 
-    if (!createBtn || !modal || !form) return;
+    console.log('📍 요소 확인:', {
+        createBtn: !!createBtn,
+        modal: !!modal,
+        form: !!form,
+        closeBtn: !!closeBtn,
+        cancelBtn: !!cancelBtn
+    });
+
+    if (!createBtn || !modal || !form) {
+        console.error('❌ 필수 요소를 찾을 수 없습니다!');
+        console.error('Missing elements:', {
+            'create-issue-btn': !createBtn,
+            'create-issue-modal': !modal,
+            'create-issue-form': !form
+        });
+        return;
+    }
+
+    console.log('✅ 모든 필수 요소 발견됨');
 
     // Modal controls
-    createBtn.addEventListener('click', () => openModal(modal));
+    createBtn.addEventListener('click', () => {
+        console.log('🖱️ 새 이슈 생성 버튼 클릭됨');
+        openModal(modal);
+    });
     closeBtn?.addEventListener('click', () => closeModal(modal, form));
     cancelBtn?.addEventListener('click', () => closeModal(modal, form));
 
@@ -190,8 +213,16 @@ function setupCreateIssueModal() {
 
     // 카테고리 버튼 핸들러
     const categoryButtons = document.querySelectorAll('.category-btn');
-    categoryButtons.forEach(btn => {
+    console.log(`📋 카테고리 버튼 개수: ${categoryButtons.length}`);
+
+    if (categoryButtons.length === 0) {
+        console.error('❌ 카테고리 버튼을 찾을 수 없습니다!');
+    }
+
+    categoryButtons.forEach((btn, index) => {
+        console.log(`  - 카테고리 버튼 ${index}: ${btn.dataset.category}`);
         btn.addEventListener('click', (e) => {
+            console.log(`🖱️ 카테고리 버튼 클릭: ${btn.dataset.category}`);
             e.preventDefault();
             // 모든 버튼에서 선택 상태 제거
             categoryButtons.forEach(b => {
@@ -203,6 +234,7 @@ function setupCreateIssueModal() {
             btn.classList.add('border-blue-500', 'bg-blue-50');
             // hidden input에 값 설정
             document.getElementById('issue-category').value = btn.dataset.category;
+            console.log(`✅ 카테고리 설정됨: ${btn.dataset.category}`);
         });
     });
 
@@ -211,20 +243,42 @@ function setupCreateIssueModal() {
     const display = document.getElementById('yes-price-display');
     const hiddenInput = document.getElementById('issue-yes-price');
 
+    console.log('🎚️ 슬라이더 요소:', {
+        slider: !!slider,
+        display: !!display,
+        hiddenInput: !!hiddenInput
+    });
+
     if (slider && display && hiddenInput) {
         slider.addEventListener('input', (e) => {
             const value = e.target.value;
             display.textContent = `${value}%`;
             hiddenInput.value = value;
         });
+        console.log('✅ 슬라이더 핸들러 바인딩 완료');
+    } else {
+        console.error('❌ 슬라이더 요소를 찾을 수 없습니다!');
     }
 
     // 빠른 날짜 선택 버튼 핸들러 (한국 시간 기준)
     const quickDateButtons = document.querySelectorAll('.quick-date-btn');
     const dateInput = document.getElementById('issue-end-date');
 
-    quickDateButtons.forEach(btn => {
+    console.log(`📅 빠른 날짜 버튼 개수: ${quickDateButtons.length}`);
+    console.log(`📅 날짜 input: ${!!dateInput}`);
+
+    if (quickDateButtons.length === 0) {
+        console.error('❌ 빠른 날짜 선택 버튼을 찾을 수 없습니다!');
+    }
+
+    if (!dateInput) {
+        console.error('❌ 날짜 input을 찾을 수 없습니다!');
+    }
+
+    quickDateButtons.forEach((btn, index) => {
+        console.log(`  - 빠른 날짜 버튼 ${index}: ${btn.dataset.days}일 후`);
         btn.addEventListener('click', (e) => {
+            console.log(`🖱️ 빠른 날짜 버튼 클릭: ${btn.dataset.days}일 후`);
             e.preventDefault();
             const days = parseInt(btn.dataset.days);
 
@@ -232,7 +286,7 @@ function setupCreateIssueModal() {
             const koreanDateTime = timezoneUtils.getKoreanTimeAfterDays(days);
             dateInput.value = koreanDateTime;
 
-            console.log(`빠른 날짜 선택: ${days}일 후 → ${koreanDateTime} (한국 시간)`);
+            console.log(`✅ 날짜 설정됨: ${days}일 후 → ${koreanDateTime} (한국 시간)`);
         });
     });
 
@@ -241,6 +295,8 @@ function setupCreateIssueModal() {
 
     // Setup edit modal
     setupEditIssueModal();
+
+    console.log('✅ setupCreateIssueModal() 완료');
 }
 
 function setupEditIssueModal() {
