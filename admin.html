@@ -176,52 +176,91 @@
 
             <!-- 새 이슈 생성 폼 -->
             <div id="create-issue-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-                <div class="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                    <div class="p-6 border-b border-gray-200">
+                <!-- 모바일: 전체 화면, 데스크톱: 중앙 모달 -->
+                <div class="bg-white rounded-lg max-w-2xl w-full h-full lg:h-auto lg:max-h-[90vh] overflow-y-auto flex flex-col">
+                    <!-- 고정 헤더 -->
+                    <div class="p-4 lg:p-6 border-b border-gray-200 flex-shrink-0">
                         <div class="flex items-center justify-between">
-                            <h2 class="text-xl font-bold text-gray-900">새 이슈 생성</h2>
-                            <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600">
+                            <h2 class="text-lg lg:text-xl font-bold text-gray-900">새 이슈 생성</h2>
+                            <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600 touch-manipulation p-2">
                                 <i data-lucide="x" class="w-6 h-6"></i>
                             </button>
                         </div>
                     </div>
-                    <form id="create-issue-form" class="p-6 space-y-6">
+
+                    <!-- 스크롤 가능한 폼 내용 -->
+                    <form id="create-issue-form" class="flex-1 overflow-y-auto p-4 lg:p-6 space-y-4 lg:space-y-6">
                         <div>
                             <label for="issue-title" class="block text-sm font-medium text-gray-700 mb-2">이슈 제목</label>
-                            <input type="text" id="issue-title" name="title" class="modern-input w-full" placeholder="예: 비트코인, 2025년 내 20만 달러 돌파할까?" required>
+                            <input type="text" id="issue-title" name="title" class="modern-input w-full text-base" placeholder="예: 비트코인, 2025년 내 20만 달러 돌파할까?" required>
                         </div>
+
+                        <!-- 카테고리 버튼 그리드 (모바일 최적화) -->
                         <div>
-                            <label for="issue-category" class="block text-sm font-medium text-gray-700 mb-2">카테고리</label>
-                            <select id="issue-category" name="category" class="modern-select w-full" required>
-                                <option value="">카테고리 선택</option>
-                                <option value="정치">정치</option>
-                                <option value="스포츠">스포츠</option>
-                                <option value="경제">경제</option>
-                                <option value="코인">코인</option>
-                                <option value="테크">테크</option>
-                                <option value="엔터">엔터</option>
-                                <option value="날씨">날씨</option>
-                                <option value="해외">해외</option>
-                            </select>
+                            <label class="block text-sm font-medium text-gray-700 mb-3">카테고리</label>
+                            <input type="hidden" id="issue-category" name="category" required>
+                            <div class="grid grid-cols-4 gap-2 lg:gap-3">
+                                <button type="button" class="category-btn p-3 lg:p-4 border-2 border-gray-200 rounded-lg text-center hover:border-blue-500 hover:bg-blue-50 transition-all touch-manipulation" data-category="정치">
+                                    <div class="text-2xl lg:text-3xl mb-1">🏛️</div>
+                                    <div class="text-xs lg:text-sm font-medium text-gray-700">정치</div>
+                                </button>
+                                <button type="button" class="category-btn p-3 lg:p-4 border-2 border-gray-200 rounded-lg text-center hover:border-blue-500 hover:bg-blue-50 transition-all touch-manipulation" data-category="스포츠">
+                                    <div class="text-2xl lg:text-3xl mb-1">⚽</div>
+                                    <div class="text-xs lg:text-sm font-medium text-gray-700">스포츠</div>
+                                </button>
+                                <button type="button" class="category-btn p-3 lg:p-4 border-2 border-gray-200 rounded-lg text-center hover:border-blue-500 hover:bg-blue-50 transition-all touch-manipulation" data-category="경제">
+                                    <div class="text-2xl lg:text-3xl mb-1">💰</div>
+                                    <div class="text-xs lg:text-sm font-medium text-gray-700">경제</div>
+                                </button>
+                                <button type="button" class="category-btn p-3 lg:p-4 border-2 border-gray-200 rounded-lg text-center hover:border-blue-500 hover:bg-blue-50 transition-all touch-manipulation" data-category="코인">
+                                    <div class="text-2xl lg:text-3xl mb-1">₿</div>
+                                    <div class="text-xs lg:text-sm font-medium text-gray-700">코인</div>
+                                </button>
+                                <button type="button" class="category-btn p-3 lg:p-4 border-2 border-gray-200 rounded-lg text-center hover:border-blue-500 hover:bg-blue-50 transition-all touch-manipulation" data-category="테크">
+                                    <div class="text-2xl lg:text-3xl mb-1">💻</div>
+                                    <div class="text-xs lg:text-sm font-medium text-gray-700">테크</div>
+                                </button>
+                                <button type="button" class="category-btn p-3 lg:p-4 border-2 border-gray-200 rounded-lg text-center hover:border-blue-500 hover:bg-blue-50 transition-all touch-manipulation" data-category="엔터">
+                                    <div class="text-2xl lg:text-3xl mb-1">🎬</div>
+                                    <div class="text-xs lg:text-sm font-medium text-gray-700">엔터</div>
+                                </button>
+                                <button type="button" class="category-btn p-3 lg:p-4 border-2 border-gray-200 rounded-lg text-center hover:border-blue-500 hover:bg-blue-50 transition-all touch-manipulation" data-category="날씨">
+                                    <div class="text-2xl lg:text-3xl mb-1">🌤️</div>
+                                    <div class="text-xs lg:text-sm font-medium text-gray-700">날씨</div>
+                                </button>
+                                <button type="button" class="category-btn p-3 lg:p-4 border-2 border-gray-200 rounded-lg text-center hover:border-blue-500 hover:bg-blue-50 transition-all touch-manipulation" data-category="해외">
+                                    <div class="text-2xl lg:text-3xl mb-1">🌍</div>
+                                    <div class="text-xs lg:text-sm font-medium text-gray-700">해외</div>
+                                </button>
+                            </div>
                         </div>
+
+                        <!-- 마감일 빠른 선택 -->
                         <div>
-                            <label for="issue-end-date" class="block text-sm font-medium text-gray-700 mb-2">마감일</label>
-                            <input type="datetime-local" id="issue-end-date" name="endDate" class="modern-input w-full" required>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">마감일</label>
+                            <div class="flex flex-wrap gap-2 mb-3">
+                                <button type="button" class="quick-date-btn px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-blue-50 hover:border-blue-500 transition-colors touch-manipulation" data-days="1">1일 후</button>
+                                <button type="button" class="quick-date-btn px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-blue-50 hover:border-blue-500 transition-colors touch-manipulation" data-days="7">7일 후</button>
+                                <button type="button" class="quick-date-btn px-3 py-2 text-sm border border-gray-300 rounded-md hover:bg-blue-50 hover:border-blue-500 transition-colors touch-manipulation" data-days="30">30일 후</button>
+                            </div>
+                            <input type="datetime-local" id="issue-end-date" name="endDate" class="modern-input w-full text-base" required>
                         </div>
+
                         <div>
                             <label for="issue-description" class="block text-sm font-medium text-gray-700 mb-2">설명 (선택사항)</label>
-                            <textarea id="issue-description" name="description" class="modern-input w-full" rows="3" placeholder="이슈에 대한 상세 설명"></textarea>
+                            <textarea id="issue-description" name="description" class="modern-input w-full text-base" rows="3" placeholder="이슈에 대한 상세 설명"></textarea>
                         </div>
+
                         <div>
                             <label for="issue-image" class="block text-sm font-medium text-gray-700 mb-2">이미지 업로드 (선택사항)</label>
-                            <div class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                            <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 lg:p-6 text-center">
                                 <input type="file" id="issue-image" name="image" accept="image/*" class="hidden">
                                 <input type="hidden" id="image-url" name="imageUrl" value="">
                                 <div id="image-preview" class="hidden mb-4">
                                     <img id="preview-img" src="" alt="미리보기" class="mx-auto max-h-32 rounded">
-                                    <button type="button" id="remove-image" class="mt-2 text-red-600 text-sm">이미지 제거</button>
+                                    <button type="button" id="remove-image" class="mt-2 text-red-600 text-sm touch-manipulation">이미지 제거</button>
                                 </div>
-                                <div id="upload-area" class="cursor-pointer" onclick="document.getElementById('issue-image').click()">
+                                <div id="upload-area" class="cursor-pointer touch-manipulation" onclick="document.getElementById('issue-image').click()">
                                     <i data-lucide="upload" class="w-8 h-8 mx-auto text-gray-400 mb-2"></i>
                                     <p class="text-sm text-gray-600">클릭하여 이미지를 업로드하거나 드래그 앤 드롭하세요</p>
                                     <p class="text-xs text-gray-500 mt-1">PNG, JPG, JPEG (최대 5MB)</p>
@@ -232,19 +271,34 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- 확률 슬라이더 (모바일 최적화) -->
                         <div>
-                            <label for="issue-yes-price" class="block text-sm font-medium text-gray-700 mb-2">초기 Yes 확률 (%)</label>
-                            <input type="number" id="issue-yes-price" name="yesPrice" class="modern-input w-full" min="1" max="99" value="50" required>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                초기 Yes 확률: <span id="yes-price-display" class="text-blue-600 font-bold">50%</span>
+                            </label>
+                            <input type="range" id="issue-yes-price-slider" class="w-full h-10 touch-manipulation" min="1" max="99" value="50" step="1">
+                            <input type="hidden" id="issue-yes-price" name="yesPrice" value="50">
+                            <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                <span>1%</span>
+                                <span>50%</span>
+                                <span>99%</span>
+                            </div>
                         </div>
+
                         <div class="flex items-center">
-                            <input type="checkbox" id="issue-popular" name="isPopular" class="mr-2">
+                            <input type="checkbox" id="issue-popular" name="isPopular" class="mr-2 w-5 h-5 touch-manipulation">
                             <label for="issue-popular" class="text-sm text-gray-700">인기 이슈로 표시</label>
                         </div>
-                        <div class="flex space-x-3 pt-4">
-                            <button type="submit" class="btn-primary flex-1">이슈 생성</button>
-                            <button type="button" id="cancel-btn" class="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors">취소</button>
-                        </div>
                     </form>
+
+                    <!-- 고정 버튼 -->
+                    <div class="p-4 lg:p-6 border-t border-gray-200 flex-shrink-0 bg-white">
+                        <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                            <button type="submit" form="create-issue-form" class="btn-primary flex-1 py-3 touch-manipulation">이슈 생성</button>
+                            <button type="button" id="cancel-btn" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors touch-manipulation">취소</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -328,7 +382,9 @@
                 <div class="px-6 py-4 border-b border-gray-200">
                     <h3 class="text-lg font-semibold text-gray-900">이슈 관리</h3>
                 </div>
-                <div class="overflow-x-auto">
+
+                <!-- 데스크톱: 테이블 뷰 -->
+                <div class="hidden lg:block overflow-x-auto">
                     <table class="w-full">
                         <thead class="bg-gray-50">
                             <tr>
@@ -345,6 +401,11 @@
                             <!-- 이슈 목록이 여기에 동적으로 생성됩니다 -->
                         </tbody>
                     </table>
+                </div>
+
+                <!-- 모바일/태블릿: 카드 뷰 -->
+                <div id="issues-cards-container" class="lg:hidden divide-y divide-gray-200">
+                    <!-- 이슈 카드가 여기에 동적으로 생성됩니다 -->
                 </div>
             </div>
             
