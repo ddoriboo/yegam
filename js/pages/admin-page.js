@@ -65,14 +65,21 @@ const timezoneUtils = {
 };
 
 export async function renderAdminPage() {
+    console.log('📊 renderAdminPage() 호출됨');
+
     if (!checkAdminAccess()) {
+        console.log('🔐 관리자 인증 실패 - 로그인 폼 표시');
         showAdminLogin();
         return;
     }
+
+    console.log('✅ 관리자 인증 성공 - 이슈 테이블 렌더링 시작');
     await renderAdminIssueTable();
+    console.log('✅ 이슈 테이블 렌더링 완료');
 }
 
 export function setupAdminFunctions() {
+    console.log('⚙️ setupAdminFunctions() 호출됨');
     setupCreateIssueModal();
 }
 
