@@ -9,17 +9,23 @@ const timezoneUtils = {
     datetimeLocalToUTC(datetimeLocalValue) {
         if (!datetimeLocalValue) return null;
 
-        // Parse the datetime-local value as Korean time
         // datetime-local format: "2025-01-10T15:00"
-        const [datePart, timePart] = datetimeLocalValue.split('T');
-        const [year, month, day] = datePart.split('-').map(Number);
-        const [hours, minutes] = timePart.split(':').map(Number);
+        // 사용자가 입력한 시간을 한국 시간(KST, UTC+9)으로 간주하고 UTC로 변환
 
-        // 한국 시간(KST, UTC+9)을 UTC로 변환
-        // 사용자가 입력한 시간을 한국 시간으로 간주하고 UTC로 변환
-        const utcTimestamp = Date.UTC(year, month - 1, day, hours - 9, minutes);
+        // 초와 밀리초를 추가하고 한국 시간대 명시
+        const isoWithTimezone = `${datetimeLocalValue}:00.000+09:00`;
 
-        return new Date(utcTimestamp).toISOString();
+        // Date 생성자가 자동으로 UTC로 변환
+        const utcDate = new Date(isoWithTimezone);
+
+        console.log('🕐 시간 변환:', {
+            입력값: datetimeLocalValue,
+            '한국시간_ISO': isoWithTimezone,
+            'UTC_ISO': utcDate.toISOString(),
+            '한국시간_확인': this.utcToDatetimeLocal(utcDate.toISOString())
+        });
+
+        return utcDate.toISOString();
     },
 
     // Convert UTC ISO string to datetime-local format for display
@@ -339,28 +345,40 @@ function closeModal(modal, form) {
 
 async function handleCreateIssue(e) {
     e.preventDefault();
-    const formData = new FormData(e.target);
 
-    // 한국 시간대로 마감일 처리
-    const endDateLocal = formData.get('endDate');
-    const endDateKST = timezoneUtils.datetimeLocalToUTC(endDateLocal);
+    // 중복 제출 방지
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    if (submitBtn.disabled) {
+        console.log('⚠️ 이미 제출 중입니다. 중복 방지.');
+        return;
+    }
 
-    console.log('=== 이슈 생성 시간 변환 ===');
-    console.log('입력된 시간 (datetime-local):', endDateLocal);
-    console.log('변환된 UTC 시간:', endDateKST);
-    console.log('다시 한국 시간으로 확인:', timezoneUtils.utcToDatetimeLocal(endDateKST));
-
-    const issueData = {
-        title: formData.get('title'),
-        category: formData.get('category'),
-        description: formData.get('description') || '',
-        end_date: endDateKST,
-        yes_price: parseInt(formData.get('yesPrice')) || 50,
-        image_url: formData.get('image_url') || null,
-        change_reason: 'Admin creation' // 어드민 생성 시 기본 사유
-    };
+    submitBtn.disabled = true;
+    submitBtn.textContent = '생성 중...';
 
     try {
+        const formData = new FormData(e.target);
+
+        // 한국 시간대로 마감일 처리
+        const endDateLocal = formData.get('endDate');
+        const endDateKST = timezoneUtils.datetimeLocalToUTC(endDateLocal);
+
+        console.log('=== 이슈 생성 시작 ===');
+        console.log('제목:', formData.get('title'));
+        console.log('카테고리:', formData.get('category'));
+        console.log('입력 마감일:', endDateLocal);
+        console.log('변환 UTC:', endDateKST);
+
+        const issueData = {
+            title: formData.get('title'),
+            category: formData.get('category'),
+            description: formData.get('description') || '',
+            end_date: endDateKST,
+            yes_price: parseInt(formData.get('yesPrice')) || 50,
+            image_url: formData.get('image_url') || null,
+            change_reason: 'Admin creation'
+        };
+
         const response = await window.adminFetch('/api/admin/issues', {
             method: 'POST',
             body: JSON.stringify(issueData)
@@ -380,8 +398,12 @@ async function handleCreateIssue(e) {
         if (error.message && error.message.includes('인증')) {
             showAdminLogin();
         } else {
-            alert('이슈 생성 중 오류가 발생했습니다.');
+            alert('이슈 생성 중 오류가 발생했습니다: ' + error.message);
         }
+    } finally {
+        // 버튼 상태 복원
+        submitBtn.disabled = false;
+        submitBtn.textContent = '이슈 생성';
     }
 }
 
