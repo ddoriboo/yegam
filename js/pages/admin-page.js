@@ -65,14 +65,21 @@ const timezoneUtils = {
 };
 
 export async function renderAdminPage() {
+    console.log('📊 renderAdminPage() 호출됨');
+
     if (!checkAdminAccess()) {
+        console.log('🔐 관리자 인증 실패 - 로그인 폼 표시');
         showAdminLogin();
         return;
     }
+
+    console.log('✅ 관리자 인증 성공 - 이슈 테이블 렌더링 시작');
     await renderAdminIssueTable();
+    console.log('✅ 이슈 테이블 렌더링 완료');
 }
 
 export function setupAdminFunctions() {
+    console.log('⚙️ setupAdminFunctions() 호출됨');
     setupCreateIssueModal();
 }
 
@@ -434,29 +441,40 @@ async function renderAdminIssueTable() {
 
         const issues = data.issues;
 
+        console.log('📊 렌더링할 이슈 개수:', issues.length);
+
         // 데스크톱 테이블 렌더링
         const tbody = document.getElementById('issues-table-body');
         if (tbody) {
-            tbody.innerHTML = issues.map(issue => `
+            tbody.innerHTML = issues.map(issue => {
+                // undefined 값 처리
+                const title = issue.title || '제목 없음';
+                const category = issue.category || '미분류';
+                const endDate = issue.end_date || issue.endDate;
+                const yesPrice = issue.yesPrice || issue.yes_price || 50;
+                const totalVolume = issue.totalVolume || issue.total_volume || 0;
+                const isPopular = issue.isPopular || issue.is_popular || false;
+
+                return `
             <tr>
                 <td class="px-6 py-4">
-                    <div class="text-sm font-medium text-gray-900">${issue.title}</div>
+                    <div class="text-sm font-medium text-gray-900">${title}</div>
                     <div class="text-sm text-gray-500">ID: ${issue.id}</div>
                 </td>
                 <td class="px-6 py-4">
-                    <span style="${getCategoryBadgeStyle(issue.category)} padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500;">
-                        ${issue.category}
+                    <span style="${getCategoryBadgeStyle(category)} padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500;">
+                        ${category}
                     </span>
                 </td>
                 <td class="px-6 py-4">
-                    <div class="text-sm font-medium text-gray-900">${timeUntil(issue.end_date || issue.endDate)}</div>
-                    <div class="text-xs text-gray-500">${formatDate(issue.end_date || issue.endDate)}</div>
+                    <div class="text-sm font-medium text-gray-900">${timeUntil(endDate)}</div>
+                    <div class="text-xs text-gray-500">${formatDate(endDate)}</div>
                 </td>
-                <td class="px-6 py-4 text-sm text-gray-900">${issue.yesPrice}%</td>
-                <td class="px-6 py-4 text-sm text-gray-900">${formatVolume(issue.totalVolume)} 감</td>
+                <td class="px-6 py-4 text-sm text-gray-900">${yesPrice}%</td>
+                <td class="px-6 py-4 text-sm text-gray-900">${formatVolume(totalVolume)} 감</td>
                 <td class="px-6 py-4">
-                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${issue.isPopular ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
-                        ${issue.isPopular ? '인기' : '일반'}
+                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${isPopular ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+                        ${isPopular ? '인기' : '일반'}
                     </span>
                 </td>
                 <td class="px-6 py-4 text-sm space-x-2">
@@ -465,39 +483,49 @@ async function renderAdminIssueTable() {
                     <button onclick="deleteIssue(${issue.id})" class="text-red-600 hover:text-red-900">삭제</button>
                 </td>
             </tr>
-        `).join('');
+        `;
+            }).join('');
         }
 
         // 모바일 카드 렌더링
         const cardsContainer = document.getElementById('issues-cards-container');
         if (cardsContainer) {
-            cardsContainer.innerHTML = issues.map(issue => `
+            cardsContainer.innerHTML = issues.map(issue => {
+                // undefined 값 처리
+                const title = issue.title || '제목 없음';
+                const category = issue.category || '미분류';
+                const endDate = issue.end_date || issue.endDate;
+                const yesPrice = issue.yesPrice || issue.yes_price || 50;
+                const totalVolume = issue.totalVolume || issue.total_volume || 0;
+                const isPopular = issue.isPopular || issue.is_popular || false;
+
+                return `
             <div class="p-4 space-y-3">
                 <div class="flex items-start justify-between">
                     <div class="flex-1">
-                        <div class="font-medium text-gray-900 mb-1">${issue.title}</div>
+                        <div class="font-medium text-gray-900 mb-1">${title}</div>
                         <div class="text-xs text-gray-500">ID: ${issue.id}</div>
                     </div>
-                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${issue.isPopular ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
-                        ${issue.isPopular ? '인기' : '일반'}
+                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${isPopular ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+                        ${isPopular ? '인기' : '일반'}
                     </span>
                 </div>
 
                 <div class="flex items-center space-x-2">
-                    <span style="${getCategoryBadgeStyle(issue.category)} padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500;">
-                        ${issue.category}
+                    <span style="${getCategoryBadgeStyle(category)} padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 500;">
+                        ${category}
                     </span>
-                    <span class="text-sm text-gray-600">Yes ${issue.yesPrice}%</span>
+                    <span class="text-sm text-gray-600">Yes ${yesPrice}%</span>
                 </div>
 
                 <div class="text-sm text-gray-600">
                     <div class="flex items-center justify-between">
                         <span>마감시간:</span>
-                        <span class="font-medium">${timeUntil(issue.end_date || issue.endDate)}</span>
+                        <span class="font-medium">${timeUntil(endDate)}</span>
                     </div>
                     <div class="flex items-center justify-between mt-1">
                         <span>참여량:</span>
-                        <span class="font-medium">${formatVolume(issue.totalVolume)} 감</span>
+                        <span class="font-medium">${formatVolume(totalVolume)} 감</span>
                     </div>
                 </div>
 
@@ -507,10 +535,13 @@ async function renderAdminIssueTable() {
                     <button onclick="deleteIssue(${issue.id})" class="flex-1 px-3 py-2 text-sm bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors touch-manipulation">삭제</button>
                 </div>
             </div>
-        `).join('');
+        `;
+            }).join('');
         }
+
+        console.log('✅ 이슈 테이블 렌더링 성공');
     } catch (error) {
-        console.error('데이터 로딩 중 오류가 발생했습니다:', error);
+        console.error('❌ 데이터 로딩 중 오류가 발생했습니다:', error);
         if (error.message && error.message.includes('인증')) {
             showAdminLogin();
         } else {

@@ -2592,17 +2592,31 @@
     <script type="module">
         import { renderAdminPage, setupAdminFunctions } from './js/pages/admin-page.js';
 
+        // 초기화 중복 방지
+        let isAdminInitialized = false;
+
         // 페이지 로드 시 admin 페이지 초기화
         document.addEventListener('DOMContentLoaded', async function() {
+            if (isAdminInitialized) {
+                console.log('⚠️ Admin 페이지가 이미 초기화되었습니다. 중복 실행 방지.');
+                return;
+            }
+
             console.log('Admin 페이지 초기화 시작...');
+            isAdminInitialized = true;
 
-            // admin 페이지 렌더링
-            await renderAdminPage();
+            try {
+                // admin 페이지 렌더링
+                await renderAdminPage();
 
-            // admin 함수 설정 (모달, 이벤트 핸들러 등)
-            setupAdminFunctions();
+                // admin 함수 설정 (모달, 이벤트 핸들러 등)
+                setupAdminFunctions();
 
-            console.log('Admin 페이지 초기화 완료');
+                console.log('Admin 페이지 초기화 완료');
+            } catch (error) {
+                console.error('❌ Admin 페이지 초기화 오류:', error);
+                isAdminInitialized = false; // 오류 발생 시 재시도 가능하도록
+            }
         });
     </script>
 </body>
