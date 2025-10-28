@@ -143,33 +143,33 @@
             
             <!-- 관리 탭 -->
             <div class="mb-8">
-                <!-- 모바일: 스크롤 가능한 탭 with 좁은 간격, 데스크톱: 넓은 간격 -->
-                <nav class="flex space-x-3 md:space-x-8 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                    <button id="issues-tab" class="admin-tab active pb-3 md:pb-4 border-b-2 border-blue-500 text-blue-600 text-sm md:text-base font-medium whitespace-nowrap touch-manipulation px-1">
+                <!-- 모바일: 2줄 배치로 겹침 방지, 데스크톱: 1줄 스크롤 -->
+                <nav class="flex flex-wrap md:flex-nowrap gap-x-1 gap-y-2 md:gap-x-8 md:gap-y-0 md:overflow-x-auto md:scrollbar-thin md:scrollbar-thumb-gray-300 md:scrollbar-track-gray-100">
+                    <button id="issues-tab" class="admin-tab active pb-2 md:pb-4 border-b-2 border-blue-500 text-blue-600 text-xs md:text-base font-medium whitespace-nowrap touch-manipulation px-2 md:px-0">
                         이슈 관리
                     </button>
-                    <button id="issue-requests-tab" class="admin-tab pb-3 md:pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 text-sm md:text-base font-medium whitespace-nowrap touch-manipulation px-1">
+                    <button id="issue-requests-tab" class="admin-tab pb-2 md:pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 text-xs md:text-base font-medium whitespace-nowrap touch-manipulation px-2 md:px-0">
                         이슈 신청 관리
                     </button>
-                    <button id="results-tab" class="admin-tab pb-3 md:pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 text-sm md:text-base font-medium whitespace-nowrap touch-manipulation px-1">
+                    <button id="results-tab" class="admin-tab pb-2 md:pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 text-xs md:text-base font-medium whitespace-nowrap touch-manipulation px-2 md:px-0">
                         결과 관리
                     </button>
-                    <button id="comments-tab" class="admin-tab pb-3 md:pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 text-sm md:text-base font-medium whitespace-nowrap touch-manipulation px-1">
+                    <button id="comments-tab" class="admin-tab pb-2 md:pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 text-xs md:text-base font-medium whitespace-nowrap touch-manipulation px-2 md:px-0">
                         댓글 관리
                     </button>
-                    <button id="scheduler-tab" class="admin-tab pb-3 md:pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 text-sm md:text-base font-medium whitespace-nowrap touch-manipulation px-1">
+                    <button id="scheduler-tab" class="admin-tab pb-2 md:pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 text-xs md:text-base font-medium whitespace-nowrap touch-manipulation px-2 md:px-0">
                         스케줄러 관리
                     </button>
-                    <button id="audit-tab" class="admin-tab pb-3 md:pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 text-sm md:text-base font-medium whitespace-nowrap touch-manipulation px-1">
+                    <button id="audit-tab" class="admin-tab pb-2 md:pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 text-xs md:text-base font-medium whitespace-nowrap touch-manipulation px-2 md:px-0">
                         감사 로그
                     </button>
-                    <button id="popular-issues-tab" class="admin-tab pb-3 md:pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 text-sm md:text-base font-medium whitespace-nowrap touch-manipulation px-1">
+                    <button id="popular-issues-tab" class="admin-tab pb-2 md:pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 text-xs md:text-base font-medium whitespace-nowrap touch-manipulation px-2 md:px-0">
                         인기 이슈 관리
                     </button>
-                    <button id="discussions-tab" class="admin-tab pb-3 md:pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 text-sm md:text-base font-medium whitespace-nowrap touch-manipulation px-1">
+                    <button id="discussions-tab" class="admin-tab pb-2 md:pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 text-xs md:text-base font-medium whitespace-nowrap touch-manipulation px-2 md:px-0">
                         분석방 관리
                     </button>
-                    <button id="visitor-stats-tab" class="admin-tab pb-3 md:pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 text-sm md:text-base font-medium whitespace-nowrap touch-manipulation px-1">
+                    <button id="visitor-stats-tab" class="admin-tab pb-2 md:pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 text-xs md:text-base font-medium whitespace-nowrap touch-manipulation px-2 md:px-0">
                         방문자 통계
                     </button>
                 </nav>
