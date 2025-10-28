@@ -593,14 +593,23 @@ function addNewIssue(issue) {
 // Global functions for onclick handlers
 window.deleteIssue = async function(issueId) {
     if (!confirm(MESSAGES.CONFIRM.DELETE_ISSUE)) return;
-    
+
     try {
-        const issues = backend.getIssues();
-        const filteredIssues = issues.filter(issue => issue.id !== issueId);
-        sessionStorage.setItem('poli-view-issues', JSON.stringify(filteredIssues));
-        await renderAdminIssueTable();
-        alert(MESSAGES.SUCCESS.ISSUE_DELETED);
+        // 실제 API 호출로 서버에서 삭제
+        const response = await window.adminFetch(`/api/admin/issues/${issueId}`, {
+            method: 'DELETE'
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert(MESSAGES.SUCCESS.ISSUE_DELETED);
+            await renderAdminIssueTable();
+        } else {
+            alert(`이슈 삭제에 실패했습니다: ${result.message}`);
+        }
     } catch (error) {
+        console.error('이슈 삭제 오류:', error);
         alert('이슈 삭제에 실패했습니다: ' + error.message);
     }
 };
