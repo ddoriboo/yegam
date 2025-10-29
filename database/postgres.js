@@ -106,8 +106,11 @@ const createTables = async () => {
         } catch (error) {
             console.log('이슈 테이블 popular_order 컬럼 추가 스킵 (이미 존재함)');
         }
-        
+
         // 타임존 지원을 위한 TIMESTAMP -> TIMESTAMPTZ 마이그레이션
+        // ⚠️ CRITICAL FIX: 이 마이그레이션이 배포 시마다 실행되어 마감시간이 계속 변경되는 문제 발생
+        // 이미 TIMESTAMPTZ로 변환되었으므로 재실행 불필요 - 영구 비활성화
+        /*
         try {
             // issues 테이블의 timestamp 컬럼들을 timestamptz로 변경
             await client.query(`ALTER TABLE issues ALTER COLUMN end_date TYPE TIMESTAMPTZ USING end_date AT TIME ZONE 'Asia/Seoul'`);
@@ -118,7 +121,9 @@ const createTables = async () => {
         } catch (error) {
             console.log('이슈 테이블 타임존 마이그레이션 스킵:', error.message);
         }
-        
+        */
+        console.log('⏭️  타임존 마이그레이션 영구 비활성화 (이미 완료됨)');
+
         // 일일 출석 보상용 컬럼들 추가
         try {
             await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_date DATE`);
