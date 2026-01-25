@@ -39,15 +39,16 @@ const CATEGORY_NAMES = {
     [CATEGORIES.INTERNATIONAL]: '해외'
 };
 
+// Polymarket Style - Neutral gray for all categories
 const CATEGORY_COLORS = {
-    [CATEGORIES.POLITICS]: 'background: linear-gradient(135deg, #EF4444, #F87171); color: white;',
-    [CATEGORIES.SPORTS]: 'background: linear-gradient(135deg, #06B6D4, #67E8F9); color: white;',
-    [CATEGORIES.ECONOMY]: 'background: linear-gradient(135deg, #10B981, #34D399); color: white;',
-    [CATEGORIES.CRYPTO]: 'background: linear-gradient(135deg, #F59E0B, #FBBF24); color: white;',
-    [CATEGORIES.TECH]: 'background: linear-gradient(135deg, #8B5CF6, #A78BFA); color: white;',
-    [CATEGORIES.ENTERTAINMENT]: 'background: linear-gradient(135deg, #EC4899, #F472B6); color: white;',
-    [CATEGORIES.WEATHER]: 'background: linear-gradient(135deg, #3B82F6, #60A5FA); color: white;',
-    [CATEGORIES.INTERNATIONAL]: 'background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white;'
+    [CATEGORIES.POLITICS]: 'background: #F3F4F6; color: #4B5563;',
+    [CATEGORIES.SPORTS]: 'background: #F3F4F6; color: #4B5563;',
+    [CATEGORIES.ECONOMY]: 'background: #F3F4F6; color: #4B5563;',
+    [CATEGORIES.CRYPTO]: 'background: #F3F4F6; color: #4B5563;',
+    [CATEGORIES.TECH]: 'background: #F3F4F6; color: #4B5563;',
+    [CATEGORIES.ENTERTAINMENT]: 'background: #F3F4F6; color: #4B5563;',
+    [CATEGORIES.WEATHER]: 'background: #F3F4F6; color: #4B5563;',
+    [CATEGORIES.INTERNATIONAL]: 'background: #F3F4F6; color: #4B5563;'
 };
 
 // API endpoints
