@@ -10,64 +10,42 @@ class IssueRequestModal {
     }
     
     createModal() {
-        // 모달 HTML 생성
+        // 모달 HTML 생성 - Polymarket 스타일
         const modalHTML = `
             <div id="issue-request-modal" class="betting-modal hidden">
                 <div class="betting-modal-backdrop"></div>
-                <div class="betting-modal-container">
+                <div class="betting-modal-container" style="max-width: 480px;">
                     <div class="betting-modal-content">
                         <!-- 헤더 -->
-                        <div class="betting-modal-header">
-                            <div class="betting-modal-title">
-                                <div class="betting-icon">💡</div>
-                                <h2>이슈 신청</h2>
-                            </div>
-                            <button class="betting-modal-close" id="issue-request-modal-close">
-                                <i data-lucide="x" class="w-6 h-6"></i>
+                        <div class="flex items-center justify-between p-4 border-b border-gray-200">
+                            <h2 class="text-lg font-semibold text-gray-900">이슈 신청</h2>
+                            <button class="p-1 hover:bg-gray-100 rounded-lg transition-colors" id="issue-request-modal-close">
+                                <i data-lucide="x" class="w-5 h-5 text-gray-500"></i>
                             </button>
                         </div>
                         
-                        <!-- 안내 메시지 -->
-                        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-5 mb-6 mx-7">
-                            <div class="flex items-start space-x-3">
-                                <div class="flex-shrink-0">
-                                    <i data-lucide="info" class="w-5 h-5 text-blue-600 mt-0.5"></i>
-                                </div>
-                                <div class="text-sm text-blue-800">
-                                    <p class="font-semibold mb-1">이슈 신청 안내</p>
-                                    <ul class="list-disc list-inside space-y-1 text-blue-700">
-                                        <li>관리자 승인 후 정식 이슈로 등록됩니다</li>
-                                        <li>승인 시 <strong>1,000 GAM</strong>을 받습니다</li>
-                                        <li>명확하고 흥미로운 주제를 제안해주세요</li>
-                                    </ul>
-                                </div>
-                            </div>
+                        <!-- 안내 -->
+                        <div class="px-4 py-3 bg-gray-50 border-b border-gray-100 text-sm text-gray-600">
+                            승인 시 <span class="font-semibold text-gray-900">1,000 GAM</span> 지급
                         </div>
                         
-                        <!-- 이슈 신청 폼 -->
-                        <form id="issue-request-form" class="space-y-8 px-7 pb-4">
+                        <!-- 폼 -->
+                        <form id="issue-request-form" class="p-4 space-y-4">
                             <!-- 제목 -->
-                            <div class="form-group">
-                                <label for="issue-title" class="block text-sm font-semibold text-gray-900 mb-2">
-                                    <i data-lucide="edit-3" class="w-4 h-4 inline mr-1"></i>
-                                    이슈 제목 *
-                                </label>
+                            <div>
+                                <label for="issue-title" class="block text-sm font-medium text-gray-700 mb-1">제목</label>
                                 <input type="text" id="issue-title" name="title" required
-                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                                       placeholder="예: 2025년 상반기 비트코인 가격이 10만 달러를 넘을 것인가?"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                                       placeholder="예측 질문을 입력하세요"
                                        maxlength="200">
-                                <div class="text-xs text-gray-500 mt-1">최대 200자</div>
                             </div>
                             
                             <!-- 카테고리 -->
-                            <div class="form-group">
-                                <label for="issue-category" class="block text-sm font-semibold text-gray-900 mb-2">
-                                    <i data-lucide="tag" class="w-4 h-4 inline mr-1"></i>
-                                    카테고리 *
-                                </label>
+                            <div>
+                                <label for="issue-category" class="block text-sm font-medium text-gray-700 mb-1">카테고리</label>
                                 <select id="issue-category" name="category" required
-                                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
-                                    <option value="">카테고리를 선택하세요</option>
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                                    <option value="">선택</option>
                                     <option value="정치">정치</option>
                                     <option value="스포츠">스포츠</option>
                                     <option value="경제">경제</option>
@@ -79,42 +57,32 @@ class IssueRequestModal {
                                 </select>
                             </div>
                             
-                            <!-- 상세 설명 -->
-                            <div class="form-group">
-                                <label for="issue-description" class="block text-sm font-semibold text-gray-900 mb-2">
-                                    <i data-lucide="file-text" class="w-4 h-4 inline mr-1"></i>
-                                    상세 설명 *
-                                </label>
-                                <textarea id="issue-description" name="description" required rows="4"
-                                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors resize-none"
-                                          placeholder="이슈에 대한 구체적인 설명을 작성해주세요. 판단 기준, 참고 자료 등을 포함하면 좋습니다."
-                                          maxlength="1000"></textarea>
-                                <div class="text-xs text-gray-500 mt-1">최대 1,000자</div>
+                            <!-- 설명 -->
+                            <div>
+                                <label for="issue-description" class="block text-sm font-medium text-gray-700 mb-1">설명 (선택)</label>
+                                <textarea id="issue-description" name="description" rows="3"
+                                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm resize-none"
+                                          placeholder="판단 기준이나 참고 정보"
+                                          maxlength="500"></textarea>
                             </div>
                             
                             <!-- 마감일 -->
-                            <div class="form-group">
-                                <label for="issue-deadline" class="block text-sm font-semibold text-gray-900 mb-2">
-                                    <i data-lucide="calendar" class="w-4 h-4 inline mr-1"></i>
-                                    예상 마감일 *
-                                </label>
+                            <div>
+                                <label for="issue-deadline" class="block text-sm font-medium text-gray-700 mb-1">마감일</label>
                                 <input type="datetime-local" id="issue-deadline" name="deadline" required
-                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors">
-                                <div class="text-xs text-gray-500 mt-1">결과를 확인할 수 있는 예상 시점을 선택해주세요</div>
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm">
+                            </div>
+                            
+                            <!-- 버튼 -->
+                            <div class="flex gap-3 pt-2">
+                                <button type="button" class="flex-1 py-2.5 px-4 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors" id="issue-request-cancel">
+                                    취소
+                                </button>
+                                <button type="submit" class="flex-1 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm font-medium text-white transition-colors" id="issue-request-submit">
+                                    신청하기
+                                </button>
                             </div>
                         </form>
-                        
-                        <!-- 버튼 -->
-                        <div class="betting-actions mt-8 px-7 pb-3">
-                            <button class="betting-cancel-btn" id="issue-request-cancel">취소</button>
-                            <button class="betting-confirm-btn" id="issue-request-submit">
-                                <div class="btn-content">
-                                    <span class="btn-icon">📝</span>
-                                    <span class="btn-text">이슈 신청</span>
-                                </div>
-                                <div class="btn-glow"></div>
-                            </button>
-                        </div>
                     </div>
                 </div>
             </div>
