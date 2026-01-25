@@ -19,84 +19,54 @@
 
     <div id="app-container" class="min-h-screen flex flex-col">
 
-        <!-- Header -->
-        <header class="bg-white/90 backdrop-blur-sm sticky top-0 border-b border-gray-200" style="z-index: 50000; overflow: visible !important;">
-            <nav class="container mx-auto px-4 lg:px-8 py-3 flex justify-between items-center">
-                <a href="index.html" class="flex items-center space-x-2">
-                    <img src="logo.png" alt="예겜 로고" class="h-8 w-auto">
-                    <span class="text-xl font-bold tracking-tight text-gray-900 hidden sm:block">예겜</span>
-                </a>
-                
-                <!-- Desktop Navigation -->
-                <div class="hidden lg:flex items-center space-x-4 text-sm font-medium text-gray-600">
-                    <a href="about.html" class="hover:text-gray-900 transition-colors">예겜 소개</a>
-                    <a href="issues.html" class="text-gray-900 font-semibold">전체 이슈</a>
-                    <a href="minigames.html" class="hover:text-gray-900 transition-colors">미니게임방</a>
-                    <button id="desktop-issue-request-btn" class="hidden hover:text-gray-900 transition-colors cursor-pointer bg-transparent border-none text-sm font-medium">이슈 신청</button>
-                    <a href="discussions.html" class="hover:text-gray-900 transition-colors">분석방</a>
-                    <a href="tier_guide.html" class="hover:text-gray-900 transition-colors">업적 안내</a>
-                    <a href="mypage.html" class="hover:text-gray-900 transition-colors">내 정보</a>
-                </div>
-                
-                <!-- Medium Screen Navigation (간소화) -->
-                <div class="hidden md:flex lg:hidden items-center space-x-3 text-sm font-medium text-gray-600">
-                    <a href="issues.html" class="text-gray-900 font-semibold">이슈</a>
-                    <a href="minigames.html" class="hover:text-gray-900 transition-colors">게임</a>
-                    <a href="discussions.html" class="hover:text-gray-900 transition-colors">분석방</a>
-                    <a href="mypage.html" class="hover:text-gray-900 transition-colors">내 정보</a>
-                </div>
-                
-                <!-- Mobile & User Actions Container -->
-                <div class="flex items-center space-x-1 sm:space-x-2">
-                    <!-- Search Button -->
-                    <button id="header-search-btn" class="p-2.5 rounded-md hover:bg-gray-100 transition-colors touch-manipulation">
-                        <i data-lucide="search" class="w-5 h-5 text-gray-600"></i>
-                    </button>
-                    
-                    <!-- Mobile Menu Button -->
-                    <button id="mobile-menu-btn" class="lg:hidden p-2.5 rounded-md hover:bg-gray-100 transition-colors touch-manipulation">
-                        <i data-lucide="menu" class="w-5 h-5 text-gray-600"></i>
-                    </button>
-                    
-                    <!-- User Actions -->
-                    <div id="header-user-actions" class="flex items-center space-x-1 sm:space-x-2">
-                        <!-- This will be dynamically populated by js/app.js -->
+        <!-- Header - Polymarket Style -->
+        <header class="bg-white sticky top-0 border-b border-gray-200" style="z-index: 50000;">
+            <nav class="container mx-auto px-4 lg:px-8 h-14 flex justify-between items-center">
+                <!-- Logo + Navigation (왼쪽 정렬) -->
+                <div class="flex items-center space-x-8">
+                    <a href="index.html" class="flex items-center space-x-2">
+                        <img src="logo.png" alt="예겜 로고" class="h-7 w-auto" width="28" height="28">
+                        <span class="text-lg font-bold text-gray-900">예겜</span>
+                    </a>
+                    <div class="hidden md:flex items-center space-x-6 text-sm font-medium">
+                        <a href="issues.html" class="text-gray-900 font-semibold">이슈</a>
+                        <a href="minigames.html" class="text-gray-600 hover:text-gray-900 transition-colors">게임</a>
+                        <a href="discussions.html" class="text-gray-600 hover:text-gray-900 transition-colors">분석</a>
+                        <a href="tier_guide.html" class="text-gray-600 hover:text-gray-900 transition-colors">업적</a>
                     </div>
                 </div>
+                <div class="flex items-center space-x-2">
+                    <button id="header-search-btn" class="p-2 rounded-lg hover:bg-gray-100 transition-colors" aria-label="검색">
+                        <i data-lucide="search" class="w-5 h-5 text-gray-500"></i>
+                    </button>
+                    <div id="header-user-actions" class="flex items-center space-x-2"></div>
+                    <button id="mobile-menu-btn" class="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors" aria-label="메뉴">
+                        <i data-lucide="menu" class="w-5 h-5 text-gray-500"></i>
+                    </button>
+                </div>
             </nav>
-            
-            <!-- Search Overlay -->
-            <div id="search-overlay" class="hidden absolute top-full left-0 right-0 bg-white/95 backdrop-blur-sm border-b border-gray-200" style="z-index: 50002;">
+            <div id="search-overlay" class="hidden absolute top-full left-0 right-0 bg-white border-b border-gray-200" style="z-index: 50002;">
                 <div class="container mx-auto px-4 lg:px-8 py-4">
-                    <div class="max-w-2xl mx-auto">
-                        <div class="relative">
-                            <input type="text" id="header-search-input" class="block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base" placeholder="이슈 제목으로 검색하세요...">
-                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <i data-lucide="search" class="h-5 w-5 text-gray-400"></i>
-                            </div>
-                            <button id="search-close-btn" class="absolute inset-y-0 right-0 pr-3 flex items-center">
-                                <i data-lucide="x" class="h-5 w-5 text-gray-400 hover:text-gray-600"></i>
-                            </button>
+                    <div class="max-w-2xl mx-auto relative">
+                        <label for="header-search-input" class="sr-only">이슈 검색</label>
+                        <input type="text" id="header-search-input" class="block w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 text-base" placeholder="이슈 제목으로 검색하세요…" autocomplete="off">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i data-lucide="search" class="h-5 w-5 text-gray-400"></i>
                         </div>
-                        <!-- Search Results Container -->
-                        <div id="search-results" class="hidden mt-4 max-h-96 overflow-y-auto bg-white rounded-lg border border-gray-200 shadow-lg">
-                            <!-- Search results will be populated here -->
-                        </div>
+                        <button id="search-close-btn" class="absolute inset-y-0 right-0 pr-3 flex items-center" aria-label="검색 닫기">
+                            <i data-lucide="x" class="h-5 w-5 text-gray-400 hover:text-gray-600"></i>
+                        </button>
+                        <div id="search-results" class="hidden mt-4 max-h-96 overflow-y-auto bg-white rounded-lg border border-gray-200 shadow-lg"></div>
                     </div>
                 </div>
             </div>
-            
-            <!-- Mobile Navigation Menu -->
-            <div id="mobile-menu" class="hidden lg:hidden bg-white/95 backdrop-blur-sm border-t border-gray-200">
-                <div class="container mx-auto px-4 py-4 space-y-3">
-                    <a href="about.html" class="block px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
-                        <i data-lucide="info" class="w-4 h-4 inline mr-2"></i>예겜 소개
-                    </a>
-                    <a href="issues.html" class="block px-3 py-2 text-sm font-medium text-gray-900 bg-gray-50 rounded-md transition-colors">
-                        <i data-lucide="list" class="w-4 h-4 inline mr-2"></i>전체 이슈
-                    </a>
-                    <a href="minigames.html" class="block px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
-                        <i data-lucide="gamepad-2" class="w-4 h-4 inline mr-2"></i>미니게임방
+            <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-gray-100">
+                <div class="px-4 py-3 space-y-1">
+                    <a href="issues.html" class="block px-3 py-2.5 text-sm font-semibold text-gray-900 bg-gray-50 rounded-lg">이슈</a>
+                    <a href="minigames.html" class="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">게임</a>
+                    <a href="discussions.html" class="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">분석</a>
+                    <a href="tier_guide.html" class="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">업적</a>
+                    <a href="mypage.html" class="block px-3 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">내 정보</a>
                     </a>
                     <button id="mobile-issue-request-btn" class="hidden w-full text-left px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
                         <i data-lucide="plus-circle" class="w-4 h-4 inline mr-2"></i>이슈 신청
