@@ -41,12 +41,13 @@ function utcToDatetimeLocal(utcIsoString) {
     const koreaOffset = KOREA_OFFSET_HOURS * 60; // 분 단위
     const koreaTime = new Date(utcDate.getTime() + (koreaOffset * 60 * 1000));
     
+    // ⚠️ 중요: getUTCXxx() 사용해야 서버 타임존 이중 적용 방지
     // datetime-local 형식으로 변환 (YYYY-MM-DDTHH:MM)
-    const year = koreaTime.getFullYear();
-    const month = String(koreaTime.getMonth() + 1).padStart(2, '0');
-    const day = String(koreaTime.getDate()).padStart(2, '0');
-    const hours = String(koreaTime.getHours()).padStart(2, '0');
-    const minutes = String(koreaTime.getMinutes()).padStart(2, '0');
+    const year = koreaTime.getUTCFullYear();
+    const month = String(koreaTime.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(koreaTime.getUTCDate()).padStart(2, '0');
+    const hours = String(koreaTime.getUTCHours()).padStart(2, '0');
+    const minutes = String(koreaTime.getUTCMinutes()).padStart(2, '0');
     
     return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
