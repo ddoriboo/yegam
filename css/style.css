@@ -181,17 +181,18 @@ h1, h2, h3, h4, h5, h6 {
    Category Filter Buttons - Flat Style
    =========================================== */
 .category-filter-btn {
-    padding: 0.5rem 1rem;
-    border-radius: 9999px;
-    border: 1px solid var(--gray-300);
+    padding: 0.25rem 0.625rem;
+    border-radius: 6px;
+    border: 1px solid var(--gray-200);
     font-weight: 500;
-    font-size: 0.875rem;
+    font-size: 0.75rem;
     transition: all var(--transition);
     cursor: pointer;
     background: white;
     color: var(--gray-600);
     box-shadow: none;
     min-width: auto;
+    white-space: nowrap;
 }
 
 .category-filter-btn:hover {
