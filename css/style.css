@@ -968,21 +968,16 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--gray-900);
 }
 
-.balance-amount .coin-icon {
-    font-size: 1rem;
-}
-
 /* Betting slider container */
 .amount-slider-container {
     width: 100%;
-    padding: 0 0.25rem;
 }
 
 .slider-marks {
     display: flex;
     justify-content: space-between;
-    margin-top: 0.5rem;
-    font-size: 0.65rem;
+    margin-top: 0.25rem;
+    font-size: 0.7rem;
     color: var(--gray-400);
 }
 

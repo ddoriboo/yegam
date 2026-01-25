@@ -46,8 +46,7 @@ class BettingModal {
                         <div class="betting-balance">
                             <div class="balance-label">보유 GAM</div>
                             <div class="balance-amount">
-                                <div class="coin-icon">🪙</div>
-                                <span id="betting-balance-amount">0</span>
+                                <span id="betting-balance-amount">0</span> GAM
                             </div>
                         </div>
                         
@@ -67,9 +66,7 @@ class BettingModal {
                                        step="100">
                                 <div class="slider-marks">
                                     <span>100</span>
-                                    <span>1K</span>
-                                    <span>5K</span>
-                                    <span>10K+</span>
+                                    <span>MAX</span>
                                 </div>
                             </div>
                             
