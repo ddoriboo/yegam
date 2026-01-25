@@ -730,7 +730,7 @@ function renderPopularIssues() {
                      onclick="scrollToIssueInAllSection(${issue.id})">
                     <div class="flex-1 min-w-0 mr-4">
                         <h3 class="text-sm font-medium text-gray-900 truncate">${issue.title}</h3>
-                        <div class="text-xs text-gray-400 mt-0.5">${timeLeft}</div>
+                        <div class="text-xs text-gray-400 mt-0.5">${timeLeft} · ${formatEndDate(issue.end_date || issue.endDate)}</div>
                     </div>
                     <div class="flex items-center gap-3 flex-shrink-0">
                         <div class="text-right">
@@ -764,7 +764,7 @@ function renderPopularIssues() {
                 <div class="popular-issue-card bg-white rounded-lg border border-gray-200 p-3 hover:border-gray-300 transition-colors cursor-pointer"
                      data-issue-id="${issue.id}"
                      onclick="scrollToIssueInAllSection(${issue.id})">
-                    <div class="text-xs text-gray-400 mb-1">${timeLeft}</div>
+                    <div class="text-xs text-gray-400 mb-1">${timeLeft} · ${formatEndDate(issue.end_date || issue.endDate)}</div>
                     <h3 class="text-sm font-medium text-gray-900 mb-2 leading-tight line-clamp-2 min-h-[2.5rem]">
                         ${issue.title}
                     </h3>
@@ -1981,7 +1981,7 @@ function createIssueCard(issue) {
             <div class="flex items-center justify-between mb-2">
                 <div class="text-xs text-gray-400 flex items-center gap-1">
                     <i data-lucide="clock" class="w-3 h-3"></i>
-                    <span>${isClosed ? '종료됨' : timeLeft}</span>
+                    <span>${isClosed ? '종료됨' : `${timeLeft} · ${formatEndDate(issue.end_date || issue.endDate)}`}</span>
                 </div>
                 ${isClosed ? '<span class="text-xs px-2 py-0.5 bg-gray-200 text-gray-600 rounded">종료</span>' : ''}
             </div>
