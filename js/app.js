@@ -722,33 +722,32 @@ function renderPopularIssues() {
     if (listContainer) {
         listContainer.innerHTML = popularIssues.map((issue) => {
             const yesPrice = issue.yesPercentage || issue.yes_price || 50;
-            const noPrice = 100 - yesPrice;
             const volume = issue.total_volume || issue.totalVolume || 0;
+            const timeLeft = getTimeLeft(issue.end_date || issue.endDate);
             
             return `
-                <div class="popular-issue-item flex items-center justify-between p-3 hover:bg-gray-50 transition-colors cursor-pointer border-b border-gray-100 last:border-b-0" 
-                     data-issue-id="${issue.id}"
-                     onclick="window.location.href='issue.html?id=${issue.id}'">
+                <a href="issue.html?id=${issue.id}" class="popular-issue-item flex items-center justify-between p-3 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0">
                     <div class="flex-1 min-w-0 mr-4">
                         <h3 class="text-sm font-medium text-gray-900 truncate">${issue.title}</h3>
+                        <div class="text-xs text-gray-400 mt-0.5">${timeLeft}</div>
                     </div>
                     <div class="flex items-center gap-3 flex-shrink-0">
                         <div class="text-right">
                             <div class="text-lg font-bold text-gray-900">${yesPrice}%</div>
                             <div class="text-xs text-gray-400">${formatVolume(volume)} Vol.</div>
                         </div>
-                        <div class="flex gap-1">
-                            <button class="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded transition-colors"
-                                    onclick="event.stopPropagation(); placeBet(${issue.id}, 'Yes')">
+                        <div class="flex gap-1" onclick="event.preventDefault(); event.stopPropagation()">
+                            <button class="px-3 py-1.5 bg-emerald-400 hover:bg-emerald-500 text-white text-xs font-semibold rounded transition-colors"
+                                    onclick="placeBet(${issue.id}, 'Yes')">
                                 Yes
                             </button>
-                            <button class="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded transition-colors"
-                                    onclick="event.stopPropagation(); placeBet(${issue.id}, 'No')">
+                            <button class="px-3 py-1.5 bg-rose-400 hover:bg-rose-500 text-white text-xs font-semibold rounded transition-colors"
+                                    onclick="placeBet(${issue.id}, 'No')">
                                 No
                             </button>
                         </div>
                     </div>
-                </div>
+                </a>
             `;
         }).join('');
     }
@@ -757,29 +756,31 @@ function renderPopularIssues() {
     if (mobileContainer) {
         mobileContainer.innerHTML = popularIssues.map((issue) => {
             const yesPrice = issue.yesPercentage || issue.yes_price || 50;
-            const noPrice = 100 - yesPrice;
             const volume = issue.total_volume || issue.totalVolume || 0;
+            const timeLeft = getTimeLeft(issue.end_date || issue.endDate);
             
             return `
-                <div class="popular-issue-card bg-white rounded-lg border border-gray-200 p-3 cursor-pointer hover:border-gray-300 transition-colors"
-                     data-issue-id="${issue.id}"
-                     onclick="window.location.href='issue.html?id=${issue.id}'">
-                    <h3 class="text-sm font-medium text-gray-900 mb-2 leading-tight line-clamp-2 min-h-[2.5rem]">
-                        ${issue.title}
-                    </h3>
-                    <div class="flex items-baseline gap-1 mb-2">
+                <div class="popular-issue-card bg-white rounded-lg border border-gray-200 p-3 hover:border-gray-300 transition-colors"
+                     data-issue-id="${issue.id}">
+                    <a href="issue.html?id=${issue.id}" class="block">
+                        <div class="text-xs text-gray-400 mb-1">${timeLeft}</div>
+                        <h3 class="text-sm font-medium text-gray-900 mb-2 leading-tight line-clamp-2 min-h-[2.5rem] hover:text-blue-600 transition-colors">
+                            ${issue.title}
+                        </h3>
+                    </a>
+                    <div class="flex items-baseline gap-1 mb-1">
                         <span class="text-xl font-bold text-gray-900">${yesPrice}%</span>
                         <span class="text-xs text-gray-400">chance</span>
                     </div>
                     <div class="text-xs text-gray-400 mb-3">${formatVolume(volume)} Vol.</div>
-                    <div class="flex gap-2" onclick="event.stopPropagation()">
-                        <button class="flex-1 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded transition-colors"
+                    <div class="flex gap-2">
+                        <button class="flex-1 py-1.5 bg-emerald-400 hover:bg-emerald-500 text-white text-xs font-semibold rounded transition-colors"
                                 onclick="placeBet(${issue.id}, 'Yes')">
-                            Yes ${yesPrice}¢
+                            Yes
                         </button>
-                        <button class="flex-1 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded transition-colors"
+                        <button class="flex-1 py-1.5 bg-rose-400 hover:bg-rose-500 text-white text-xs font-semibold rounded transition-colors"
                                 onclick="placeBet(${issue.id}, 'No')">
-                            No ${noPrice}¢
+                            No
                         </button>
                     </div>
                 </div>
@@ -1970,42 +1971,57 @@ function createIssueCard(issue) {
     const noPrice = 100 - yesPrice;
     const volume = issue.total_volume || issue.totalVolume || 0;
     const isClosed = issue.status === 'closed' || new Date(issue.end_date || issue.endDate) <= new Date();
+    const timeLeft = getTimeLeft(issue.end_date || issue.endDate);
     
     return `
-        <div class="bg-white rounded-lg border border-gray-200 p-4 hover:border-gray-300 transition-colors cursor-pointer ${isClosed ? 'opacity-60' : ''}" 
-             data-id="${issue.id}"
-             onclick="window.location.href='issue.html?id=${issue.id}'">
+        <div class="bg-white rounded-lg border border-gray-200 p-4 hover:border-gray-300 transition-colors ${isClosed ? 'opacity-60' : ''}" 
+             data-id="${issue.id}">
             
-            <!-- Title -->
-            <h3 class="text-base font-semibold text-gray-900 mb-3 leading-snug line-clamp-2">
-                ${issue.title}
-            </h3>
-            
-            <!-- Main percentage -->
-            <div class="flex items-baseline gap-2 mb-3">
-                <span class="text-2xl font-bold text-gray-900">${yesPrice}%</span>
-                <span class="text-sm text-gray-500">chance</span>
+            <!-- Header: End date -->
+            <div class="flex items-center justify-between mb-2">
+                <div class="text-xs text-gray-400 flex items-center gap-1">
+                    <i data-lucide="clock" class="w-3 h-3"></i>
+                    <span>${isClosed ? '종료됨' : timeLeft}</span>
+                </div>
                 ${isClosed ? '<span class="text-xs px-2 py-0.5 bg-gray-200 text-gray-600 rounded">종료</span>' : ''}
             </div>
             
-            <!-- Volume -->
-            <div class="text-xs text-gray-400 mb-4">
-                ${formatVolume(volume)} GAM Vol.
+            <!-- Title (clickable) -->
+            <a href="issue.html?id=${issue.id}" class="block">
+                <h3 class="text-base font-semibold text-gray-900 mb-2 leading-snug line-clamp-2 hover:text-blue-600 transition-colors">
+                    ${issue.title}
+                </h3>
+            </a>
+            
+            <!-- Description -->
+            ${issue.description ? 
+                `<p class="text-sm text-gray-500 mb-3 line-clamp-2">${issue.description}</p>` : ''
+            }
+            
+            <!-- Main percentage + Volume -->
+            <div class="flex items-baseline justify-between mb-4">
+                <div class="flex items-baseline gap-2">
+                    <span class="text-2xl font-bold text-gray-900">${yesPrice}%</span>
+                    <span class="text-sm text-gray-400">chance</span>
+                </div>
+                <div class="text-xs text-gray-400">
+                    ${formatVolume(volume)} Vol.
+                </div>
             </div>
             
             <!-- YES/NO Buttons -->
-            <div class="flex gap-2" onclick="event.stopPropagation()">
+            <div class="flex gap-2">
                 ${isClosed ? 
                     `<div class="flex-1 bg-gray-100 text-gray-500 py-2 px-3 rounded-lg text-sm font-medium text-center">
                         종료됨
                     </div>` :
-                    `<button class="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors"
+                    `<button class="flex-1 bg-emerald-400 hover:bg-emerald-500 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors"
                             onclick="placeBet(${issue.id}, 'Yes')">
-                        Yes ${yesPrice}¢
+                        Yes
                     </button>
-                    <button class="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors"
+                    <button class="flex-1 bg-rose-400 hover:bg-rose-500 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors"
                             onclick="placeBet(${issue.id}, 'No')">
-                        No ${noPrice}¢
+                        No
                     </button>`
                 }
             </div>
