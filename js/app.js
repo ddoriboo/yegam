@@ -718,45 +718,34 @@ function renderPopularIssues() {
         return;
     }
     
-    // Render desktop version
+    // Polymarket-style: Render desktop version as list
     if (listContainer) {
-        listContainer.innerHTML = popularIssues.map((issue, index) => {
+        listContainer.innerHTML = popularIssues.map((issue) => {
             const yesPrice = issue.yesPercentage || issue.yes_price || 50;
-            const timeLeft = getTimeLeft(issue.end_date || issue.endDate);
+            const noPrice = 100 - yesPrice;
+            const volume = issue.total_volume || issue.totalVolume || 0;
             
             return `
-                <div class="popular-issue-item flex items-center justify-between p-4 hover:bg-gray-50 transition-colors cursor-pointer border-b border-gray-100 last:border-b-0" 
+                <div class="popular-issue-item flex items-center justify-between p-3 hover:bg-gray-50 transition-colors cursor-pointer border-b border-gray-100 last:border-b-0" 
                      data-issue-id="${issue.id}"
-                     onclick="scrollToIssueInAllSection(${issue.id})">
-                    <div class="flex items-center space-x-4 flex-1">
-                        <div class="flex-shrink-0 w-8 h-8 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center font-bold text-sm">
-                            ${index + 1}
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <div class="flex items-center space-x-2 mb-1">
-                                <span class="inline-block px-2 py-1 text-xs font-medium rounded" style="${getCategoryBadgeStyle(issue.category)}">
-                                    ${issue.category}
-                                </span>
-                                <div class="text-xs text-gray-500 flex items-center">
-                                    <i data-lucide="clock" class="w-3 h-3 mr-1 flex-shrink-0"></i>
-                                    <div class="flex flex-col leading-tight">
-                                        <span class="font-medium">${getTimeLeft(issue.end_date || issue.endDate)}</span>
-                                        <span class="text-gray-400 text-[9px]">${formatEndDate(issue.end_date || issue.endDate)}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <h3 class="text-sm font-medium text-gray-900 truncate">${issue.title}</h3>
-                        </div>
+                     onclick="window.location.href='issue.html?id=${issue.id}'">
+                    <div class="flex-1 min-w-0 mr-4">
+                        <h3 class="text-sm font-medium text-gray-900 truncate">${issue.title}</h3>
                     </div>
-                    <div class="flex items-center space-x-4 flex-shrink-0">
+                    <div class="flex items-center gap-3 flex-shrink-0">
                         <div class="text-right">
-                            <div class="text-sm font-bold text-green-600">Yes ${yesPrice}%</div>
-                            <div class="text-xs text-gray-500">${formatVolume(issue.total_volume || issue.totalVolume || 0)} GAM</div>
+                            <div class="text-lg font-bold text-gray-900">${yesPrice}%</div>
+                            <div class="text-xs text-gray-400">${formatVolume(volume)} Vol.</div>
                         </div>
-                        <div class="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
-                            <div class="h-full bg-gradient-to-r from-green-500 to-red-500 rounded-full relative">
-                                <div class="absolute top-0 w-1 h-full bg-white shadow-sm" style="left: ${yesPrice}%"></div>
-                            </div>
+                        <div class="flex gap-1">
+                            <button class="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded transition-colors"
+                                    onclick="event.stopPropagation(); placeBet(${issue.id}, 'Yes')">
+                                Yes
+                            </button>
+                            <button class="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded transition-colors"
+                                    onclick="event.stopPropagation(); placeBet(${issue.id}, 'No')">
+                                No
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -764,45 +753,34 @@ function renderPopularIssues() {
         }).join('');
     }
     
-    // Render mobile version
+    // Polymarket-style: Render mobile version as horizontal scroll cards
     if (mobileContainer) {
-        mobileContainer.innerHTML = popularIssues.map((issue, index) => {
+        mobileContainer.innerHTML = popularIssues.map((issue) => {
             const yesPrice = issue.yesPercentage || issue.yes_price || 50;
             const noPrice = 100 - yesPrice;
-            const timeLeft = getTimeLeft(issue.end_date || issue.endDate);
+            const volume = issue.total_volume || issue.totalVolume || 0;
             
             return `
-                <div class="popular-issue-card bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                <div class="popular-issue-card bg-white rounded-lg border border-gray-200 p-3 cursor-pointer hover:border-gray-300 transition-colors"
                      data-issue-id="${issue.id}"
-                     onclick="scrollToIssueInAllSection(${issue.id})">
-                    <div class="flex items-center justify-between mb-3">
-                        <span class="inline-block px-2 py-1 text-xs font-medium rounded" style="${getCategoryBadgeStyle(issue.category)}">
-                            ${issue.category}
-                        </span>
-                        <span class="text-xs text-gray-500 flex items-center">
-                            <i data-lucide="clock" class="w-3 h-3 mr-1"></i>
-                            ${timeLeft}
-                        </span>
-                    </div>
-                    <h3 class="text-sm font-semibold text-gray-900 mb-3 leading-tight line-clamp-2">
+                     onclick="window.location.href='issue.html?id=${issue.id}'">
+                    <h3 class="text-sm font-medium text-gray-900 mb-2 leading-tight line-clamp-2 min-h-[2.5rem]">
                         ${issue.title}
                     </h3>
-                    <div class="space-y-3">
-                        <div class="flex justify-between items-center">
-                            <span class="text-xs text-gray-600">예측 확률</span>
-                            <div class="flex items-center space-x-2">
-                                <span class="text-sm font-bold text-green-600">Yes ${yesPrice}%</span>
-                                <span class="text-sm font-bold text-red-600">No ${noPrice}%</span>
-                            </div>
-                        </div>
-                        <div class="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-                            <div class="h-full bg-gradient-to-r from-green-500 to-red-500 rounded-full relative">
-                                <div class="absolute top-0 w-1 h-full bg-white shadow-sm" style="left: ${yesPrice}%"></div>
-                            </div>
-                        </div>
-                        <div class="text-xs text-gray-500 text-center">
-                            참여량: ${formatVolume(issue.total_volume || issue.totalVolume || 0)} GAM
-                        </div>
+                    <div class="flex items-baseline gap-1 mb-2">
+                        <span class="text-xl font-bold text-gray-900">${yesPrice}%</span>
+                        <span class="text-xs text-gray-400">chance</span>
+                    </div>
+                    <div class="text-xs text-gray-400 mb-3">${formatVolume(volume)} Vol.</div>
+                    <div class="flex gap-2" onclick="event.stopPropagation()">
+                        <button class="flex-1 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-semibold rounded transition-colors"
+                                onclick="placeBet(${issue.id}, 'Yes')">
+                            Yes ${yesPrice}¢
+                        </button>
+                        <button class="flex-1 py-1.5 bg-red-500 hover:bg-red-600 text-white text-xs font-semibold rounded transition-colors"
+                                onclick="placeBet(${issue.id}, 'No')">
+                            No ${noPrice}¢
+                        </button>
                     </div>
                 </div>
             `;
@@ -1986,125 +1964,50 @@ async function loadAllBettingOdds() {
     await Promise.allSettled(promises);
 }
 
+// Polymarket-style issue card
 function createIssueCard(issue) {
     const yesPrice = issue.yesPercentage || issue.yes_price || 50;
     const noPrice = 100 - yesPrice;
-    const timeLeft = getTimeLeft(issue.end_date || issue.endDate);
     const volume = issue.total_volume || issue.totalVolume || 0;
     const isClosed = issue.status === 'closed' || new Date(issue.end_date || issue.endDate) <= new Date();
     
     return `
-        <div class="bg-white rounded-xl shadow-lg border border-gray-100 p-6 hover:shadow-xl transition-shadow ${isClosed ? 'opacity-75' : ''}" data-id="${issue.id}">
-            <div class="flex justify-between items-start mb-4">
-                <div class="flex items-center space-x-2">
-                    <span class="px-3 py-1 rounded-full text-xs font-medium" style="${getCategoryBadgeStyle(issue.category)}">
-                        ${issue.category}
-                    </span>
-                    ${isClosed ? '<span class="px-2 py-1 rounded-full text-xs font-medium bg-gray-500 text-white">종료됨</span>' : ''}
-                </div>
-                <div class="text-xs text-gray-500 flex items-center">
-                    <i data-lucide="clock" class="w-3 h-3 mr-1.5 flex-shrink-0"></i>
-                    <div class="flex flex-col leading-tight">
-                        <span class="font-medium">${isClosed ? '종료됨' : timeLeft}</span>
-                        <span class="text-gray-400 text-[10px]">${formatEndDate(issue.end_date || issue.endDate)}</span>
-                    </div>
-                </div>
-            </div>
+        <div class="bg-white rounded-lg border border-gray-200 p-4 hover:border-gray-300 transition-colors cursor-pointer ${isClosed ? 'opacity-60' : ''}" 
+             data-id="${issue.id}"
+             onclick="window.location.href='issue.html?id=${issue.id}'">
             
-            <h3 class="text-lg font-semibold text-gray-900 mb-4 leading-tight">
+            <!-- Title -->
+            <h3 class="text-base font-semibold text-gray-900 mb-3 leading-snug line-clamp-2">
                 ${issue.title}
             </h3>
             
-            ${issue.image_url || issue.imageUrl ? 
-                `<div class="mb-4">
-                    <img src="${issue.image_url || issue.imageUrl}" 
-                         alt="${issue.title}" 
-                         class="w-full h-48 object-cover rounded-lg border border-gray-200 shadow-sm"
-                         loading="lazy"
-                         onerror="this.style.display='none'">
-                </div>` : ''
-            }
-            
-            ${issue.description ? 
-                `<div class="mb-4 p-3 rounded-lg issue-description">
-                    <p class="text-sm text-gray-700 leading-relaxed">${issue.description}</p>
-                </div>` : ''
-            }
-            
-            <div class="flex justify-between items-center mb-3">
-                <div class="flex items-center space-x-2">
-                    <span class="text-sm font-medium text-green-600">Yes</span>
-                    <span class="text-lg font-bold text-green-600">${yesPrice}%</span>
-                </div>
-                <div class="flex items-center space-x-2">
-                    <span class="text-lg font-bold text-red-500">${noPrice}%</span>
-                    <span class="text-sm font-medium text-red-500">No</span>
-                </div>
+            <!-- Main percentage -->
+            <div class="flex items-baseline gap-2 mb-3">
+                <span class="text-2xl font-bold text-gray-900">${yesPrice}%</span>
+                <span class="text-sm text-gray-500">chance</span>
+                ${isClosed ? '<span class="text-xs px-2 py-0.5 bg-gray-200 text-gray-600 rounded">종료</span>' : ''}
             </div>
             
-            <!-- 배당률 표시 -->
-            <div class="betting-odds-display mb-3 p-2 bg-gray-50 rounded-lg" id="odds-${issue.id}">
-                <div class="flex justify-between items-center text-xs text-gray-600">
-                    <span>배당률 로딩중...</span>
-                    <i data-lucide="loader" class="w-3 h-3 animate-spin"></i>
-                </div>
+            <!-- Volume -->
+            <div class="text-xs text-gray-400 mb-4">
+                ${formatVolume(volume)} GAM Vol.
             </div>
             
-            <div class="relative mb-6">
-                <div class="w-full bg-gradient-to-r from-green-500 to-red-500 rounded-full h-2 mb-2">
-                    <div class="absolute top-[-2px] bg-white border-2 border-blue-500 rounded-full w-3 h-3" 
-                         style="left: calc(${yesPrice}% - 6px)"></div>
-                </div>
-            </div>
-            
-            <div class="flex space-x-3 mb-4">
+            <!-- YES/NO Buttons -->
+            <div class="flex gap-2" onclick="event.stopPropagation()">
                 ${isClosed ? 
-                    `<div class="flex-1 bg-gray-300 text-gray-600 py-2 px-4 rounded-lg font-medium text-center">
-                        이슈가 종료되었습니다
+                    `<div class="flex-1 bg-gray-100 text-gray-500 py-2 px-3 rounded-lg text-sm font-medium text-center">
+                        종료됨
                     </div>` :
-                    `<button class="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                    `<button class="flex-1 bg-green-500 hover:bg-green-600 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors"
                             onclick="placeBet(${issue.id}, 'Yes')">
-                        Yes ${yesPrice}%
+                        Yes ${yesPrice}¢
                     </button>
-                    <button class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg font-medium transition-colors"
+                    <button class="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors"
                             onclick="placeBet(${issue.id}, 'No')">
-                        No ${noPrice}%
+                        No ${noPrice}¢
                     </button>`
                 }
-            </div>
-            
-            <div class="pt-4 border-t border-gray-200">
-                <div class="flex justify-between items-center mb-2">
-                    <span class="text-sm text-gray-600">총 참여 GAM</span>
-                    <span class="font-semibold text-gray-900 flex items-center">
-                        <i data-lucide="coins" class="w-4 h-4 mr-1 text-yellow-500"></i>
-                        ${formatVolume(volume)}
-                    </span>
-                </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-sm text-gray-600">총 참여 인원</span>
-                    <span class="font-semibold text-gray-900 flex items-center">
-                        <i data-lucide="users" class="w-4 h-4 mr-1 text-blue-500"></i>
-                        ${(issue.participantCount || issue.participant_count || 0).toLocaleString()}명
-                    </span>
-                </div>
-            </div>
-            
-            <!-- Comments Section -->
-            <div class="pt-4 border-t border-gray-200 mt-4">
-                <button class="comments-toggle-btn w-full flex items-center justify-center space-x-2 p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors" data-issue-id="${issue.id}">
-                    <i data-lucide="message-circle" class="w-4 h-4 text-gray-600"></i>
-                    <span class="text-sm font-medium text-gray-700">토론 참여하기 <span class="text-xs text-gray-500">(${issue.commentCount || issue.comment_count || 0})</span></span>
-                    <i data-lucide="chevron-down" class="w-4 h-4 text-gray-400 transform transition-transform"></i>
-                </button>
-                <div class="comments-section hidden mt-4" data-issue-id="${issue.id}">
-                    <div class="comments-loading text-center py-4 text-gray-500">
-                        <i data-lucide="loader" class="w-5 h-5 animate-spin mx-auto mb-2"></i>
-                        <span>댓글을 불러오는 중...</span>
-                    </div>
-                    <div class="comments-container hidden"></div>
-                    <div class="comment-form-container hidden"></div>
-                </div>
             </div>
         </div>
     `;
