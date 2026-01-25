@@ -1,17 +1,17 @@
 const express = require('express');
 const router = express.Router();
-const { verifyToken } = require('../../middleware/auth');
-const db = require('../../db');
+const { authMiddleware } = require('../../middleware/auth');
 
 // 게임 히스토리 (메모리)
 let gameHistory = [];
 const MAX_HISTORY = 100;
 
 // 동전 던지기 플레이
-router.post('/play', verifyToken, async (req, res) => {
+router.post('/play', authMiddleware, async (req, res) => {
     try {
         const { betAmount, choice } = req.body;
         const userId = req.user.id;
+        const username = req.user.username;
         
         // 유효성 검사
         if (!betAmount || !choice) {
@@ -26,8 +26,10 @@ router.post('/play', verifyToken, async (req, res) => {
             return res.json({ success: false, message: '올바른 선택이 아닙니다' });
         }
         
+        const { query } = require('../../database/postgres');
+        
         // 사용자 잔액 확인
-        const userResult = await db.query(
+        const userResult = await query(
             'SELECT gam_balance FROM users WHERE id = $1',
             [userId]
         );
@@ -59,7 +61,7 @@ router.post('/play', verifyToken, async (req, res) => {
         }
         
         // 잔액 업데이트
-        await db.query(
+        await query(
             'UPDATE users SET gam_balance = $1 WHERE id = $2',
             [newBalance, userId]
         );
@@ -67,7 +69,6 @@ router.post('/play', verifyToken, async (req, res) => {
         // 히스토리에 추가
         gameHistory.unshift({
             gameId: Date.now(),
-            userId: userId,
             choice: choice,
             result: result,
             betAmount: betAmount,
@@ -82,19 +83,27 @@ router.post('/play', verifyToken, async (req, res) => {
         
         // GAM 트랜잭션 기록 (선택적)
         try {
-            const transactionType = won ? 'minigame_win' : 'minigame_loss';
-            const transactionAmount = won ? (payout - betAmount) : -betAmount;
+            const transactionType = won ? 'mint' : 'burn';
+            const transactionCategory = won ? 'minigame_win' : 'minigame_bet';
+            const transactionAmount = won ? payout : betAmount;
             
-            await db.query(
-                `INSERT INTO gam_transactions (user_id, amount, type, description)
-                 VALUES ($1, $2, $3, $4)`,
-                [userId, transactionAmount, transactionType, `동전던지기 ${won ? '승리' : '패배'} (${choice} vs ${result})`]
+            await query(
+                `INSERT INTO gam_transactions (user_id, type, category, amount, description, reference_id)
+                 VALUES ($1, $2, $3, $4, $5, $6)`,
+                [
+                    userId, 
+                    transactionType, 
+                    transactionCategory, 
+                    transactionAmount, 
+                    `동전던지기 ${won ? '승리' : '베팅'} (${choice} vs ${result})`,
+                    JSON.stringify({ gameType: 'coinflip', result, choice })
+                ]
             );
         } catch (txError) {
             console.warn('GAM 트랜잭션 기록 실패:', txError.message);
         }
         
-        console.log(`🪙 동전던지기: ${req.user.username} - ${choice} vs ${result}, ${won ? '승리' : '패배'}, ${won ? '+' : '-'}${betAmount} GAM`);
+        console.log(`🪙 동전던지기: ${username} - ${choice} vs ${result}, ${won ? '승리' : '패배'}, ${won ? '+' : '-'}${betAmount} GAM`);
         
         res.json({
             success: true,
