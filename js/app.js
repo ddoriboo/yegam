@@ -726,7 +726,8 @@ function renderPopularIssues() {
             const timeLeft = getTimeLeft(issue.end_date || issue.endDate);
             
             return `
-                <a href="issue.html?id=${issue.id}" class="popular-issue-item flex items-center justify-between p-3 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0">
+                <div class="popular-issue-item flex items-center justify-between p-3 hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-b-0 cursor-pointer"
+                     onclick="scrollToIssueInAllSection(${issue.id})">
                     <div class="flex-1 min-w-0 mr-4">
                         <h3 class="text-sm font-medium text-gray-900 truncate">${issue.title}</h3>
                         <div class="text-xs text-gray-400 mt-0.5">${timeLeft}</div>
@@ -736,7 +737,7 @@ function renderPopularIssues() {
                             <div class="text-lg font-bold text-gray-900">${yesPrice}%</div>
                             <div class="text-xs text-gray-400">${formatVolume(volume)} Vol.</div>
                         </div>
-                        <div class="flex gap-1" onclick="event.preventDefault(); event.stopPropagation()">
+                        <div class="flex gap-1" onclick="event.stopPropagation()">
                             <button class="px-3 py-1.5 bg-emerald-400 hover:bg-emerald-500 text-white text-xs font-semibold rounded transition-colors"
                                     onclick="placeBet(${issue.id}, 'Yes')">
                                 Yes
@@ -747,7 +748,7 @@ function renderPopularIssues() {
                             </button>
                         </div>
                     </div>
-                </a>
+                </div>
             `;
         }).join('');
     }
@@ -760,20 +761,19 @@ function renderPopularIssues() {
             const timeLeft = getTimeLeft(issue.end_date || issue.endDate);
             
             return `
-                <div class="popular-issue-card bg-white rounded-lg border border-gray-200 p-3 hover:border-gray-300 transition-colors"
-                     data-issue-id="${issue.id}">
-                    <a href="issue.html?id=${issue.id}" class="block">
-                        <div class="text-xs text-gray-400 mb-1">${timeLeft}</div>
-                        <h3 class="text-sm font-medium text-gray-900 mb-2 leading-tight line-clamp-2 min-h-[2.5rem] hover:text-blue-600 transition-colors">
-                            ${issue.title}
-                        </h3>
-                    </a>
+                <div class="popular-issue-card bg-white rounded-lg border border-gray-200 p-3 hover:border-gray-300 transition-colors cursor-pointer"
+                     data-issue-id="${issue.id}"
+                     onclick="scrollToIssueInAllSection(${issue.id})">
+                    <div class="text-xs text-gray-400 mb-1">${timeLeft}</div>
+                    <h3 class="text-sm font-medium text-gray-900 mb-2 leading-tight line-clamp-2 min-h-[2.5rem]">
+                        ${issue.title}
+                    </h3>
                     <div class="flex items-baseline gap-1 mb-1">
                         <span class="text-xl font-bold text-gray-900">${yesPrice}%</span>
                         <span class="text-xs text-gray-400">chance</span>
                     </div>
                     <div class="text-xs text-gray-400 mb-3">${formatVolume(volume)} Vol.</div>
-                    <div class="flex gap-2">
+                    <div class="flex gap-2" onclick="event.stopPropagation()">
                         <button class="flex-1 py-1.5 bg-emerald-400 hover:bg-emerald-500 text-white text-xs font-semibold rounded transition-colors"
                                 onclick="placeBet(${issue.id}, 'Yes')">
                             Yes
@@ -1988,22 +1988,22 @@ function createIssueCard(issue) {
             
             <!-- Title + Thumbnail -->
             <div class="flex gap-3 mb-3">
-                <a href="issue.html?id=${issue.id}" class="flex-1 min-w-0">
-                    <h3 class="text-base font-semibold text-gray-900 leading-snug line-clamp-2 hover:text-blue-600 transition-colors">
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-base font-semibold text-gray-900 leading-snug line-clamp-2">
                         ${issue.title}
                     </h3>
                     ${issue.description ? 
                         `<p class="text-sm text-gray-500 mt-1 line-clamp-2">${issue.description}</p>` : ''
                     }
-                </a>
+                </div>
                 ${issue.image_url || issue.imageUrl ? 
-                    `<a href="issue.html?id=${issue.id}" class="flex-shrink-0">
+                    `<div class="flex-shrink-0">
                         <img src="${issue.image_url || issue.imageUrl}" 
                              alt="" 
                              class="w-16 h-16 object-cover rounded-lg"
                              loading="lazy"
                              onerror="this.parentElement.style.display='none'">
-                    </a>` : ''
+                    </div>` : ''
                 }
             </div>
             
