@@ -13,100 +13,15 @@
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
     <style>
-        /* 분석방 카테고리 버튼 - 홈페이지와 동일한 스타일 */
-        .category-btn {
-            padding: 0.5rem 1rem;
-            border-radius: 50px;
-            border: 2px solid transparent;
-            font-weight: 600;
-            font-size: 0.75rem;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            color: white !important;
-        }
-        
-        .category-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-        }
-        
-        .category-btn.active {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-        }
-        
-        /* 카테고리별 스타일 - 홈페이지와 동일 */
-        .category-btn[data-category="all"] {
-            background: linear-gradient(135deg, #6366F1, #8B5CF6);
-        }
-        .category-btn[data-category="all"].active {
-            background: linear-gradient(135deg, #4F46E5, #7C3AED);
-        }
-        .category-btn[data-category="1"] {
-            background: linear-gradient(135deg, #6B7280, #9CA3AF);
-        }
-        .category-btn[data-category="1"].active {
-            background: linear-gradient(135deg, #4B5563, #6B7280);
-        }
-        .category-btn[data-category="2"] {
-            background: linear-gradient(135deg, #EF4444, #F87171);
-        }
-        .category-btn[data-category="2"].active {
-            background: linear-gradient(135deg, #DC2626, #EF4444);
-        }
-        .category-btn[data-category="3"] {
-            background: linear-gradient(135deg, #06B6D4, #67E8F9);
-        }
-        .category-btn[data-category="3"].active {
-            background: linear-gradient(135deg, #0891B2, #06B6D4);
-        }
-        .category-btn[data-category="4"] {
-            background: linear-gradient(135deg, #10B981, #34D399);
-        }
-        .category-btn[data-category="4"].active {
-            background: linear-gradient(135deg, #059669, #10B981);
-        }
-        .category-btn[data-category="5"] {
-            background: linear-gradient(135deg, #F59E0B, #FBBF24);
-        }
-        .category-btn[data-category="5"].active {
-            background: linear-gradient(135deg, #D97706, #F59E0B);
-        }
-        .category-btn[data-category="6"] {
-            background: linear-gradient(135deg, #8B5CF6, #A78BFA);
-        }
-        .category-btn[data-category="6"].active {
-            background: linear-gradient(135deg, #7C3AED, #8B5CF6);
-        }
-        .category-btn[data-category="7"] {
-            background: linear-gradient(135deg, #EC4899, #F472B6);
-        }
-        .category-btn[data-category="7"].active {
-            background: linear-gradient(135deg, #DB2777, #EC4899);
-        }
-        .category-btn[data-category="8"] {
-            background: linear-gradient(135deg, #3B82F6, #60A5FA);
-        }
-        .category-btn[data-category="8"].active {
-            background: linear-gradient(135deg, #2563EB, #3B82F6);
-        }
-        .category-btn[data-category="9"] {
-            background: linear-gradient(135deg, #4F46E5, #6366F1);
-        }
-        .category-btn[data-category="9"].active {
-            background: linear-gradient(135deg, #3730A3, #4F46E5);
-        }
-        
+        /* 분석방 추가 스타일 - 메인 CSS에서 처리하지 못한 부분 */
         .post-list-item:hover {
-            background-color: rgb(249, 250, 251);
+            background-color: #F9FAFB;
         }
+        
         .compact-spacing {
             padding: 0.75rem;
         }
+        
         @media (min-width: 768px) {
             .compact-spacing {
                 padding: 1rem;
@@ -125,7 +40,6 @@
         
         /* 모바일 UI 최적화 */
         @media (max-width: 767px) {
-            /* 카테고리 버튼 모바일 최적화 - index.html 스타일 적용 */
             #category-filter-mobile {
                 -webkit-overflow-scrolling: touch;
                 display: flex;
@@ -142,28 +56,18 @@
                 white-space: nowrap;
                 flex-shrink: 0;
                 min-width: fit-content;
-                padding: 8px 16px;
-                font-size: 0.875rem;
-                margin-right: 0;
             }
             
-            /* 스크롤바 완전 숨기기 */
             #category-filter-mobile::-webkit-scrollbar {
                 display: none;
             }
             
-            /* 컨트롤 영역 모바일 최적화 - 가로 한줄 배치 */
             .controls-top {
                 flex-direction: row !important;
                 justify-content: space-between !important;
                 align-items: center !important;
                 gap: 8px !important;
                 flex-wrap: nowrap !important;
-                margin-bottom: 12px !important;
-            }
-            
-            .controls-top > div:first-child {
-                flex-shrink: 0;
             }
             
             .controls-right {
@@ -176,12 +80,9 @@
                 justify-content: flex-end;
             }
             
-            /* 검색 입력 모바일 최적화 */
             #search-input {
                 width: 100px !important;
                 min-width: 80px !important;
-                font-size: 0.875rem !important;
-                padding: 6px 8px 6px 26px !important;
             }
             
             .controls-right .relative {
@@ -189,113 +90,12 @@
                 max-width: 120px;
             }
             
-            /* 검색 아이콘 위치 조정 */
-            .controls-right .relative i[data-lucide="search"] {
-                left: 8px !important;
-                width: 14px !important;
-                height: 14px !important;
-            }
-            
-            /* 개념글 버튼 모바일 최적화 */
-            #concept-posts-btn {
-                padding: 6px 10px !important;
-                font-size: 0.75rem !important;
-                white-space: nowrap;
-                min-width: fit-content;
-            }
-            
-            /* 정렬 선택 모바일 최적화 */
-            #sort-select {
-                padding: 6px 8px !important;
-                font-size: 0.75rem !important;
-                min-width: 60px !important;
-                max-width: 80px;
-            }
-            
-            /* 새글 버튼 모바일 최적화 */
-            #new-post-btn {
-                padding: 6px 12px !important;
-                font-size: 0.875rem !important;
-                white-space: nowrap;
-            }
-            
-            #new-post-btn i[data-lucide="plus"] {
-                width: 14px !important;
-                height: 14px !important;
-                margin-right: 4px !important;
-            }
-            
-            /* 카테고리 라벨 간격 조정 */
-            .md\\:hidden .flex.items-center.gap-2.mb-2 {
-                margin-bottom: 8px !important;
-            }
-            
-            /* 카테고리 라벨 텍스트 크기 조정 */
-            .md\\:hidden .text-sm.font-medium.text-gray-700 {
-                font-size: 0.75rem !important;
-            }
-            
-            /* 카테고리 컨테이너 패딩 조정 */
-            .compact-spacing {
-                padding: 8px !important;
-            }
-            
-            /* 버튼들 터치 친화적 크기 */
-            button {
-                min-height: 36px;
-                min-width: 36px;
-            }
-            
-            /* 게시글 목록 모바일 최적화 - 별도 레이아웃 */
-            /* 모바일에서는 JavaScript에서 완전히 다른 HTML 구조를 사용함 */
-            
-            /* 모달 모바일 최적화 */
             #post-modal .modal-content {
                 max-width: 95vw !important;
                 max-height: 95vh !important;
-                margin: 0 !important;
-            }
-            
-            #post-modal .p-6 {
-                padding: 1rem !important;
-            }
-            
-            /* 텍스트 크기 조정 */
-            .post-title {
-                font-size: 1.1rem !important;
-                line-height: 1.4 !important;
-            }
-            
-            .post-preview {
-                font-size: 0.9rem !important;
-                line-height: 1.4 !important;
-            }
-            
-            /* 간격 조정 */
-            .space-x-3 > * + * {
-                margin-left: 8px !important;
-            }
-            
-            .space-y-3 > * + * {
-                margin-top: 8px !important;
             }
         }
         
-        /* 가로 스크롤 힌트 */
-        @media (max-width: 767px) {
-            #category-filter::after {
-                content: '';
-                position: absolute;
-                right: 0;
-                top: 0;
-                bottom: 8px;
-                width: 20px;
-                background: linear-gradient(to right, transparent, white);
-                pointer-events: none;
-            }
-        }
-        
-        /* 모달 외부 클릭 방지 */
         .modal-content {
             pointer-events: auto;
         }
@@ -376,16 +176,16 @@
 
         <!-- Main Content -->
         <main class="flex-grow">
-            <!-- Hero Section - Compact -->
-            <section class="bg-gradient-to-br from-blue-50 to-indigo-100 border-b border-gray-200">
-                <div class="container mx-auto px-4 lg:px-8 py-4 md:py-6">
+            <!-- Hero Section - Clean -->
+            <section class="bg-white border-b border-gray-200">
+                <div class="container mx-auto px-4 lg:px-8 py-4">
                     <div class="text-center">
-                        <div class="flex items-center justify-center mb-2">
-                            <i data-lucide="message-circle" class="w-6 h-6 text-blue-600 mr-2"></i>
-                            <h1 class="text-xl md:text-2xl font-bold text-gray-900">분석방</h1>
+                        <div class="flex items-center justify-center mb-1">
+                            <i data-lucide="message-circle" class="w-5 h-5 text-blue-600 mr-2"></i>
+                            <h1 class="text-lg md:text-xl font-bold text-gray-900">분석방</h1>
                         </div>
-                        <p class="text-sm md:text-base text-gray-600">
-                            다양한 주제에 대해 심도있는 토론을 나누고, 서로의 관점을 공유해보세요
+                        <p class="text-sm text-gray-500">
+                            다양한 주제에 대해 토론하고 관점을 공유하세요
                         </p>
                     </div>
                 </div>
@@ -598,6 +398,28 @@
             </div>
         </div>
     </div>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="bottom-nav">
+        <div class="bottom-nav-inner">
+            <a href="index.html" class="bottom-nav-item">
+                <i data-lucide="home" class="w-6 h-6"></i>
+                <span>이슈</span>
+            </a>
+            <a href="minigames.html" class="bottom-nav-item">
+                <i data-lucide="gamepad-2" class="w-6 h-6"></i>
+                <span>게임</span>
+            </a>
+            <a href="discussions.html" class="bottom-nav-item active">
+                <i data-lucide="message-circle" class="w-6 h-6"></i>
+                <span>분석</span>
+            </a>
+            <a href="mypage.html" class="bottom-nav-item">
+                <i data-lucide="user" class="w-6 h-6"></i>
+                <span>MY</span>
+            </a>
+        </div>
+    </nav>
 
     <script src="utils/tierSystem.js"></script>
     <script src="js/animations/coin-explosion.js"></script>
