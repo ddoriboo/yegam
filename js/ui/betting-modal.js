@@ -273,6 +273,10 @@ class BettingModal {
             const data = await response.json();
             
             if (data.success || response.ok) {
+                // 버튼 상태 복원 (다음 베팅을 위해)
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = originalContent;
+                
                 // 성공 애니메이션 실행
                 this.close();
                 await this.showSuccessAnimation();
