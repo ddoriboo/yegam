@@ -165,23 +165,26 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--gray-600);
 }
 
-/* Category Colors - Subtle Tints */
+/* Category Colors - Polymarket Style (Neutral) */
 .category-badge[data-category="정치"],
-.category-badge.cat-정치 { background: #FEE2E2; color: #991B1B; }
+.category-badge.cat-정치,
 .category-badge[data-category="스포츠"],
-.category-badge.cat-스포츠 { background: #CFFAFE; color: #0E7490; }
+.category-badge.cat-스포츠,
 .category-badge[data-category="경제"],
-.category-badge.cat-경제 { background: #D1FAE5; color: #065F46; }
+.category-badge.cat-경제,
 .category-badge[data-category="코인"],
-.category-badge.cat-코인 { background: #FEF3C7; color: #92400E; }
+.category-badge.cat-코인,
 .category-badge[data-category="테크"],
-.category-badge.cat-테크 { background: #EDE9FE; color: #5B21B6; }
+.category-badge.cat-테크,
 .category-badge[data-category="엔터"],
-.category-badge.cat-엔터 { background: #FCE7F3; color: #9D174D; }
+.category-badge.cat-엔터,
 .category-badge[data-category="날씨"],
-.category-badge.cat-날씨 { background: #DBEAFE; color: #1E40AF; }
+.category-badge.cat-날씨,
 .category-badge[data-category="해외"],
-.category-badge.cat-해외 { background: #E0E7FF; color: #3730A3; }
+.category-badge.cat-해외 { 
+    background: var(--gray-100); 
+    color: var(--gray-600); 
+}
 
 /* ===========================================
    Category Filter Buttons - Flat Style
@@ -703,6 +706,8 @@ h1, h2, h3, h4, h5, h6 {
     overflow-y: hidden;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
+    margin: 0 -1rem;
+    padding: 0 1rem;
 }
 
 .category-scroll-container::-webkit-scrollbar {
@@ -716,6 +721,36 @@ h1, h2, h3, h4, h5, h6 {
 
 .scrollbar-hide::-webkit-scrollbar {
     display: none;
+}
+
+/* Category Filters Section - Horizontal Scroll */
+.category-filters-section {
+    width: 100%;
+    overflow: hidden;
+}
+
+.category-filters-desktop {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 4px;
+}
+
+.category-filters-desktop::-webkit-scrollbar {
+    display: none;
+}
+
+#category-filters {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+}
+
+#category-filters-mobile {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0.5rem;
+    width: max-content;
 }
 
 /* ===========================================
