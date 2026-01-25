@@ -6,6 +6,10 @@ const { authMiddleware } = require('../../middleware/auth');
 const bustabitRouter = require('./bustabit');
 router.use('/bustabit', bustabitRouter);
 
+// Coinflip 게임 라우트 추가
+const coinflipRouter = require('./coinflip');
+router.use('/coinflip', coinflipRouter);
+
 // 미니게임 통계 조회 (공개)
 router.get('/stats', async (req, res) => {
     const { gameType } = req.query;
