@@ -1986,28 +1986,26 @@ function createIssueCard(issue) {
                 ${isClosed ? '<span class="text-xs px-2 py-0.5 bg-gray-200 text-gray-600 rounded">종료</span>' : ''}
             </div>
             
-            <!-- Title (clickable) -->
-            <a href="issue.html?id=${issue.id}" class="block">
-                <h3 class="text-base font-semibold text-gray-900 mb-2 leading-snug line-clamp-2 hover:text-blue-600 transition-colors">
-                    ${issue.title}
-                </h3>
-            </a>
-            
-            <!-- Image (if exists) -->
-            ${issue.image_url || issue.imageUrl ? 
-                `<a href="issue.html?id=${issue.id}" class="block mb-3">
-                    <img src="${issue.image_url || issue.imageUrl}" 
-                         alt="${issue.title}" 
-                         class="w-full h-32 object-cover rounded-lg"
-                         loading="lazy"
-                         onerror="this.style.display='none'">
-                </a>` : ''
-            }
-            
-            <!-- Description -->
-            ${issue.description ? 
-                `<p class="text-sm text-gray-500 mb-3 line-clamp-2">${issue.description}</p>` : ''
-            }
+            <!-- Title + Thumbnail -->
+            <div class="flex gap-3 mb-3">
+                <a href="issue.html?id=${issue.id}" class="flex-1 min-w-0">
+                    <h3 class="text-base font-semibold text-gray-900 leading-snug line-clamp-2 hover:text-blue-600 transition-colors">
+                        ${issue.title}
+                    </h3>
+                    ${issue.description ? 
+                        `<p class="text-sm text-gray-500 mt-1 line-clamp-2">${issue.description}</p>` : ''
+                    }
+                </a>
+                ${issue.image_url || issue.imageUrl ? 
+                    `<a href="issue.html?id=${issue.id}" class="flex-shrink-0">
+                        <img src="${issue.image_url || issue.imageUrl}" 
+                             alt="" 
+                             class="w-16 h-16 object-cover rounded-lg"
+                             loading="lazy"
+                             onerror="this.parentElement.style.display='none'">
+                    </a>` : ''
+                }
+            </div>
             
             <!-- Main percentage + Volume -->
             <div class="flex items-baseline justify-between mb-4">
