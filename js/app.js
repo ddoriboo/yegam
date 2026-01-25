@@ -1993,6 +1993,17 @@ function createIssueCard(issue) {
                 </h3>
             </a>
             
+            <!-- Image (if exists) -->
+            ${issue.image_url || issue.imageUrl ? 
+                `<a href="issue.html?id=${issue.id}" class="block mb-3">
+                    <img src="${issue.image_url || issue.imageUrl}" 
+                         alt="${issue.title}" 
+                         class="w-full h-32 object-cover rounded-lg"
+                         loading="lazy"
+                         onerror="this.style.display='none'">
+                </a>` : ''
+            }
+            
             <!-- Description -->
             ${issue.description ? 
                 `<p class="text-sm text-gray-500 mb-3 line-clamp-2">${issue.description}</p>` : ''
