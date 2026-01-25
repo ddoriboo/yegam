@@ -48,12 +48,12 @@ class BustabitGame {
         }
         
         try {
-            const response = await fetch('/api/users/me', {
+            const response = await fetch('/api/auth/verify', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
-            if (data.success) {
-                this.userBalance = data.user.gamBalance || 0;
+            if (data.success && data.user) {
+                this.userBalance = data.user.gam_balance || 0;
                 this.updateBalanceDisplay();
             }
         } catch (error) {
@@ -365,12 +365,12 @@ class BustabitGame {
     async checkBalance() {
         try {
             const token = localStorage.getItem('yegame-token');
-            const response = await fetch('/api/users/me', {
+            const response = await fetch('/api/auth/verify', {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             const data = await response.json();
-            if (data.success) {
-                this.userBalance = data.user.gamBalance || 0;
+            if (data.success && data.user) {
+                this.userBalance = data.user.gam_balance || 0;
                 this.updateBalanceDisplay();
             }
         } catch (error) {
