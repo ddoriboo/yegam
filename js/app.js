@@ -768,9 +768,8 @@ function renderPopularIssues() {
                     <h3 class="text-sm font-medium text-gray-900 mb-2 leading-tight line-clamp-2 min-h-[2.5rem]">
                         ${issue.title}
                     </h3>
-                    <div class="flex items-baseline gap-1 mb-1">
+                    <div class="mb-1">
                         <span class="text-xl font-bold text-gray-900">${yesPrice}%</span>
-                        <span class="text-xs text-gray-400">chance</span>
                     </div>
                     <div class="text-xs text-gray-400 mb-3">${formatVolume(volume)} Vol.</div>
                     <div class="flex gap-2" onclick="event.stopPropagation()">
@@ -1974,7 +1973,7 @@ function createIssueCard(issue) {
     const timeLeft = getTimeLeft(issue.end_date || issue.endDate);
     
     return `
-        <div class="bg-white rounded-lg border border-gray-200 p-4 hover:border-gray-300 transition-colors ${isClosed ? 'opacity-60' : ''}" 
+        <div class="bg-white rounded-lg border border-gray-200 p-3 md:p-4 hover:border-gray-300 transition-colors ${isClosed ? 'opacity-60' : ''}" 
              data-id="${issue.id}">
             
             <!-- Header: End date -->
@@ -1989,7 +1988,7 @@ function createIssueCard(issue) {
             <!-- Title + Thumbnail -->
             <div class="flex gap-3 mb-3">
                 <div class="flex-1 min-w-0">
-                    <h3 class="text-base font-semibold text-gray-900 leading-snug line-clamp-2">
+                    <h3 class="text-sm md:text-base font-semibold text-gray-900 leading-snug line-clamp-2">
                         ${issue.title}
                     </h3>
                     ${issue.description ? 
@@ -2008,27 +2007,22 @@ function createIssueCard(issue) {
             </div>
             
             <!-- Main percentage + Volume -->
-            <div class="flex items-baseline justify-between mb-4">
-                <div class="flex items-baseline gap-2">
-                    <span class="text-2xl font-bold text-gray-900">${yesPrice}%</span>
-                    <span class="text-sm text-gray-400">chance</span>
-                </div>
-                <div class="text-xs text-gray-400">
-                    ${formatVolume(volume)} Vol.
-                </div>
+            <div class="flex items-baseline justify-between mb-3">
+                <span class="text-xl font-bold text-gray-900">${yesPrice}%</span>
+                <span class="text-xs text-gray-400">${formatVolume(volume)} Vol.</span>
             </div>
             
             <!-- YES/NO Buttons -->
             <div class="flex gap-2">
                 ${isClosed ? 
-                    `<div class="flex-1 bg-gray-100 text-gray-500 py-2 px-3 rounded-lg text-sm font-medium text-center">
+                    `<div class="flex-1 bg-gray-100 text-gray-500 py-1.5 px-3 rounded-lg text-xs font-medium text-center">
                         종료됨
                     </div>` :
-                    `<button class="flex-1 bg-emerald-400 hover:bg-emerald-500 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors"
+                    `<button class="flex-1 bg-emerald-400 hover:bg-emerald-500 text-white py-1.5 px-3 rounded-lg text-xs font-semibold transition-colors"
                             onclick="placeBet(${issue.id}, 'Yes')">
                         Yes
                     </button>
-                    <button class="flex-1 bg-rose-400 hover:bg-rose-500 text-white py-2 px-3 rounded-lg text-sm font-semibold transition-colors"
+                    <button class="flex-1 bg-rose-400 hover:bg-rose-500 text-white py-1.5 px-3 rounded-lg text-xs font-semibold transition-colors"
                             onclick="placeBet(${issue.id}, 'No')">
                         No
                     </button>`
@@ -3477,16 +3471,12 @@ function formatEndDate(endDate) {
     const date = new Date(endDate);
     if (isNaN(date.getTime())) return '';
     
-    // 한국 시간대로 표시
-    return date.toLocaleDateString('ko-KR', {
-        year: 'numeric',
-        month: '2-digit', 
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: false,
-        timeZone: 'Asia/Seoul'
-    }).replace(/\. /g, '.').replace(/\.$/, '').replace(/ /g, ' ');
+    // 짧은 포맷: M/D HH:mm
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${month}/${day} ${hours}:${minutes}`;
 }
 
 function formatVolume(volume) {
