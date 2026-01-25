@@ -59,148 +59,57 @@
 
         <!-- Main Content -->
         <main class="flex-grow">
-            <!-- Hero Section - Clean -->
-            <section class="bg-white border-b border-gray-200 py-6 lg:py-8">
-                <div class="container mx-auto px-4 lg:px-8">
-                    <div class="max-w-4xl mx-auto text-center">
-                        <div class="flex items-center justify-center mb-4">
-                            <i data-lucide="gamepad-2" class="w-8 h-8 text-blue-600 mr-3"></i>
-                            <h1 class="text-2xl lg:text-3xl font-bold text-gray-900">미니게임방</h1>
-                        </div>
-                        <p class="text-gray-600 mb-6">GAM으로 즐기는 다양한 베팅 게임</p>
-                        <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                            <div class="grid md:grid-cols-3 gap-4">
-                                <div class="text-center">
-                                    <div class="text-2xl mb-2">📈</div>
-                                    <h3 class="font-medium text-gray-900 text-sm mb-1">실시간 게임</h3>
-                                    <p class="text-xs text-gray-500">스릴 넘치는 게임</p>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-2xl mb-2">💰</div>
-                                    <h3 class="font-medium text-gray-900 text-sm mb-1">GAM 베팅</h3>
-                                    <p class="text-xs text-gray-500">가상화폐 베팅</p>
-                                </div>
-                                <div class="text-center">
-                                    <div class="text-2xl mb-2">🎯</div>
-                                    <h3 class="font-medium text-gray-900 text-sm mb-1">공정한 게임</h3>
-                                    <p class="text-xs text-gray-500">검증 가능한 시스템</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
             <!-- Games Section -->
-            <section class="py-8 lg:py-12 bg-gray-50">
+            <section class="py-8 lg:py-12">
                 <div class="container mx-auto px-4 lg:px-8">
-                    <div class="max-w-6xl mx-auto">
-                        <h2 class="text-3xl lg:text-4xl font-bold text-center text-gray-900 mb-16">
-                            게임 목록
-                        </h2>
+                    <div class="max-w-2xl mx-auto">
                         
-                        <!-- Game Cards Grid -->
-                        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8" id="games-grid">
-                            
-                            <!-- Bustabit Game Card -->
-                            <div class="game-card bg-white rounded-lg border border-gray-200 overflow-hidden" data-game="bustabit">
-                                <div class="game-card-header bg-red-500 p-4 text-white">
-                                    <div class="flex items-center justify-between">
-                                        <div>
-                                            <h3 class="text-xl font-bold mb-1">🚀 Bustabit</h3>
-                                            <p class="text-red-100 text-sm">그래프 게임</p>
-                                        </div>
-                                        <div class="text-right">
-                                            <div class="text-xs text-red-100">현재 플레이어</div>
-                                            <div class="text-xl font-bold" id="bustabit-players">-</div>
-                                        </div>
+                        <!-- Bustabit Game Card - Featured -->
+                        <div class="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm" data-game="bustabit">
+                            <div class="p-6 lg:p-8">
+                                <div class="flex items-start justify-between mb-4">
+                                    <div>
+                                        <h1 class="text-2xl lg:text-3xl font-bold text-gray-900 mb-2">Bustabit</h1>
+                                        <p class="text-gray-500">실시간 배수 그래프 게임</p>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-xs text-gray-400 mb-1">현재 플레이어</div>
+                                        <div class="text-xl font-bold text-gray-900" id="bustabit-players">-</div>
                                     </div>
                                 </div>
-                                <div class="p-4">
-                                    <p class="text-gray-600 text-sm mb-4">
-                                        실시간으로 증가하는 배수에서 언제 캐시아웃할지 결정하는 게임입니다.
-                                    </p>
-                                    <div class="flex items-center justify-between mb-4 text-xs text-gray-500">
-                                        <span>최소: <span class="font-semibold text-gray-700">10 GAM</span></span>
-                                        <span>최대: <span class="font-semibold text-gray-700">10,000 GAM</span></span>
-                                    </div>
-                                    <button class="game-play-btn w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors" data-game="bustabit">
-                                        플레이하기
-                                    </button>
+                                
+                                <p class="text-gray-600 mb-6">
+                                    배수가 올라가는 그래프를 보며 적절한 타이밍에 캐시아웃하세요. 
+                                    언제 터질지 모르는 스릴!
+                                </p>
+                                
+                                <div class="flex items-center gap-4 mb-6 text-sm text-gray-500">
+                                    <span>최소 <span class="font-medium text-gray-700">10 GAM</span></span>
+                                    <span class="text-gray-300">|</span>
+                                    <span>최대 <span class="font-medium text-gray-700">10,000 GAM</span></span>
                                 </div>
+                                
+                                <button class="game-play-btn w-full bg-gray-900 hover:bg-gray-800 text-white font-semibold py-3 px-6 rounded-lg transition-colors" data-game="bustabit">
+                                    플레이하기
+                                </button>
                             </div>
-
-                            <!-- Coming Soon Games -->
-                            <div class="game-card bg-white rounded-lg border border-gray-200 overflow-hidden opacity-60" data-game="monster">
-                                <div class="game-card-header bg-green-500 p-4 text-white">
-                                    <div class="flex items-center justify-between">
-                                        <div>
-                                            <h3 class="text-xl font-bold mb-1">🐉 몬스터 강화</h3>
-                                            <p class="text-green-100 text-sm">강화 게임</p>
-                                        </div>
-                                        <div class="text-right">
-                                            <div class="text-xs text-green-100">출시 예정</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="p-4">
-                                    <p class="text-gray-600 text-sm mb-4">
-                                        몬스터를 강화하여 더 강력하게 만드는 게임입니다.
-                                    </p>
-                                    <button class="w-full bg-gray-300 text-gray-500 font-semibold py-2.5 px-4 rounded-lg cursor-not-allowed" disabled>
-                                        준비 중
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="game-card bg-white rounded-lg border border-gray-200 overflow-hidden opacity-60" data-game="slots">
-                                <div class="game-card-header bg-purple-500 p-4 text-white">
-                                    <div class="flex items-center justify-between">
-                                        <div>
-                                            <h3 class="text-xl font-bold mb-1">🎰 슬롯머신</h3>
-                                            <p class="text-purple-100 text-sm">운빨 게임</p>
-                                        </div>
-                                        <div class="text-right">
-                                            <div class="text-xs text-purple-100">출시 예정</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="p-4">
-                                    <p class="text-gray-600 text-sm mb-4">
-                                        클래식한 슬롯머신 게임으로 행운을 시험해보세요!
-                                    </p>
-                                    <button class="w-full bg-gray-300 text-gray-500 font-semibold py-2.5 px-4 rounded-lg cursor-not-allowed" disabled>
-                                        준비 중
-                                    </button>
-                                </div>
-                            </div>
-
                         </div>
                         
-                        <!-- Game Rules Section -->
-                        <div class="mt-16 bg-gray-50 rounded-2xl p-8">
-                            <h3 class="text-2xl font-bold text-gray-900 mb-6">게임 이용 안내</h3>
-                            <div class="grid md:grid-cols-2 gap-6 text-sm text-gray-600">
-                                <div>
-                                    <h4 class="font-semibold text-gray-900 mb-2">📋 기본 규칙</h4>
-                                    <ul class="space-y-1">
-                                        <li>• GAM으로만 베팅 가능</li>
-                                        <li>• 최소 베팅: 10 GAM</li>
-                                        <li>• 최대 베팅: 10,000 GAM</li>
-                                        <li>• 게임 결과는 즉시 반영</li>
-                                    </ul>
-                                </div>
-                                <div>
-                                    <h4 class="font-semibold text-gray-900 mb-2">⚠️ 주의사항</h4>
-                                    <ul class="space-y-1">
-                                        <li>• 도박이 아닌 게임입니다</li>
-                                        <li>• GAM은 현금 환전 불가</li>
-                                        <li>• 책임감 있는 게임 플레이</li>
-                                        <li>• 중독 방지를 위한 적절한 휴식</li>
-                                    </ul>
-                                </div>
+                        <!-- Game Rules - Compact -->
+                        <div class="mt-8 p-6 bg-gray-50 rounded-xl border border-gray-100">
+                            <h3 class="font-semibold text-gray-900 mb-4">이용 안내</h3>
+                            <div class="grid grid-cols-2 gap-4 text-sm text-gray-600">
+                                <ul class="space-y-2">
+                                    <li>• GAM으로만 베팅</li>
+                                    <li>• 결과 즉시 반영</li>
+                                </ul>
+                                <ul class="space-y-2">
+                                    <li>• GAM 현금 환전 불가</li>
+                                    <li>• 도박이 아닌 게임</li>
+                                </ul>
                             </div>
                         </div>
+                        
                     </div>
                 </div>
             </section>
