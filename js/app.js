@@ -514,17 +514,17 @@ function setupCategoryFilters() {
     const filtersContainer = document.getElementById('category-filters');
     const mobileFiltersContainer = document.getElementById('category-filters-mobile');
     
-    // Define all categories with their colors
+    // Polymarket Style - Neutral colors for all categories
     const categoryColors = {
-        '전체': 'background: linear-gradient(135deg, #6B7280, #9CA3AF); color: white;',
-        '정치': 'background: linear-gradient(135deg, #EF4444, #F87171); color: white;',
-        '스포츠': 'background: linear-gradient(135deg, #06B6D4, #67E8F9); color: white;',
-        '경제': 'background: linear-gradient(135deg, #10B981, #34D399); color: white;',
-        '코인': 'background: linear-gradient(135deg, #F59E0B, #FBBF24); color: white;',
-        '테크': 'background: linear-gradient(135deg, #8B5CF6, #A78BFA); color: white;',
-        '엔터': 'background: linear-gradient(135deg, #EC4899, #F472B6); color: white;',
-        '날씨': 'background: linear-gradient(135deg, #3B82F6, #60A5FA); color: white;',
-        '해외': 'background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white;'
+        '전체': 'background: #F3F4F6; color: #4B5563;',
+        '정치': 'background: #F3F4F6; color: #4B5563;',
+        '스포츠': 'background: #F3F4F6; color: #4B5563;',
+        '경제': 'background: #F3F4F6; color: #4B5563;',
+        '코인': 'background: #F3F4F6; color: #4B5563;',
+        '테크': 'background: #F3F4F6; color: #4B5563;',
+        '엔터': 'background: #F3F4F6; color: #4B5563;',
+        '날씨': 'background: #F3F4F6; color: #4B5563;',
+        '해외': 'background: #F3F4F6; color: #4B5563;'
     };
     
     const categories = ['전체', '정치', '스포츠', '경제', '코인', '테크', '엔터', '날씨', '해외'];
@@ -937,20 +937,9 @@ function debounce(func, wait) {
     };
 }
 
-// Get category badge style
+// Get category badge style - Polymarket Style (Neutral)
 function getCategoryBadgeStyle(category) {
-    const categoryColors = {
-        '정치': 'background: linear-gradient(135deg, #EF4444, #F87171); color: white;',
-        '스포츠': 'background: linear-gradient(135deg, #06B6D4, #67E8F9); color: white;',
-        '경제': 'background: linear-gradient(135deg, #10B981, #34D399); color: white;',
-        '코인': 'background: linear-gradient(135deg, #F59E0B, #FBBF24); color: white;',
-        '테크': 'background: linear-gradient(135deg, #8B5CF6, #A78BFA); color: white;',
-        '엔터': 'background: linear-gradient(135deg, #EC4899, #F472B6); color: white;',
-        '날씨': 'background: linear-gradient(135deg, #3B82F6, #60A5FA); color: white;',
-        '해외': 'background: linear-gradient(135deg, #6366F1, #8B5CF6); color: white;'
-    };
-    
-    return categoryColors[category] || 'background: linear-gradient(135deg, #6B7280, #9CA3AF); color: white;';
+    return 'background: #F3F4F6; color: #4B5563;';
 }
 
 // Scroll to issue in all section
