@@ -23,9 +23,6 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     
-    <!-- Kakao SDK -->
-    <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.6.0/kakao.min.js"></script>
-    
     <style>
         .betting-bar {
             height: 8px;
@@ -318,11 +315,9 @@
                     <!-- Share Section (맨 아래) -->
                     <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                         <h2 class="text-base font-bold text-gray-900 mb-3 text-center">공유하기</h2>
-                        <div class="flex justify-center gap-4">
-                            <button onclick="shareKakao()" class="share-btn bg-yellow-400 hover:bg-yellow-500" title="카카오톡 공유">
-                                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="#3C1E1E">
-                                    <path d="M12 3C6.48 3 2 6.48 2 10.5c0 2.55 1.67 4.8 4.18 6.11-.18.64-.66 2.31-.76 2.67-.12.45.17.44.35.32.14-.1 2.19-1.48 3.08-2.08.37.05.75.08 1.15.08 5.52 0 10-3.48 10-7.5S17.52 3 12 3z"/>
-                                </svg>
+                        <div class="flex justify-center gap-3">
+                            <button onclick="shareNative()" class="share-btn bg-blue-500 hover:bg-blue-600 text-white" title="공유하기">
+                                <i data-lucide="share-2" class="w-5 h-5"></i>
                             </button>
                             <button onclick="shareTwitter()" class="share-btn bg-black hover:bg-gray-800 text-white" title="X(트위터) 공유">
                                 <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
@@ -753,33 +748,25 @@
             }
         }
         
-        // 공유 - 카카오
-        function shareKakao() {
-            if (!Kakao.isInitialized()) {
-                // 카카오 앱키가 필요합니다
-                showToast('카카오 공유 설정 중입니다');
-                return;
-            }
+        // 공유 - 네이티브 (모바일: 기기 공유 메뉴 / 데스크톱: 링크 복사)
+        async function shareNative() {
+            const shareData = {
+                title: currentIssue.title,
+                text: `${currentIssue.title}\n\nYES ${currentIssue.yesRatio}% vs NO ${currentIssue.noRatio}%\n\n예겜에서 예측 참여하기!`,
+                url: window.location.href
+            };
             
-            Kakao.Share.sendDefault({
-                objectType: 'feed',
-                content: {
-                    title: currentIssue.title,
-                    description: `YES ${currentIssue.yesRatio}% vs NO ${currentIssue.noRatio}%`,
-                    imageUrl: currentIssue.image_url || 'https://yegam.ai.kr/logo.png',
-                    link: {
-                        webUrl: window.location.href,
-                        mobileWebUrl: window.location.href
+            if (navigator.share) {
+                try {
+                    await navigator.share(shareData);
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        copyLink();
                     }
-                },
-                buttons: [{
-                    title: '예측 참여하기',
-                    link: {
-                        webUrl: window.location.href,
-                        mobileWebUrl: window.location.href
-                    }
-                }]
-            });
+                }
+            } else {
+                copyLink();
+            }
         }
         
         // 공유 - 트위터
