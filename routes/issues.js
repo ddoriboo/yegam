@@ -187,24 +187,129 @@ router.get('/:id/betting-stats', async (req, res) => {
     }
 });
 
-// 특정 이슈 조회
+// 특정 이슈 상세 조회 (상세 페이지용)
 router.get('/:id', async (req, res) => {
     try {
         const issueId = req.params.id;
-        const issue = await get('SELECT * FROM issues WHERE id = $1 AND status = $2', [issueId, 'active']);
         
-        if (!issue) {
+        // 이슈 기본 정보 + 통계 조회 (deleted 제외한 모든 상태)
+        const issueResult = await get(`
+            SELECT 
+                i.*,
+                COALESCE(c.comment_count, 0) as comment_count,
+                COALESCE(b.participant_count, 0) as participant_count,
+                COALESCE(b.total_volume, 0) as total_volume,
+                COALESCE(b.yes_amount, 0) as yes_amount,
+                COALESCE(b.no_amount, 0) as no_amount
+            FROM issues i
+            LEFT JOIN (
+                SELECT issue_id, COUNT(*) as comment_count
+                FROM comments
+                GROUP BY issue_id
+            ) c ON i.id = c.issue_id
+            LEFT JOIN (
+                SELECT issue_id, 
+                       COUNT(DISTINCT user_id) as participant_count,
+                       SUM(amount) as total_volume,
+                       SUM(CASE WHEN choice = 'Yes' THEN amount ELSE 0 END) as yes_amount,
+                       SUM(CASE WHEN choice = 'No' THEN amount ELSE 0 END) as no_amount
+                FROM bets
+                GROUP BY issue_id
+            ) b ON i.id = b.issue_id
+            WHERE i.id = $1 AND i.status != 'deleted'
+        `, [issueId]);
+        
+        if (!issueResult) {
             return res.status(404).json({ 
                 success: false, 
                 message: '존재하지 않는 이슈입니다.' 
             });
         }
         
+        // YES/NO 비율 계산
+        const totalAmount = parseInt(issueResult.yes_amount) + parseInt(issueResult.no_amount);
+        const yesRatio = totalAmount > 0 ? Math.round((parseInt(issueResult.yes_amount) / totalAmount) * 100) : 50;
+        const noRatio = totalAmount > 0 ? 100 - yesRatio : 50;
+        
+        // 배당률 계산 (수수료 2%)
+        const houseEdge = 0.02;
+        const effectivePool = totalAmount * (1 - houseEdge);
+        let yesOdds = 2.0, noOdds = 2.0;
+        
+        if (totalAmount > 0) {
+            if (parseInt(issueResult.yes_amount) > 0 && parseInt(issueResult.no_amount) > 0) {
+                yesOdds = Math.max(1.01, Math.min(50.0, effectivePool / parseInt(issueResult.yes_amount)));
+                noOdds = Math.max(1.01, Math.min(50.0, effectivePool / parseInt(issueResult.no_amount)));
+            } else if (parseInt(issueResult.yes_amount) === 0) {
+                yesOdds = 50.0;
+                noOdds = 1.01;
+            } else {
+                yesOdds = 1.01;
+                noOdds = 50.0;
+            }
+        }
+        
+        // 이슈 실제 상태 판단 (마감 시간 기준)
+        const now = new Date();
+        const endDate = new Date(issueResult.end_date);
+        let effectiveStatus = issueResult.status;
+        if (issueResult.status === 'active' && endDate < now) {
+            effectiveStatus = 'closed'; // 마감 시간 지났으면 closed 처리
+        }
+        
+        // 로그인한 유저의 베팅 정보 조회
+        let myBet = null;
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            try {
+                const token = authHeader.split(' ')[1];
+                const jwt = require('jsonwebtoken');
+                const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+                const userId = decoded.userId;
+                
+                const betResult = await get(`
+                    SELECT choice, SUM(amount) as total_amount
+                    FROM bets 
+                    WHERE issue_id = $1 AND user_id = $2
+                    GROUP BY choice
+                `, [issueId, userId]);
+                
+                if (betResult) {
+                    myBet = {
+                        choice: betResult.choice,
+                        amount: parseInt(betResult.total_amount)
+                    };
+                }
+            } catch (e) {
+                // 토큰 검증 실패 - 무시 (비로그인으로 처리)
+            }
+        }
+        
         res.json({
             success: true,
             issue: {
-                ...issue,
-                isPopular: Boolean(issue.is_popular)
+                id: issueResult.id,
+                title: issueResult.title,
+                category: issueResult.category,
+                description: issueResult.description,
+                image_url: issueResult.image_url,
+                end_date: issueResult.end_date ? new Date(issueResult.end_date).toISOString() : null,
+                status: effectiveStatus,
+                result: issueResult.result, // 'yes', 'no', null
+                isPopular: Boolean(issueResult.is_popular),
+                created_at: issueResult.created_at,
+                // 통계
+                commentCount: parseInt(issueResult.comment_count) || 0,
+                participantCount: parseInt(issueResult.participant_count) || 0,
+                totalVolume: parseInt(issueResult.total_volume) || 0,
+                yesAmount: parseInt(issueResult.yes_amount) || 0,
+                noAmount: parseInt(issueResult.no_amount) || 0,
+                yesRatio,
+                noRatio,
+                yesOdds: Math.round(yesOdds * 100) / 100,
+                noOdds: Math.round(noOdds * 100) / 100,
+                // 내 베팅
+                myBet
             }
         });
     } catch (error) {

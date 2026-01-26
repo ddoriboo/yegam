@@ -869,6 +869,19 @@ function renderAllIssues(append = false) {
         lucide.createIcons();
     }
     
+    // 카드 클릭 시 상세 페이지로 이동 (버튼 클릭 제외)
+    grid.querySelectorAll('[data-id]').forEach(card => {
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', (e) => {
+            // 버튼 클릭은 무시 (베팅 버튼)
+            if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+                return;
+            }
+            const issueId = card.getAttribute('data-id');
+            goToIssueDetail(issueId);
+        });
+    });
+    
     // 이슈 렌더링 후 배당률 로드
     setTimeout(() => {
         loadAllBettingOdds();
@@ -3819,6 +3832,19 @@ function renderAllIssuesOnPage() {
         lucide.createIcons();
     }
     
+    // 카드 클릭 시 상세 페이지로 이동 (버튼 클릭 제외)
+    grid.querySelectorAll('[data-id]').forEach(card => {
+        card.style.cursor = 'pointer';
+        card.addEventListener('click', (e) => {
+            // 버튼 클릭은 무시 (베팅 버튼)
+            if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+                return;
+            }
+            const issueId = card.getAttribute('data-id');
+            goToIssueDetail(issueId);
+        });
+    });
+    
     // 이슈 렌더링 후 배당률 로드
     setTimeout(() => {
         loadAllBettingOdds();
@@ -4632,6 +4658,12 @@ function addSchedulerLog(message, type = 'info') {
 window.initIssuesPage = initIssuesPage;
 window.renderAllIssuesOnPage = renderAllIssuesOnPage;
 window.initHomePage = initHomePage;
+
+// 이슈 상세 페이지로 이동
+function goToIssueDetail(issueId) {
+    window.location.href = `issue.html?id=${issueId}`;
+}
+window.goToIssueDetail = goToIssueDetail;
 
 // 관리자 페이지 전용 기능
 if (window.isAdminPage) {
