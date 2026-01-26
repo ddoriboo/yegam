@@ -2,6 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const bcrypt = require('bcryptjs');
 const { getDB, getCurrentTimeSQL, query, get, run } = require('../database/database');
 const { authMiddleware, adminMiddleware } = require('../middleware/auth');
 const { secureAdminMiddleware, requireAdminRole, requirePermission } = require('../middleware/admin-auth-secure');
@@ -1505,6 +1506,138 @@ router.get('/discussions/stats', secureAdminMiddleware, requirePermission('view_
             message: '통계 조회 중 오류가 발생했습니다.',
             error: error.message
         });
+    }
+});
+
+// ==================== 유저 관리 ====================
+
+// 유저 목록 조회
+router.get('/users', secureAdminMiddleware, requirePermission('manage_users'), async (req, res) => {
+    try {
+        const { search, page = 1, limit = 20 } = req.query;
+        const offset = (page - 1) * limit;
+        
+        let whereClause = '1=1';
+        const params = [];
+        let paramIndex = 1;
+        
+        if (search && search.trim()) {
+            whereClause += ` AND (username ILIKE $${paramIndex} OR email ILIKE $${paramIndex})`;
+            params.push(`%${search.trim()}%`);
+            paramIndex++;
+        }
+        
+        // 전체 개수
+        const countResult = await query(
+            `SELECT COUNT(*) as total FROM users WHERE ${whereClause}`,
+            params
+        );
+        
+        // 유저 목록
+        const usersResult = await query(
+            `SELECT id, username, email, gam_balance, created_at, google_id, is_active
+             FROM users 
+             WHERE ${whereClause}
+             ORDER BY id DESC
+             LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`,
+            [...params, limit, offset]
+        );
+        
+        res.json({
+            success: true,
+            users: usersResult.rows,
+            pagination: {
+                total: parseInt(countResult.rows[0].total),
+                page: parseInt(page),
+                limit: parseInt(limit),
+                totalPages: Math.ceil(countResult.rows[0].total / limit)
+            }
+        });
+    } catch (error) {
+        console.error('[관리자] 유저 목록 조회 오류:', error);
+        res.status(500).json({ success: false, message: '유저 목록 조회 실패' });
+    }
+});
+
+// 비밀번호 리셋
+router.post('/users/:id/reset-password', secureAdminMiddleware, requirePermission('manage_users'), async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { newPassword } = req.body;
+        
+        if (!newPassword || newPassword.length < 6) {
+            return res.status(400).json({ 
+                success: false, 
+                message: '비밀번호는 6자 이상이어야 합니다.' 
+            });
+        }
+        
+        // 유저 확인
+        const userResult = await query('SELECT id, username, email FROM users WHERE id = $1', [id]);
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ success: false, message: '유저를 찾을 수 없습니다.' });
+        }
+        
+        const user = userResult.rows[0];
+        
+        // 비밀번호 해시
+        const hashedPassword = await bcrypt.hash(newPassword, 12);
+        
+        // 업데이트
+        await query('UPDATE users SET password_hash = $1 WHERE id = $2', [hashedPassword, id]);
+        
+        console.log(`[관리자] 비밀번호 리셋: ${user.username} (ID: ${id})`);
+        
+        res.json({
+            success: true,
+            message: `${user.username}의 비밀번호가 변경되었습니다.`
+        });
+    } catch (error) {
+        console.error('[관리자] 비밀번호 리셋 오류:', error);
+        res.status(500).json({ success: false, message: '비밀번호 리셋 실패' });
+    }
+});
+
+// 유저명으로 비밀번호 리셋 (편의 기능)
+router.post('/users/reset-password-by-username', secureAdminMiddleware, requirePermission('manage_users'), async (req, res) => {
+    try {
+        const { username, newPassword } = req.body;
+        
+        if (!username) {
+            return res.status(400).json({ success: false, message: '유저명을 입력하세요.' });
+        }
+        
+        if (!newPassword || newPassword.length < 6) {
+            return res.status(400).json({ 
+                success: false, 
+                message: '비밀번호는 6자 이상이어야 합니다.' 
+            });
+        }
+        
+        // 유저 확인
+        const userResult = await query('SELECT id, username, email FROM users WHERE username = $1', [username]);
+        if (userResult.rows.length === 0) {
+            return res.status(404).json({ success: false, message: `유저 "${username}"를 찾을 수 없습니다.` });
+        }
+        
+        const user = userResult.rows[0];
+        
+        // 비밀번호 해시
+        const hashedPassword = await bcrypt.hash(newPassword, 12);
+        
+        // 업데이트
+        await query('UPDATE users SET password_hash = $1 WHERE id = $2', [hashedPassword, user.id]);
+        
+        console.log(`[관리자] 비밀번호 리셋: ${user.username} (ID: ${user.id})`);
+        
+        res.json({
+            success: true,
+            message: `${user.username}의 비밀번호가 변경되었습니다.`,
+            user: { id: user.id, username: user.username, email: user.email }
+        });
+    } catch (error) {
+        console.error('[관리자] 비밀번호 리셋 오류:', error);
+        res.status(500).json({ success: false, message: '비밀번호 리셋 실패' });
     }
 });
 
