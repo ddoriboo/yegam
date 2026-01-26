@@ -1535,7 +1535,7 @@ router.get('/users', secureAdminMiddleware, requirePermission('manage_users'), a
         
         // 유저 목록
         const usersResult = await query(
-            `SELECT id, username, email, gam_balance, created_at, google_id, is_active
+            `SELECT id, username, email, gam_balance, created_at, google_id
              FROM users 
              WHERE ${whereClause}
              ORDER BY id DESC
