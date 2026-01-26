@@ -23,6 +23,9 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
     
+    <!-- Kakao SDK -->
+    <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.6.0/kakao.min.js"></script>
+    
     <style>
         .betting-bar {
             height: 8px;
@@ -69,13 +72,21 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 40px;
-            height: 40px;
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
             transition: all 0.2s;
         }
         .share-btn:hover {
             transform: scale(1.1);
+        }
+        
+        .comment-item {
+            border-bottom: 1px solid #f3f4f6;
+            padding: 12px 0;
+        }
+        .comment-item:last-child {
+            border-bottom: none;
         }
     </style>
 </head>
@@ -124,172 +135,203 @@
             
             <!-- Issue Content -->
             <div id="issue-content" class="hidden">
-                <!-- Hero Image -->
-                <div id="hero-section" class="relative bg-gray-900">
-                    <img id="issue-image" src="" alt="" class="w-full h-48 md:h-64 object-cover opacity-80">
-                    <div class="absolute inset-0 bg-gradient-to-t from-gray-900/80 to-transparent"></div>
-                    <div class="absolute bottom-0 left-0 right-0 p-4 md:p-6">
-                        <div class="container mx-auto">
-                            <a href="issues.html" class="inline-flex items-center text-white/80 hover:text-white text-sm mb-2 transition-colors">
-                                <i data-lucide="arrow-left" class="w-4 h-4 mr-1"></i>
-                                목록으로
-                            </a>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="container mx-auto px-4 lg:px-8 py-6">
-                    <div class="max-w-3xl mx-auto">
-                        <!-- Issue Header -->
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 -mt-12 relative z-10 mb-6">
-                            <div class="flex items-start justify-between mb-4">
-                                <div class="flex-1">
+                <div class="container mx-auto px-4 lg:px-8 py-4">
+                    <!-- Back Button -->
+                    <a href="issues.html" class="inline-flex items-center text-gray-500 hover:text-gray-700 text-sm mb-4 transition-colors">
+                        <i data-lucide="arrow-left" class="w-4 h-4 mr-1"></i>
+                        목록으로
+                    </a>
+                    
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Left Column: Issue Info + Betting -->
+                        <div class="lg:col-span-1 space-y-4">
+                            <!-- Issue Card -->
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                                <!-- Image -->
+                                <div id="image-container" class="hidden">
+                                    <img id="issue-image" src="" alt="" class="w-full h-40 object-cover">
+                                </div>
+                                
+                                <div class="p-4">
+                                    <!-- Category + Status -->
                                     <div class="flex items-center gap-2 mb-2">
                                         <span id="issue-category" class="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded"></span>
                                         <span id="issue-status" class="status-badge"></span>
                                     </div>
-                                    <h1 id="issue-title" class="text-xl md:text-2xl font-bold text-gray-900 mb-2"></h1>
-                                    <p id="issue-description" class="text-gray-600 text-sm"></p>
+                                    
+                                    <!-- Title -->
+                                    <h1 id="issue-title" class="text-lg font-bold text-gray-900 mb-2"></h1>
+                                    <p id="issue-description" class="text-sm text-gray-600 mb-3"></p>
+                                    
+                                    <!-- Countdown -->
+                                    <div id="countdown-section" class="bg-gray-50 rounded-lg p-3 mb-3">
+                                        <div class="flex items-center justify-between">
+                                            <span class="text-xs text-gray-500">마감까지</span>
+                                            <span id="countdown-timer" class="countdown-timer text-sm font-bold text-gray-900"></span>
+                                        </div>
+                                        <div class="text-xs text-gray-400 mt-1" id="deadline-date"></div>
+                                    </div>
+                                    
+                                    <!-- Result (for settled) -->
+                                    <div id="result-section" class="hidden bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-3 mb-3">
+                                        <div class="flex items-center justify-center gap-2">
+                                            <i data-lucide="trophy" class="w-5 h-5 text-yellow-500"></i>
+                                            <span class="font-bold" id="result-text"></span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Betting Stats -->
+                                    <div class="mb-4">
+                                        <div class="flex justify-between text-sm mb-1">
+                                            <span class="font-semibold text-green-600">YES <span id="yes-ratio">50</span>%</span>
+                                            <span class="font-semibold text-red-600">NO <span id="no-ratio">50</span>%</span>
+                                        </div>
+                                        <div class="betting-bar">
+                                            <div id="yes-bar" class="betting-bar-fill yes-fill" style="width: 50%"></div>
+                                        </div>
+                                        <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                            <span><span id="yes-amount">0</span>P</span>
+                                            <span><span id="no-amount">0</span>P</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Stats -->
+                                    <div class="grid grid-cols-3 gap-2 text-center border-t border-gray-100 pt-3">
+                                        <div>
+                                            <div class="text-base font-bold text-gray-900" id="participant-count">0</div>
+                                            <div class="text-xs text-gray-500">참여자</div>
+                                        </div>
+                                        <div>
+                                            <div class="text-base font-bold text-gray-900" id="total-volume">0</div>
+                                            <div class="text-xs text-gray-500">총 베팅</div>
+                                        </div>
+                                        <div>
+                                            <div class="text-base font-bold text-gray-900" id="comment-count">0</div>
+                                            <div class="text-xs text-gray-500">댓글</div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                             
-                            <!-- Countdown / Result -->
-                            <div id="countdown-section" class="bg-gray-50 rounded-lg p-4 mb-4">
-                                <div class="flex items-center justify-between">
-                                    <span class="text-sm text-gray-500">마감까지</span>
-                                    <span id="countdown-timer" class="countdown-timer text-lg font-bold text-gray-900"></span>
+                            <!-- Betting Section -->
+                            <div id="betting-section" class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                                <h2 class="text-base font-bold text-gray-900 mb-3">베팅하기</h2>
+                                
+                                <!-- My Bet Status -->
+                                <div id="my-bet-status" class="hidden bg-blue-50 rounded-lg p-3 mb-3">
+                                    <div class="flex items-center gap-2">
+                                        <i data-lucide="check-circle" class="w-4 h-4 text-blue-600"></i>
+                                        <span class="text-sm font-medium text-blue-800">
+                                            나의 베팅: <span id="my-bet-choice"></span> <span id="my-bet-amount"></span>P
+                                        </span>
+                                    </div>
                                 </div>
-                                <div class="text-xs text-gray-400 mt-1">
-                                    마감일: <span id="deadline-date"></span>
+                                
+                                <!-- Odds -->
+                                <div class="grid grid-cols-2 gap-3 mb-3">
+                                    <div class="text-center p-2 bg-green-50 rounded-lg">
+                                        <div class="text-xl font-bold text-green-600" id="yes-odds">2.00</div>
+                                        <div class="text-xs text-green-600">YES 배당</div>
+                                    </div>
+                                    <div class="text-center p-2 bg-red-50 rounded-lg">
+                                        <div class="text-xl font-bold text-red-600" id="no-odds">2.00</div>
+                                        <div class="text-xs text-red-600">NO 배당</div>
+                                    </div>
                                 </div>
-                            </div>
-                            
-                            <!-- Result Section (for settled issues) -->
-                            <div id="result-section" class="hidden bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 mb-4">
-                                <div class="flex items-center justify-center gap-2">
-                                    <i data-lucide="trophy" class="w-6 h-6 text-yellow-500"></i>
-                                    <span class="text-lg font-bold" id="result-text"></span>
+                                
+                                <!-- Bet Input (로그인 시) -->
+                                <div id="bet-form">
+                                    <div class="mb-3">
+                                        <div class="flex gap-2">
+                                            <input type="number" id="bet-amount" min="10" step="10" placeholder="최소 10P" 
+                                                class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                            <button onclick="setQuickBet(100)" class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded">100</button>
+                                            <button onclick="setQuickBet(500)" class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded">500</button>
+                                            <button onclick="setQuickBet(1000)" class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded">1K</button>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="grid grid-cols-2 gap-3">
+                                        <button id="bet-yes-btn" onclick="placeBet('Yes')" 
+                                            class="bet-button py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl text-sm">
+                                            YES 베팅
+                                        </button>
+                                        <button id="bet-no-btn" onclick="placeBet('No')" 
+                                            class="bet-button py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl text-sm">
+                                            NO 베팅
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                            
-                            <!-- Betting Stats -->
-                            <div class="mb-6">
-                                <div class="flex justify-between text-sm mb-2">
-                                    <span class="font-semibold text-green-600">YES <span id="yes-ratio">50</span>%</span>
-                                    <span class="font-semibold text-red-600">NO <span id="no-ratio">50</span>%</span>
-                                </div>
-                                <div class="betting-bar">
-                                    <div id="yes-bar" class="betting-bar-fill yes-fill" style="width: 50%"></div>
-                                </div>
-                                <div class="flex justify-between text-xs text-gray-500 mt-2">
-                                    <span><span id="yes-amount">0</span> P</span>
-                                    <span><span id="no-amount">0</span> P</span>
-                                </div>
-                            </div>
-                            
-                            <!-- Stats Row -->
-                            <div class="grid grid-cols-3 gap-4 text-center border-t border-gray-100 pt-4">
-                                <div>
-                                    <div class="text-lg font-bold text-gray-900" id="participant-count">0</div>
-                                    <div class="text-xs text-gray-500">참여자</div>
-                                </div>
-                                <div>
-                                    <div class="text-lg font-bold text-gray-900" id="total-volume">0</div>
-                                    <div class="text-xs text-gray-500">총 베팅량</div>
-                                </div>
-                                <div>
-                                    <div class="text-lg font-bold text-gray-900" id="comment-count">0</div>
-                                    <div class="text-xs text-gray-500">댓글</div>
+                                
+                                <!-- Login Prompt (비로그인 시) -->
+                                <div id="login-prompt" class="hidden text-center py-3">
+                                    <p class="text-gray-600 text-sm mb-2">베팅하려면 로그인이 필요합니다</p>
+                                    <a href="login.html" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">
+                                        로그인하기
+                                    </a>
                                 </div>
                             </div>
                         </div>
                         
-                        <!-- Betting Section -->
-                        <div id="betting-section" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-                            <h2 class="text-lg font-bold text-gray-900 mb-4">베팅하기</h2>
-                            
-                            <!-- My Bet Status -->
-                            <div id="my-bet-status" class="hidden bg-blue-50 rounded-lg p-4 mb-4">
-                                <div class="flex items-center gap-2">
-                                    <i data-lucide="check-circle" class="w-5 h-5 text-blue-600"></i>
-                                    <span class="text-sm font-medium text-blue-800">
-                                        나의 베팅: <span id="my-bet-choice"></span> <span id="my-bet-amount"></span>P
-                                    </span>
+                        <!-- Right Column: Comments -->
+                        <div class="lg:col-span-2">
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                                <div class="flex items-center justify-between mb-4">
+                                    <h2 class="text-base font-bold text-gray-900">
+                                        댓글 <span id="comments-count" class="text-gray-500 font-normal"></span>
+                                    </h2>
                                 </div>
-                            </div>
-                            
-                            <!-- Odds Display -->
-                            <div class="grid grid-cols-2 gap-4 mb-4">
-                                <div class="text-center p-3 bg-green-50 rounded-lg">
-                                    <div class="text-2xl font-bold text-green-600" id="yes-odds">2.00</div>
-                                    <div class="text-xs text-green-600">YES 배당</div>
+                                
+                                <!-- Comment Form -->
+                                <div id="comment-form-container" class="mb-4">
+                                    <div id="comment-form" class="hidden">
+                                        <textarea id="comment-input" rows="2" placeholder="의견을 남겨주세요..." 
+                                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"></textarea>
+                                        <div class="flex justify-end mt-2">
+                                            <button onclick="submitComment()" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">
+                                                댓글 작성
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="comment-login-prompt" class="hidden text-center py-3 bg-gray-50 rounded-lg">
+                                        <p class="text-gray-600 text-sm">댓글을 작성하려면 <a href="login.html" class="text-blue-600 hover:underline">로그인</a>하세요</p>
+                                    </div>
                                 </div>
-                                <div class="text-center p-3 bg-red-50 rounded-lg">
-                                    <div class="text-2xl font-bold text-red-600" id="no-odds">2.00</div>
-                                    <div class="text-xs text-red-600">NO 배당</div>
+                                
+                                <!-- Comments List -->
+                                <div id="comments-list" class="space-y-0">
+                                    <div class="text-center py-8 text-gray-500 text-sm">
+                                        댓글을 불러오는 중...
+                                    </div>
                                 </div>
-                            </div>
-                            
-                            <!-- Bet Input -->
-                            <div class="mb-4">
-                                <label class="block text-sm font-medium text-gray-700 mb-2">베팅 금액</label>
-                                <div class="flex gap-2">
-                                    <input type="number" id="bet-amount" min="10" step="10" placeholder="최소 10P" 
-                                        class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                                    <button onclick="setQuickBet(100)" class="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg">100</button>
-                                    <button onclick="setQuickBet(500)" class="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg">500</button>
-                                    <button onclick="setQuickBet(1000)" class="px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg">1K</button>
+                                
+                                <!-- Load More -->
+                                <div id="load-more-comments" class="hidden text-center mt-4">
+                                    <button onclick="loadMoreComments()" class="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                                        더 보기
+                                    </button>
                                 </div>
-                            </div>
-                            
-                            <!-- Bet Buttons -->
-                            <div class="grid grid-cols-2 gap-4">
-                                <button id="bet-yes-btn" onclick="placeBet('Yes')" 
-                                    class="bet-button py-4 px-6 bg-green-500 hover:bg-green-600 text-white font-bold rounded-xl">
-                                    YES 베팅
-                                </button>
-                                <button id="bet-no-btn" onclick="placeBet('No')" 
-                                    class="bet-button py-4 px-6 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl">
-                                    NO 베팅
-                                </button>
-                            </div>
-                            
-                            <!-- Login Prompt -->
-                            <div id="login-prompt" class="hidden text-center py-4">
-                                <p class="text-gray-600 mb-3">베팅하려면 로그인이 필요합니다</p>
-                                <a href="login.html" class="inline-flex items-center px-6 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700">
-                                    로그인하기
-                                </a>
                             </div>
                         </div>
-                        
-                        <!-- Share Section -->
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
-                            <h2 class="text-lg font-bold text-gray-900 mb-4">공유하기</h2>
-                            <div class="flex justify-center gap-4">
-                                <button onclick="shareKakao()" class="share-btn bg-yellow-400 hover:bg-yellow-500" title="카카오톡 공유">
-                                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M12 3C6.48 3 2 6.48 2 10.5c0 2.55 1.67 4.8 4.18 6.11-.18.64-.66 2.31-.76 2.67-.12.45.17.44.35.32.14-.1 2.19-1.48 3.08-2.08.37.05.75.08 1.15.08 5.52 0 10-3.48 10-7.5S17.52 3 12 3z"/>
-                                    </svg>
-                                </button>
-                                <button onclick="shareTwitter()" class="share-btn bg-black hover:bg-gray-800 text-white" title="X(트위터) 공유">
-                                    <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
-                                    </svg>
-                                </button>
-                                <button onclick="copyLink()" class="share-btn bg-gray-200 hover:bg-gray-300" title="링크 복사">
-                                    <i data-lucide="link" class="w-5 h-5 text-gray-700"></i>
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <!-- Comments Section (Placeholder) -->
-                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                            <h2 class="text-lg font-bold text-gray-900 mb-4">댓글</h2>
-                            <div id="comments-container">
-                                <!-- Comments will be loaded here -->
-                                <p class="text-gray-500 text-center py-8">댓글 기능 준비 중...</p>
-                            </div>
+                    </div>
+                    
+                    <!-- Share Section (맨 아래) -->
+                    <div class="mt-6 bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                        <h2 class="text-base font-bold text-gray-900 mb-3 text-center">공유하기</h2>
+                        <div class="flex justify-center gap-4">
+                            <button onclick="shareKakao()" class="share-btn bg-yellow-400 hover:bg-yellow-500" title="카카오톡 공유">
+                                <svg class="w-6 h-6" viewBox="0 0 24 24" fill="#3C1E1E">
+                                    <path d="M12 3C6.48 3 2 6.48 2 10.5c0 2.55 1.67 4.8 4.18 6.11-.18.64-.66 2.31-.76 2.67-.12.45.17.44.35.32.14-.1 2.19-1.48 3.08-2.08.37.05.75.08 1.15.08 5.52 0 10-3.48 10-7.5S17.52 3 12 3z"/>
+                                </svg>
+                            </button>
+                            <button onclick="shareTwitter()" class="share-btn bg-black hover:bg-gray-800 text-white" title="X(트위터) 공유">
+                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                                </svg>
+                            </button>
+                            <button onclick="copyLink()" class="share-btn bg-gray-200 hover:bg-gray-300" title="링크 복사">
+                                <i data-lucide="link" class="w-5 h-5 text-gray-700"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -297,19 +339,14 @@
         </main>
 
         <!-- Footer -->
-        <footer class="bg-white border-t border-gray-200 py-6 mt-auto">
+        <footer class="bg-white border-t border-gray-200 py-4 mt-auto">
             <div class="container mx-auto px-4 text-center text-sm text-gray-500">
                 <p>© 2026 예겜. 가상 예측 플랫폼</p>
-                <div class="mt-2 space-x-4">
-                    <a href="about.html" class="hover:text-gray-700">소개</a>
-                    <a href="terms.html" class="hover:text-gray-700">이용약관</a>
-                    <a href="privacy.html" class="hover:text-gray-700">개인정보처리방침</a>
-                </div>
             </div>
         </footer>
     </div>
 
-    <!-- Toast Notification -->
+    <!-- Toast -->
     <div id="toast" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white px-6 py-3 rounded-lg shadow-lg hidden z-50">
         <span id="toast-message"></span>
     </div>
@@ -317,6 +354,25 @@
     <script src="js/auth.js"></script>
     <script>
         let currentIssue = null;
+        let currentUser = null;
+        let commentsPage = 1;
+        const COMMENTS_PER_PAGE = 10;
+        
+        // 토큰 가져오기 (여러 키 시도)
+        function getToken() {
+            return localStorage.getItem('yegame-token') || localStorage.getItem('token');
+        }
+        
+        // 사용자 정보 가져오기
+        function getCurrentUser() {
+            const userStr = localStorage.getItem('yegame-user') || localStorage.getItem('user');
+            if (userStr) {
+                try {
+                    return JSON.parse(userStr);
+                } catch (e) {}
+            }
+            return null;
+        }
         
         // URL에서 이슈 ID 추출
         function getIssueId() {
@@ -333,7 +389,7 @@
             }
             
             try {
-                const token = localStorage.getItem('token');
+                const token = getToken();
                 const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
                 
                 const response = await fetch(`/api/issues/${issueId}`, { headers });
@@ -345,7 +401,9 @@
                 }
                 
                 currentIssue = data.issue;
+                currentUser = getCurrentUser();
                 renderIssue(data.issue);
+                loadComments();
                 
             } catch (error) {
                 console.error('이슈 로드 실패:', error);
@@ -358,14 +416,8 @@
             document.getElementById('loading-state').classList.add('hidden');
             document.getElementById('issue-content').classList.remove('hidden');
             
-            // 메타 태그 업데이트
+            // 메타 태그
             document.title = `${issue.title} | 예겜`;
-            document.getElementById('og-title').content = `${issue.title} | 예겜`;
-            document.getElementById('og-description').content = `YES ${issue.yesRatio}% vs NO ${issue.noRatio}% | 참여자 ${issue.participantCount}명`;
-            document.getElementById('og-url').content = window.location.href;
-            if (issue.image_url) {
-                document.getElementById('og-image').content = issue.image_url;
-            }
             
             // 기본 정보
             document.getElementById('issue-title').textContent = issue.title;
@@ -374,10 +426,8 @@
             
             // 이미지
             if (issue.image_url) {
+                document.getElementById('image-container').classList.remove('hidden');
                 document.getElementById('issue-image').src = issue.image_url;
-                document.getElementById('issue-image').alt = issue.title;
-            } else {
-                document.getElementById('hero-section').classList.add('hidden');
             }
             
             // 상태
@@ -388,7 +438,7 @@
             } else if (issue.status === 'closed') {
                 statusEl.className = 'status-badge status-closed';
                 statusEl.textContent = '마감';
-            } else if (issue.status === 'settled' || issue.result) {
+            } else {
                 statusEl.className = 'status-badge status-settled';
                 statusEl.textContent = '정산완료';
             }
@@ -396,66 +446,67 @@
             // 카운트다운
             updateCountdown(issue);
             
-            // 결과 표시 (정산된 경우)
+            // 결과 (정산된 경우)
             if (issue.result) {
                 document.getElementById('countdown-section').classList.add('hidden');
                 document.getElementById('result-section').classList.remove('hidden');
-                document.getElementById('result-text').textContent = 
-                    issue.result === 'yes' ? '🎉 YES 승리!' : '🎉 NO 승리!';
-                document.getElementById('result-text').className = 
-                    issue.result === 'yes' ? 'text-lg font-bold text-green-600' : 'text-lg font-bold text-red-600';
+                const resultText = document.getElementById('result-text');
+                resultText.textContent = issue.result === 'yes' ? '🎉 YES 승리!' : '🎉 NO 승리!';
+                resultText.className = issue.result === 'yes' ? 'font-bold text-green-600' : 'font-bold text-red-600';
             }
             
             // 베팅 통계
             document.getElementById('yes-ratio').textContent = issue.yesRatio;
             document.getElementById('no-ratio').textContent = issue.noRatio;
             document.getElementById('yes-bar').style.width = `${issue.yesRatio}%`;
-            document.getElementById('yes-amount').textContent = issue.yesAmount.toLocaleString();
-            document.getElementById('no-amount').textContent = issue.noAmount.toLocaleString();
+            document.getElementById('yes-amount').textContent = (issue.yesAmount || 0).toLocaleString();
+            document.getElementById('no-amount').textContent = (issue.noAmount || 0).toLocaleString();
             document.getElementById('yes-odds').textContent = issue.yesOdds.toFixed(2);
             document.getElementById('no-odds').textContent = issue.noOdds.toFixed(2);
             
-            // 참여 통계
-            document.getElementById('participant-count').textContent = issue.participantCount.toLocaleString();
-            document.getElementById('total-volume').textContent = issue.totalVolume.toLocaleString() + 'P';
-            document.getElementById('comment-count').textContent = issue.commentCount.toLocaleString();
+            // 통계
+            document.getElementById('participant-count').textContent = (issue.participantCount || 0).toLocaleString();
+            document.getElementById('total-volume').textContent = (issue.totalVolume || 0).toLocaleString() + 'P';
+            document.getElementById('comment-count').textContent = (issue.commentCount || 0).toLocaleString();
             
-            // 내 베팅 상태
+            // 내 베팅
             if (issue.myBet) {
                 document.getElementById('my-bet-status').classList.remove('hidden');
-                document.getElementById('my-bet-choice').textContent = issue.myBet.choice;
-                document.getElementById('my-bet-choice').className = issue.myBet.choice === 'Yes' ? 'text-green-600' : 'text-red-600';
+                const choiceEl = document.getElementById('my-bet-choice');
+                choiceEl.textContent = issue.myBet.choice;
+                choiceEl.className = issue.myBet.choice === 'Yes' ? 'text-green-600 font-bold' : 'text-red-600 font-bold';
                 document.getElementById('my-bet-amount').textContent = issue.myBet.amount.toLocaleString();
             }
             
-            // 베팅 섹션 상태
-            const isLoggedIn = !!localStorage.getItem('token');
+            // 로그인 상태에 따른 UI
+            const isLoggedIn = !!getToken();
             const canBet = issue.status === 'active';
             
             if (!isLoggedIn) {
-                document.getElementById('betting-section').querySelector('.grid.grid-cols-2').classList.add('hidden');
-                document.getElementById('bet-amount').parentElement.classList.add('hidden');
+                document.getElementById('bet-form').classList.add('hidden');
                 document.getElementById('login-prompt').classList.remove('hidden');
-            } else if (!canBet) {
-                document.getElementById('bet-yes-btn').disabled = true;
-                document.getElementById('bet-no-btn').disabled = true;
-                document.getElementById('bet-amount').disabled = true;
+                document.getElementById('comment-form').classList.add('hidden');
+                document.getElementById('comment-login-prompt').classList.remove('hidden');
+            } else {
+                document.getElementById('bet-form').classList.remove('hidden');
+                document.getElementById('login-prompt').classList.add('hidden');
+                document.getElementById('comment-form').classList.remove('hidden');
+                document.getElementById('comment-login-prompt').classList.add('hidden');
+                
+                if (!canBet) {
+                    document.getElementById('bet-yes-btn').disabled = true;
+                    document.getElementById('bet-no-btn').disabled = true;
+                    document.getElementById('bet-amount').disabled = true;
+                }
             }
             
             lucide.createIcons();
         }
         
-        // 카운트다운 업데이트
+        // 카운트다운
         function updateCountdown(issue) {
             const endDate = new Date(issue.end_date);
-            const deadlineEl = document.getElementById('deadline-date');
-            deadlineEl.textContent = endDate.toLocaleString('ko-KR', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            });
+            document.getElementById('deadline-date').textContent = endDate.toLocaleString('ko-KR');
             
             function tick() {
                 const now = new Date();
@@ -483,19 +534,19 @@
             setInterval(tick, 1000);
         }
         
-        // 에러 표시
+        // 에러
         function showError() {
             document.getElementById('loading-state').classList.add('hidden');
             document.getElementById('error-state').classList.remove('hidden');
             lucide.createIcons();
         }
         
-        // 퀵 베팅 금액 설정
+        // 퀵 베팅
         function setQuickBet(amount) {
             document.getElementById('bet-amount').value = amount;
         }
         
-        // 베팅 실행
+        // 베팅
         async function placeBet(choice) {
             const amount = parseInt(document.getElementById('bet-amount').value);
             if (!amount || amount < 10) {
@@ -503,7 +554,7 @@
                 return;
             }
             
-            const token = localStorage.getItem('token');
+            const token = getToken();
             if (!token) {
                 window.location.href = 'login.html';
                 return;
@@ -527,7 +578,7 @@
                 
                 if (data.success) {
                     showToast(`${choice} ${amount}P 베팅 완료!`);
-                    loadIssue(); // 새로고침
+                    setTimeout(() => loadIssue(), 500);
                 } else {
                     showToast(data.message || '베팅 실패');
                 }
@@ -537,25 +588,184 @@
             }
         }
         
-        // 공유 기능
-        function shareKakao() {
-            // Kakao SDK 필요
-            showToast('카카오 공유 준비 중');
+        // 댓글 로드
+        async function loadComments(append = false) {
+            const issueId = getIssueId();
+            
+            try {
+                const response = await fetch(`/api/comments/${issueId}?page=${commentsPage}&limit=${COMMENTS_PER_PAGE}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    renderComments(data.comments, append);
+                    document.getElementById('comments-count').textContent = `(${data.total || data.comments.length})`;
+                    
+                    // 더보기 버튼
+                    if (data.comments.length >= COMMENTS_PER_PAGE) {
+                        document.getElementById('load-more-comments').classList.remove('hidden');
+                    } else {
+                        document.getElementById('load-more-comments').classList.add('hidden');
+                    }
+                }
+            } catch (error) {
+                console.error('댓글 로드 실패:', error);
+                document.getElementById('comments-list').innerHTML = '<p class="text-center py-4 text-gray-500 text-sm">댓글을 불러오지 못했습니다</p>';
+            }
         }
         
-        function shareTwitter() {
-            const text = `${currentIssue.title} - YES ${currentIssue.yesRatio}% vs NO ${currentIssue.noRatio}%`;
-            const url = window.location.href;
-            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank');
-        }
-        
-        function copyLink() {
-            navigator.clipboard.writeText(window.location.href).then(() => {
-                showToast('링크가 복사되었습니다');
+        // 댓글 렌더링
+        function renderComments(comments, append = false) {
+            const container = document.getElementById('comments-list');
+            
+            if (!append) {
+                container.innerHTML = '';
+            }
+            
+            if (comments.length === 0 && !append) {
+                container.innerHTML = '<p class="text-center py-8 text-gray-500 text-sm">아직 댓글이 없습니다. 첫 댓글을 남겨보세요!</p>';
+                return;
+            }
+            
+            comments.forEach(comment => {
+                const div = document.createElement('div');
+                div.className = 'comment-item';
+                div.innerHTML = `
+                    <div class="flex items-start gap-3">
+                        <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
+                            <span class="text-sm font-medium text-gray-600">${(comment.username || '익명')[0]}</span>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="font-medium text-sm text-gray-900">${comment.username || '익명'}</span>
+                                <span class="text-xs text-gray-400">${formatTime(comment.created_at)}</span>
+                            </div>
+                            <p class="text-sm text-gray-700">${escapeHtml(comment.content)}</p>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
             });
         }
         
-        // 토스트
+        // 더 보기
+        function loadMoreComments() {
+            commentsPage++;
+            loadComments(true);
+        }
+        
+        // 댓글 작성
+        async function submitComment() {
+            const input = document.getElementById('comment-input');
+            const content = input.value.trim();
+            
+            if (!content) {
+                showToast('댓글 내용을 입력해주세요');
+                return;
+            }
+            
+            const token = getToken();
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/comments/${getIssueId()}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ content })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    input.value = '';
+                    commentsPage = 1;
+                    loadComments();
+                    showToast('댓글이 등록되었습니다');
+                } else {
+                    showToast(data.message || '댓글 등록 실패');
+                }
+            } catch (error) {
+                console.error('댓글 등록 실패:', error);
+                showToast('댓글 등록 중 오류가 발생했습니다');
+            }
+        }
+        
+        // 공유 - 카카오
+        function shareKakao() {
+            if (!Kakao.isInitialized()) {
+                // 카카오 앱키가 필요합니다
+                showToast('카카오 공유 설정 중입니다');
+                return;
+            }
+            
+            Kakao.Share.sendDefault({
+                objectType: 'feed',
+                content: {
+                    title: currentIssue.title,
+                    description: `YES ${currentIssue.yesRatio}% vs NO ${currentIssue.noRatio}%`,
+                    imageUrl: currentIssue.image_url || 'https://yegam.ai.kr/logo.png',
+                    link: {
+                        webUrl: window.location.href,
+                        mobileWebUrl: window.location.href
+                    }
+                },
+                buttons: [{
+                    title: '예측 참여하기',
+                    link: {
+                        webUrl: window.location.href,
+                        mobileWebUrl: window.location.href
+                    }
+                }]
+            });
+        }
+        
+        // 공유 - 트위터
+        function shareTwitter() {
+            const text = `${currentIssue.title}\n\nYES ${currentIssue.yesRatio}% vs NO ${currentIssue.noRatio}%\n\n예겜에서 예측 참여하기 👇`;
+            const url = window.location.href;
+            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, '_blank', 'width=600,height=400');
+        }
+        
+        // 공유 - 링크 복사
+        function copyLink() {
+            navigator.clipboard.writeText(window.location.href).then(() => {
+                showToast('링크가 복사되었습니다!');
+            }).catch(() => {
+                // 폴백
+                const input = document.createElement('input');
+                input.value = window.location.href;
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                document.body.removeChild(input);
+                showToast('링크가 복사되었습니다!');
+            });
+        }
+        
+        // 유틸
+        function formatTime(dateStr) {
+            const date = new Date(dateStr);
+            const now = new Date();
+            const diff = now - date;
+            
+            if (diff < 60000) return '방금 전';
+            if (diff < 3600000) return `${Math.floor(diff / 60000)}분 전`;
+            if (diff < 86400000) return `${Math.floor(diff / 3600000)}시간 전`;
+            if (diff < 604800000) return `${Math.floor(diff / 86400000)}일 전`;
+            return date.toLocaleDateString('ko-KR');
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
         function showToast(message) {
             const toast = document.getElementById('toast');
             document.getElementById('toast-message').textContent = message;
@@ -567,6 +777,14 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadIssue();
             lucide.createIcons();
+            
+            // Enter로 댓글 작성
+            document.getElementById('comment-input')?.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    submitComment();
+                }
+            });
         });
     </script>
 </body>
