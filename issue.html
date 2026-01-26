@@ -243,7 +243,7 @@
                                 <div id="bet-form">
                                     <div class="mb-3">
                                         <div class="flex gap-2">
-                                            <input type="number" id="bet-amount" min="10" step="10" placeholder="최소 10P" 
+                                            <input type="number" id="bet-amount" min="100" step="100" placeholder="최소 100 GAM" 
                                                 class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                                             <button onclick="setQuickBet(100)" class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded">100</button>
                                             <button onclick="setQuickBet(500)" class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded">500</button>
@@ -549,25 +549,33 @@
         // 베팅
         async function placeBet(choice) {
             const amount = parseInt(document.getElementById('bet-amount').value);
-            if (!amount || amount < 10) {
-                showToast('최소 10P 이상 베팅해주세요');
+            if (!amount || amount < 100) {
+                showToast('최소 100 GAM 이상 베팅해주세요');
                 return;
             }
             
             const token = getToken();
-            if (!token) {
+            const user = getCurrentUser();
+            if (!token || !user) {
                 window.location.href = 'login.html';
                 return;
             }
             
+            // 잔액 확인
+            if (amount > (user.gam_balance || user.coins || 0)) {
+                showToast('GAM이 부족합니다');
+                return;
+            }
+            
             try {
-                const response = await fetch('/api/betting/place', {
+                const response = await fetch('/api/bets', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
                     body: JSON.stringify({
+                        userId: user.id,
                         issueId: currentIssue.id,
                         choice,
                         amount
@@ -577,7 +585,10 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    showToast(`${choice} ${amount}P 베팅 완료!`);
+                    showToast(`${choice} ${amount} GAM 베팅 완료!`);
+                    // 로컬 유저 잔액 업데이트
+                    user.gam_balance = (user.gam_balance || user.coins || 0) - amount;
+                    localStorage.setItem('yegame-user', JSON.stringify(user));
                     setTimeout(() => loadIssue(), 500);
                 } else {
                     showToast(data.message || '베팅 실패');
@@ -593,7 +604,7 @@
             const issueId = getIssueId();
             
             try {
-                const response = await fetch(`/api/comments/${issueId}?page=${commentsPage}&limit=${COMMENTS_PER_PAGE}`);
+                const response = await fetch(`/api/comments/issue/${issueId}`);
                 const data = await response.json();
                 
                 if (data.success) {
@@ -663,20 +674,29 @@
                 return;
             }
             
+            if (content.length > 500) {
+                showToast('댓글은 500자 이내로 작성해주세요');
+                return;
+            }
+            
             const token = getToken();
-            if (!token) {
+            const user = getCurrentUser();
+            if (!token || !user) {
                 window.location.href = 'login.html';
                 return;
             }
             
             try {
-                const response = await fetch(`/api/comments/${getIssueId()}`, {
+                const response = await fetch('/api/comments', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
+                        'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ content })
+                    body: JSON.stringify({
+                        userId: user.id,
+                        issueId: parseInt(getIssueId()),
+                        content: content
+                    })
                 });
                 
                 const data = await response.json();
@@ -687,7 +707,7 @@
                     loadComments();
                     showToast('댓글이 등록되었습니다');
                 } else {
-                    showToast(data.message || '댓글 등록 실패');
+                    showToast(data.message || data.error || '댓글 등록 실패');
                 }
             } catch (error) {
                 console.error('댓글 등록 실패:', error);
