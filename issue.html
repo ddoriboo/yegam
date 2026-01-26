@@ -624,6 +624,40 @@
             }
         }
         
+        // 티어 데이터
+        const tierData = [
+            { level: 0, icon: '⚪', name: '티끌', minGam: 0 },
+            { level: 1, icon: '🪨', name: '조약돌', minGam: 10000 },
+            { level: 2, icon: '⛏️', name: '원석 채굴자', minGam: 25000 },
+            { level: 3, icon: '⛓️', name: '강철 연마가', minGam: 50000 },
+            { level: 4, icon: '🛡️', name: '아이언 실드', minGam: 90000 },
+            { level: 5, icon: '⚔️', name: '스틸 소드', minGam: 150000 },
+            { level: 6, icon: '🥉', name: '브론즈 윙', minGam: 250000 },
+            { level: 7, icon: '🥈', name: '실버 윙', minGam: 400000 },
+            { level: 8, icon: '🥇', name: '골드 윙', minGam: 650000 },
+            { level: 9, icon: '🏆', name: '플래티넘 챔피언', minGam: 1000000 },
+            { level: 10, icon: '👑', name: '황금 왕관', minGam: 1500000 },
+            { level: 11, icon: '📜', name: '룬석 예언가', minGam: 2500000 },
+            { level: 12, icon: '🐉', name: '용기의 문장', minGam: 4000000 },
+            { level: 13, icon: '🌳', name: '세계수의 의지', minGam: 6500000 },
+            { level: 14, icon: '⏳', name: '시간의 모래시계', minGam: 10000000 },
+            { level: 15, icon: '📔', name: '아카식 레코드', minGam: 16000000 },
+            { level: 16, icon: '✨', name: '별의 조각', minGam: 25000000 },
+            { level: 17, icon: '☄️', name: '혜성의 인도자', minGam: 40000000 },
+            { level: 18, icon: '🌟', name: '찬란한 성좌', minGam: 65000000 },
+            { level: 19, icon: '🌌', name: '은하의 지배자', minGam: 100000000 },
+            { level: 20, icon: '👁️‍🗨️', name: '모든 것을 보는 눈', minGam: 150000000 }
+        ];
+        
+        function getUserTier(gam) {
+            for (let i = tierData.length - 1; i >= 0; i--) {
+                if (gam >= tierData[i].minGam) {
+                    return tierData[i];
+                }
+            }
+            return tierData[0];
+        }
+        
         // 댓글 렌더링
         function renderComments(comments, append = false) {
             const container = document.getElementById('comments-list');
@@ -638,16 +672,20 @@
             }
             
             comments.forEach(comment => {
+                const gam = comment.gam_balance || comment.coins || 0;
+                const tier = getUserTier(gam);
+                
                 const div = document.createElement('div');
                 div.className = 'comment-item';
                 div.innerHTML = `
                     <div class="flex items-start gap-3">
-                        <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-                            <span class="text-sm font-medium text-gray-600">${(comment.username || '익명')[0]}</span>
+                        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center flex-shrink-0 text-lg" title="${tier.name}">
+                            ${tier.icon}
                         </div>
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2 mb-1">
                                 <span class="font-medium text-sm text-gray-900">${comment.username || '익명'}</span>
+                                <span class="text-xs text-gray-400" title="${tier.name}">${tier.icon}</span>
                                 <span class="text-xs text-gray-400">${formatTime(comment.created_at)}</span>
                             </div>
                             <p class="text-sm text-gray-700">${escapeHtml(comment.content)}</p>
