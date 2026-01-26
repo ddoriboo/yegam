@@ -3,277 +3,293 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>로그인/회원가입 | 예겜</title>
+    <title>로그인 | 예겜</title>
     <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
     <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="css/auth-styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="icon" href="/favicon.ico" type="image/x-icon">
-    <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon">
+    <style>
+        /* 심플한 로그인 스타일 */
+        .login-container {
+            max-width: 400px;
+            width: 100%;
+        }
+        
+        .login-card {
+            background: white;
+            border: 1px solid #E5E7EB;
+            border-radius: 12px;
+            padding: 2.5rem;
+        }
+        
+        .google-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            width: 100%;
+            padding: 0.875rem 1.5rem;
+            background: white;
+            border: 1px solid #E5E7EB;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.9375rem;
+            color: #374151;
+            cursor: pointer;
+            transition: all 150ms ease;
+        }
+        
+        .google-btn:hover {
+            background: #F9FAFB;
+            border-color: #D1D5DB;
+        }
+        
+        .google-btn:active {
+            background: #F3F4F6;
+        }
+        
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 1.5rem 0;
+            color: #9CA3AF;
+            font-size: 0.8125rem;
+        }
+        
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: #E5E7EB;
+        }
+        
+        .divider span {
+            padding: 0 1rem;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.375rem;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 0.625rem 0.875rem;
+            border: 1px solid #E5E7EB;
+            border-radius: 6px;
+            font-size: 0.9375rem;
+            color: #1F2937;
+            transition: all 150ms ease;
+            outline: none;
+        }
+        
+        .form-input:focus {
+            border-color: #2563EB;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        
+        .form-input::placeholder {
+            color: #9CA3AF;
+        }
+        
+        .submit-btn {
+            width: 100%;
+            padding: 0.625rem 1rem;
+            background: #2563EB;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 0.9375rem;
+            cursor: pointer;
+            transition: background 150ms ease;
+        }
+        
+        .submit-btn:hover {
+            background: #1D4ED8;
+        }
+        
+        .submit-btn:disabled {
+            background: #9CA3AF;
+            cursor: not-allowed;
+        }
+        
+        .error-msg {
+            background: #FEF2F2;
+            border: 1px solid #FECACA;
+            border-radius: 6px;
+            padding: 0.75rem 1rem;
+            color: #DC2626;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+        
+        .tab-container {
+            display: flex;
+            background: #F3F4F6;
+            border-radius: 6px;
+            padding: 0.25rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .tab-btn {
+            flex: 1;
+            padding: 0.5rem 1rem;
+            border: none;
+            background: transparent;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 0.875rem;
+            color: #6B7280;
+            cursor: pointer;
+            transition: all 150ms ease;
+        }
+        
+        .tab-btn.active {
+            background: white;
+            color: #1F2937;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .link-text {
+            color: #2563EB;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .link-text:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans">
 
     <div id="app-container" class="min-h-screen flex flex-col">
 
         <!-- Header -->
-        <header class="bg-white/90 backdrop-blur-sm sticky top-0 border-b border-gray-200" style="z-index: 50000; overflow: visible !important;">
+        <header class="bg-white/90 backdrop-blur-sm sticky top-0 border-b border-gray-200" style="z-index: 50000;">
             <nav class="container mx-auto px-4 lg:px-8 py-3 flex justify-between items-center">
                 <a href="index.html" class="flex items-center space-x-2">
                     <img src="logo.png" alt="예겜 로고" class="h-8 w-auto">
                     <span class="text-xl font-bold tracking-tight text-gray-900 hidden sm:block">예겜</span>
                 </a>
                 
-                <!-- Desktop Navigation -->
                 <div class="hidden md:flex items-center space-x-6 text-sm font-medium text-gray-600">
                     <a href="issues.html" class="hover:text-gray-900 transition-colors">전체 이슈</a>
-                    <button id="desktop-issue-request-btn" class="hidden hover:text-gray-900 transition-colors cursor-pointer bg-transparent border-none text-sm font-medium">이슈 신청</button>
                     <a href="discussions.html" class="hover:text-gray-900 transition-colors">분석방</a>
                     <a href="tier_guide.html" class="hover:text-gray-900 transition-colors">업적 안내</a>
-                    <a href="mypage.html" class="hover:text-gray-900 transition-colors">내 정보</a>
                 </div>
                 
-                <!-- Mobile & User Actions Container -->
-                <div class="flex items-center space-x-1 sm:space-x-2">
-                    <!-- Mobile Menu Button -->
-                    <button id="mobile-menu-btn" class="md:hidden p-2.5 rounded-md hover:bg-gray-100 transition-colors touch-manipulation">
+                <div class="flex items-center space-x-2">
+                    <button id="mobile-menu-btn" class="md:hidden p-2.5 rounded-md hover:bg-gray-100 transition-colors">
                         <i data-lucide="menu" class="w-5 h-5 text-gray-600"></i>
                     </button>
-                    
-                    <!-- User Actions -->
-                    <div id="header-user-actions" class="flex items-center space-x-1 sm:space-x-2">
-                        <!-- This will be dynamically populated by js/app.js -->
-                    </div>
                 </div>
             </nav>
-            
-            <!-- Mobile Navigation Menu -->
-            <div id="mobile-menu" class="hidden md:hidden bg-white/95 backdrop-blur-sm border-t border-gray-200">
-                <div class="container mx-auto px-4 py-4 space-y-3">
-                    <a href="issues.html" class="block px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
-                        <i data-lucide="list" class="w-4 h-4 inline mr-2"></i>전체 이슈
-                    </a>
-                    <button id="mobile-issue-request-btn" class="hidden w-full text-left px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
-                        <i data-lucide="plus-circle" class="w-4 h-4 inline mr-2"></i>이슈 신청
-                    </button>
-                    <a href="discussions.html" class="block px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
-                        <i data-lucide="message-circle" class="w-4 h-4 inline mr-2"></i>분석방
-                    </a>
-                    <a href="tier_guide.html" class="block px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
-                        <i data-lucide="award" class="w-4 h-4 inline mr-2"></i>업적 안내
-                    </a>
-                    <a href="mypage.html" class="block px-3 py-2 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-md transition-colors">
-                        <i data-lucide="user" class="w-4 h-4 inline mr-2"></i>내 정보
-                    </a>
-                </div>
-            </div>
         </header>
 
         <!-- Main Content -->
-        <main class="flex-grow flex items-center justify-center container mx-auto px-4 lg:px-8 py-12">
-            <!-- Premium Login/Signup Container -->
-            <div class="w-full max-w-md auth-container">
-                <div class="auth-modal-content">
-                    <!-- Header with Logo -->
-                    <div class="auth-header">
-                        <div class="auth-logo">
-                            <img src="logo.png" alt="예겜 로고" class="h-10 w-auto">
-                            <span class="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">예겜</span>
+        <main class="flex-grow flex items-center justify-center px-4 py-12">
+            <div class="login-container">
+                <div class="login-card">
+                    <!-- 로고 & 타이틀 -->
+                    <div class="text-center mb-6">
+                        <div class="flex items-center justify-center gap-2 mb-2">
+                            <img src="logo.png" alt="예겜" class="h-8 w-auto">
+                            <span class="text-xl font-bold text-gray-900">예겜</span>
                         </div>
+                        <p class="text-gray-500 text-sm">예측의 즐거움을 경험하세요</p>
                     </div>
-                    
-                    <!-- 프리미엄 탭 -->
-                    <div class="auth-tabs">
-                        <button id="login-tab" class="auth-tab active">
-                            <i data-lucide="log-in" class="w-4 h-4"></i>
-                            <span>로그인</span>
-                        </button>
-                        <button id="signup-tab" class="auth-tab">
-                            <i data-lucide="user-plus" class="w-4 h-4"></i>
-                            <span>회원가입</span>
-                        </button>
+
+                    <!-- 구글 로그인 (메인) -->
+                    <button onclick="loginWithGoogle()" class="google-btn">
+                        <svg class="w-5 h-5" viewBox="0 0 24 24">
+                            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                        </svg>
+                        Google로 계속하기
+                    </button>
+
+                    <!-- 구분선 -->
+                    <div class="divider">
+                        <span>또는 이메일로</span>
+                    </div>
+
+                    <!-- 탭 -->
+                    <div class="tab-container">
+                        <button id="login-tab" class="tab-btn active">로그인</button>
+                        <button id="signup-tab" class="tab-btn">회원가입</button>
                     </div>
 
                     <!-- 로그인 폼 -->
-                    <div id="login-section" class="auth-form-section">
-                        <div class="auth-welcome">
-                            <h1>로그인</h1>
-                            <p>예겜에 오신 것을 환영합니다! 🎯</p>
-                        </div>
-                        
-                        <form id="login-form" class="auth-form">
-                            <div class="form-group">
-                                <label for="login-email">
-                                    <i data-lucide="mail" class="w-4 h-4"></i>
-                                    이메일
-                                </label>
-                                <input type="email" id="login-email" name="email" 
-                                       class="auth-input" 
-                                       placeholder="test@example.com" 
-                                       required>
+                    <div id="login-section">
+                        <form id="login-form">
+                            <div id="login-error" class="error-msg hidden"></div>
+                            
+                            <div class="mb-3">
+                                <label for="login-email" class="form-label">이메일</label>
+                                <input type="email" id="login-email" name="email" class="form-input" placeholder="you@example.com" required>
                             </div>
                             
-                            <div class="form-group">
-                                <label for="login-password">
-                                    <i data-lucide="key" class="w-4 h-4"></i>
-                                    비밀번호
-                                </label>
-                                <input type="password" id="login-password" name="password" 
-                                       class="auth-input" 
-                                       placeholder="password123" 
-                                       required>
+                            <div class="mb-4">
+                                <label for="login-password" class="form-label">비밀번호</label>
+                                <input type="password" id="login-password" name="password" class="form-input" placeholder="비밀번호 입력" required>
                             </div>
                             
-                            <div id="login-error" class="auth-error hidden"></div>
-                            
-                            <button type="submit" class="auth-submit-btn">
-                                <div class="btn-content">
-                                    <i data-lucide="log-in" class="w-5 h-5"></i>
-                                    <span>로그인하기</span>
-                                </div>
-                                <div class="btn-glow"></div>
-                            </button>
+                            <button type="submit" class="submit-btn">로그인</button>
                         </form>
-
-                        <!-- 소셜 로그인 구분선 -->
-                        <div class="auth-divider">
-                            <span>또는</span>
-                        </div>
-
-                        <!-- 소셜 로그인 버튼들 -->
-                        <div class="auth-social-buttons">
-                            <button onclick="loginWithGoogle()" class="auth-social-btn google">
-                                <svg class="w-5 h-5" viewBox="0 0 24 24">
-                                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                                </svg>
-                                Google로 로그인
-                            </button>
-
-                            <button onclick="loginWithGithub()" class="auth-social-btn github">
-                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                                </svg>
-                                GitHub로 로그인
-                            </button>
-                        </div>
                     </div>
 
                     <!-- 회원가입 폼 -->
-                    <div id="signup-section" class="auth-form-section hidden">
-                        <div class="auth-welcome">
-                            <h1>회원가입</h1>
-                            <p>예겜과 함께 GAM을 키워보세요! 🚀</p>
-                        </div>
-                        
-                        <form id="signup-form" class="auth-form">
-                            <div class="form-group">
-                                <label for="signup-username">
-                                    <i data-lucide="user" class="w-4 h-4"></i>
-                                    사용자명
-                                </label>
-                                <input type="text" id="signup-username" name="username" 
-                                       class="auth-input" 
-                                       placeholder="닉네임을 입력하세요" 
-                                       required>
+                    <div id="signup-section" class="hidden">
+                        <form id="signup-form">
+                            <div id="signup-error" class="error-msg hidden"></div>
+                            
+                            <div class="mb-3">
+                                <label for="signup-username" class="form-label">닉네임</label>
+                                <input type="text" id="signup-username" name="username" class="form-input" placeholder="사용할 닉네임" required>
                             </div>
                             
-                            <div class="form-group">
-                                <label for="signup-email">
-                                    <i data-lucide="mail" class="w-4 h-4"></i>
-                                    이메일
-                                </label>
-                                <input type="email" id="signup-email" name="email" 
-                                       class="auth-input" 
-                                       placeholder="you@example.com" 
-                                       required>
+                            <div class="mb-3">
+                                <label for="signup-email" class="form-label">이메일</label>
+                                <input type="email" id="signup-email" name="email" class="form-input" placeholder="you@example.com" required>
                             </div>
                             
-                            <div class="form-group">
-                                <label for="signup-password">
-                                    <i data-lucide="key" class="w-4 h-4"></i>
-                                    비밀번호
-                                </label>
-                                <input type="password" id="signup-password" name="password" 
-                                       class="auth-input" 
-                                       placeholder="8자 이상, 영문/숫자/특수문자 조합" 
-                                       required minlength="8">
+                            <div class="mb-3">
+                                <label for="signup-password" class="form-label">비밀번호</label>
+                                <input type="password" id="signup-password" name="password" class="form-input" placeholder="8자 이상" required minlength="8">
                             </div>
                             
-                            <div class="form-group">
-                                <label for="signup-confirm-password">
-                                    <i data-lucide="check" class="w-4 h-4"></i>
-                                    비밀번호 확인
-                                </label>
-                                <input type="password" id="signup-confirm-password" name="confirmPassword" 
-                                       class="auth-input" 
-                                       placeholder="비밀번호를 다시 입력하세요" 
-                                       required minlength="8">
+                            <div class="mb-4">
+                                <label for="signup-confirm-password" class="form-label">비밀번호 확인</label>
+                                <input type="password" id="signup-confirm-password" name="confirmPassword" class="form-input" placeholder="비밀번호 재입력" required minlength="8">
                             </div>
                             
-                            <div id="signup-error" class="auth-error hidden"></div>
-                            
-                            <button type="submit" class="auth-submit-btn signup">
-                                <div class="btn-content">
-                                    <i data-lucide="user-plus" class="w-5 h-5"></i>
-                                    <span>계정 만들기</span>
-                                </div>
-                                <div class="btn-glow"></div>
-                            </button>
+                            <button type="submit" class="submit-btn">가입하기</button>
                         </form>
-
-                        <!-- 소셜 회원가입 구분선 -->
-                        <div class="auth-divider">
-                            <span>또는</span>
-                        </div>
-
-                        <!-- 소셜 회원가입 버튼들 -->
-                        <div class="auth-social-buttons">
-                            <button onclick="loginWithGoogle()" class="auth-social-btn google">
-                                <svg class="w-5 h-5" viewBox="0 0 24 24">
-                                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                                </svg>
-                                Google로 계속하기
-                            </button>
-
-                            <button onclick="loginWithGithub()" class="auth-social-btn github">
-                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                                </svg>
-                                GitHub로 계속하기
-                            </button>
-                        </div>
                     </div>
                 </div>
+
+                <!-- 하단 안내 -->
+                <p class="text-center text-xs text-gray-400 mt-4">
+                    계속 진행하면 <a href="#" class="link-text text-xs">이용약관</a> 및 <a href="#" class="link-text text-xs">개인정보처리방침</a>에 동의하게 됩니다.
+                </p>
             </div>
         </main>
 
         <!-- Footer -->
         <footer class="bg-gray-50 border-t border-gray-200">
-            <div class="container mx-auto px-4 lg:px-8 py-8">
-                <div class="flex flex-col md:flex-row justify-between items-center text-center md:text-left space-y-4 md:space-y-0">
-                    <div>
-                        <a href="index.html" class="flex items-center justify-center md:justify-start space-x-2 mb-2">
-                             <img src="logo.png" alt="예겜 로고" class="h-6 w-auto">
-                             <span class="font-semibold text-gray-900">예겜</span>
-                        </a>
-                        <p class="text-xs text-gray-500 max-w-md">본 서비스는 현금 베팅을 제공하지 않는 예측 정보 플랫폼이며, 사용되는 GAM은 환전 및 현금화가 불가능한 사이버 자산입니다.</p>
-                        <p class="text-xs text-gray-500 max-w-md mt-2">문의 및 건의사항: <a href="mailto:admin@yegam.ai.kr" class="text-blue-600 hover:text-blue-700 transition-colors">admin@yegam.ai.kr</a></p>
-                    </div>
-                    <div class="flex space-x-6 text-sm text-gray-500">
-                        <a href="#" class="hover:text-gray-900 transition-colors">사이트 정보</a>
-                        <a href="#" class="hover:text-gray-900 transition-colors">이용약관</a>
-                        <a href="#" class="hover:text-gray-900 transition-colors">개인정보처리방침</a>
-                    </div>
-                </div>
-                <div class="mt-8 border-t border-gray-200 pt-4 text-center text-xs text-gray-500">
+            <div class="container mx-auto px-4 lg:px-8 py-6">
+                <div class="text-center text-xs text-gray-500">
                     &copy; 2025 예겜. All Rights Reserved.
                 </div>
             </div>
@@ -282,20 +298,32 @@
     </div>
 
     <script>
-        // SSO Login Functions
+        // Tab switching
+        const loginTab = document.getElementById('login-tab');
+        const signupTab = document.getElementById('signup-tab');
+        const loginSection = document.getElementById('login-section');
+        const signupSection = document.getElementById('signup-section');
+
+        loginTab.addEventListener('click', () => {
+            loginTab.classList.add('active');
+            signupTab.classList.remove('active');
+            loginSection.classList.remove('hidden');
+            signupSection.classList.add('hidden');
+        });
+
+        signupTab.addEventListener('click', () => {
+            signupTab.classList.add('active');
+            loginTab.classList.remove('active');
+            signupSection.classList.remove('hidden');
+            loginSection.classList.add('hidden');
+        });
+
+        // Google Login
         function loginWithGoogle() {
-            setTimeout(() => {
-                showInfo('Google 로그인은 현재 개발 환경에서는 설정되어 있지 않습니다. 이메일로 회원가입해주세요.', '개발 중인 기능');
-            }, 100);
+            window.location.href = '/api/auth/google';
         }
 
-        function loginWithGithub() {
-            setTimeout(() => {
-                showInfo('GitHub 로그인은 현재 개발 환경에서는 설정되어 있지 않습니다. 이메일로 회원가입해주세요.', '개발 중인 기능');
-            }, 100);
-        }
-
-        // Handle OAuth callback with token
+        // Handle OAuth callback
         function handleOAuthCallback() {
             const urlParams = new URLSearchParams(window.location.search);
             const token = urlParams.get('token');
@@ -304,40 +332,98 @@
             if (token && userStr) {
                 try {
                     const user = JSON.parse(decodeURIComponent(userStr));
-                    
-                    // Store token and user info
                     localStorage.setItem('authToken', token);
                     localStorage.setItem('user', JSON.stringify(user));
-                    
-                    // Show success message
-                    setTimeout(() => {
-                        showSuccess(`환영합니다, ${user.username}님! 로그인이 완료되었습니다.`, '로그인 성공');
-                        // Redirect to main page after a short delay
-                        setTimeout(() => {
-                            window.location.href = '/';
-                        }, 1500);
-                    }, 100);
+                    window.location.href = '/';
                 } catch (error) {
                     console.error('OAuth callback error:', error);
-                    setTimeout(() => {
-                        showError('로그인 처리 중 오류가 발생했습니다.', '인증 오류');
-                    }, 100);
+                    showError('login', '로그인 처리 중 오류가 발생했습니다.');
                 }
             }
         }
 
-        // Check for OAuth callback on page load
-        document.addEventListener('DOMContentLoaded', handleOAuthCallback);
-    </script>
-    <script src="utils/tierSystem.js"></script>
-    <script src="js/animations/coin-explosion.js"></script>
-    <script src="js/ui/betting-modal.js"></script>
-    <script src="js/ui/issue-request-modal.js"></script>
-    <script src="js/ui/premium-notifications.js"></script>
-    <script type="module" src="js/app.js"></script>
-    <script type="module">
-        import { setupLoginPage } from './js/pages/login-page.js';
-        document.addEventListener('DOMContentLoaded', setupLoginPage);
+        // Error display
+        function showError(form, message) {
+            const errorEl = document.getElementById(`${form}-error`);
+            errorEl.textContent = message;
+            errorEl.classList.remove('hidden');
+        }
+
+        function hideError(form) {
+            const errorEl = document.getElementById(`${form}-error`);
+            errorEl.classList.add('hidden');
+        }
+
+        // Login form
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideError('login');
+            
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    window.location.href = '/';
+                } else {
+                    showError('login', data.message || '로그인에 실패했습니다.');
+                }
+            } catch (error) {
+                showError('login', '서버 연결에 실패했습니다.');
+            }
+        });
+
+        // Signup form
+        document.getElementById('signup-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            hideError('signup');
+            
+            const username = document.getElementById('signup-username').value;
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const confirmPassword = document.getElementById('signup-confirm-password').value;
+            
+            if (password !== confirmPassword) {
+                showError('signup', '비밀번호가 일치하지 않습니다.');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    localStorage.setItem('authToken', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    window.location.href = '/';
+                } else {
+                    showError('signup', data.message || '회원가입에 실패했습니다.');
+                }
+            } catch (error) {
+                showError('signup', '서버 연결에 실패했습니다.');
+            }
+        });
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            handleOAuthCallback();
+            lucide.createIcons();
+        });
     </script>
 </body>
 </html>
