@@ -51,6 +51,29 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
             );
             
             const newUser = insertResult.rows[0];
+            
+            // 🎉 텔레그램 신규 가입 알림 (Google)
+            try {
+                if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_ADMIN_CHAT_ID) {
+                    const https = require('https');
+                    const postData = JSON.stringify({
+                        chat_id: process.env.TELEGRAM_ADMIN_CHAT_ID,
+                        text: `🎉 예겜 신규 가입! (Google)\n\n👤 ${username}\n📧 ${email}\n🆔 #${newUser.id}`
+                    });
+                    const req = https.request({
+                        hostname: 'api.telegram.org',
+                        path: `/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) }
+                    });
+                    req.on('error', (e) => console.error('텔레그램 알림 실패:', e.message));
+                    req.write(postData);
+                    req.end();
+                }
+            } catch (telegramErr) {
+                console.error('텔레그램 알림 오류:', telegramErr.message);
+            }
+            
             return done(null, newUser);
         } catch (error) {
             return done(error);
@@ -90,6 +113,29 @@ if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
             );
             
             const newUser = insertResult.rows[0];
+            
+            // 🎉 텔레그램 신규 가입 알림 (GitHub)
+            try {
+                if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_ADMIN_CHAT_ID) {
+                    const https = require('https');
+                    const postData = JSON.stringify({
+                        chat_id: process.env.TELEGRAM_ADMIN_CHAT_ID,
+                        text: `🎉 예겜 신규 가입! (GitHub)\n\n👤 ${username}\n📧 ${email}\n🆔 #${newUser.id}`
+                    });
+                    const req = https.request({
+                        hostname: 'api.telegram.org',
+                        path: `/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`,
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) }
+                    });
+                    req.on('error', (e) => console.error('텔레그램 알림 실패:', e.message));
+                    req.write(postData);
+                    req.end();
+                }
+            } catch (telegramErr) {
+                console.error('텔레그램 알림 오류:', telegramErr.message);
+            }
+            
             return done(null, newUser);
         } catch (error) {
             return done(error);
