@@ -192,4 +192,50 @@ router.get('/stats/admin', async (req, res) => {
     }
 });
 
+// 유저 통계 API (신규 가입자 모니터링용)
+router.get('/stats/users', async (req, res) => {
+    let client;
+    try {
+        client = await getClient();
+        
+        // 전체 유저 수
+        const totalResult = await client.query('SELECT COUNT(*) as total FROM users');
+        
+        // 오늘 가입한 유저
+        const todayResult = await client.query(`
+            SELECT COUNT(*) as today_signups 
+            FROM users 
+            WHERE created_at >= CURRENT_DATE
+        `);
+        
+        // 최근 가입한 유저 5명
+        const recentResult = await client.query(`
+            SELECT id, username, created_at 
+            FROM users 
+            ORDER BY created_at DESC 
+            LIMIT 5
+        `);
+        
+        res.json({
+            success: true,
+            users: {
+                total: parseInt(totalResult.rows[0].total),
+                today_signups: parseInt(todayResult.rows[0].today_signups),
+                recent: recentResult.rows
+            }
+        });
+        
+    } catch (error) {
+        console.error('유저 통계 조회 오류:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: '유저 통계 조회 실패' 
+        });
+    } finally {
+        if (client) {
+            client.release();
+        }
+    }
+});
+
 module.exports = router;

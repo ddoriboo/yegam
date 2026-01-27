@@ -117,6 +117,18 @@ router.post('/signup', async (req, res) => {
                 { expiresIn: '7d' }
             );
             
+            // 🎉 텔레그램 신규 가입 알림 (비동기 - 실패해도 가입은 성공)
+            if (process.env.TELEGRAM_BOT_TOKEN && process.env.TELEGRAM_ADMIN_CHAT_ID) {
+                fetch(`https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: process.env.TELEGRAM_ADMIN_CHAT_ID,
+                        text: `🎉 예겜 신규 가입!\n\n👤 ${validUsername}\n📧 ${validEmail}\n🆔 #${userId}`
+                    })
+                }).catch(err => console.error('텔레그램 알림 실패:', err));
+            }
+            
             res.json({
                 success: true,
                 token,
