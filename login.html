@@ -332,8 +332,8 @@
             if (token && userStr) {
                 try {
                     const user = JSON.parse(decodeURIComponent(userStr));
-                    localStorage.setItem('authToken', token);
-                    localStorage.setItem('user', JSON.stringify(user));
+                    localStorage.setItem('yegame-token', token);
+                    localStorage.setItem('yegame-user', JSON.stringify(user));
                     window.location.href = '/';
                 } catch (error) {
                     console.error('OAuth callback error:', error);
@@ -372,8 +372,8 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    localStorage.setItem('authToken', data.token);
-                    localStorage.setItem('user', JSON.stringify(data.user));
+                    localStorage.setItem('yegame-token', data.token);
+                    localStorage.setItem('yegame-user', JSON.stringify(data.user));
                     window.location.href = '/';
                 } else {
                     showError('login', data.message || '로그인에 실패했습니다.');
@@ -408,8 +408,8 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    localStorage.setItem('authToken', data.token);
-                    localStorage.setItem('user', JSON.stringify(data.user));
+                    localStorage.setItem('yegame-token', data.token);
+                    localStorage.setItem('yegame-user', JSON.stringify(data.user));
                     window.location.href = '/';
                 } else {
                     showError('signup', data.message || '회원가입에 실패했습니다.');
