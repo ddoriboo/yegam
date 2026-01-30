@@ -72,6 +72,7 @@ const createTables = async () => {
                 description TEXT,
                 image_url TEXT,
                 end_date TIMESTAMPTZ NOT NULL,
+                betting_end_date TIMESTAMPTZ,
                 yes_price INTEGER DEFAULT 50,
                 total_volume INTEGER DEFAULT 0,
                 yes_volume INTEGER DEFAULT 0,
@@ -88,6 +89,16 @@ const createTables = async () => {
                 FOREIGN KEY (decided_by) REFERENCES users (id)
             )
         `);
+        
+        // betting_end_date 컬럼 추가 (기존 테이블 호환)
+        try {
+            await client.query(`ALTER TABLE issues ADD COLUMN IF NOT EXISTS betting_end_date TIMESTAMPTZ`);
+            // 기존 데이터 마이그레이션: betting_end_date가 NULL이면 end_date로 설정
+            await client.query(`UPDATE issues SET betting_end_date = end_date WHERE betting_end_date IS NULL`);
+            console.log('✅ betting_end_date 컬럼 확인/추가 완료');
+        } catch (error) {
+            console.log('betting_end_date 컬럼 추가 스킵 (이미 존재함)');
+        }
         
         // 기존 테이블에 새 컬럼 추가 (이미 존재하는 경우 무시)
         try {
@@ -380,6 +391,7 @@ const createTables = async () => {
         await client.query('CREATE INDEX IF NOT EXISTS idx_issues_status ON issues(status)');
         await client.query('CREATE INDEX IF NOT EXISTS idx_issues_category ON issues(category)');
         await client.query('CREATE INDEX IF NOT EXISTS idx_issues_end_date ON issues(end_date)');
+        await client.query('CREATE INDEX IF NOT EXISTS idx_issues_betting_end_date ON issues(betting_end_date)');
         await client.query('CREATE INDEX IF NOT EXISTS idx_bets_user_issue ON bets(user_id, issue_id)');
         await client.query('CREATE INDEX IF NOT EXISTS idx_comments_issue_id ON comments(issue_id)');
         await client.query('CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id)');

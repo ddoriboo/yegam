@@ -69,7 +69,8 @@ router.get('/', async (req, res) => {
                 commentCount: parseInt(issue.comment_count) || 0,
                 participantCount: parseInt(issue.participant_count) || 0,
                 totalVolume: parseInt(issue.total_volume) || 0,
-                end_date: issue.end_date ? new Date(issue.end_date).toISOString() : null
+                end_date: issue.end_date ? new Date(issue.end_date).toISOString() : null,
+                betting_end_date: issue.betting_end_date ? new Date(issue.betting_end_date).toISOString() : (issue.end_date ? new Date(issue.end_date).toISOString() : null)
             }))
         });
     } catch (error) {
@@ -285,6 +286,10 @@ router.get('/:id', async (req, res) => {
             }
         }
         
+        // 베팅 마감 여부 확인
+        const bettingEndDate = issueResult.betting_end_date || issueResult.end_date;
+        const isBettingClosed = new Date(bettingEndDate) < now;
+        
         res.json({
             success: true,
             issue: {
@@ -294,6 +299,8 @@ router.get('/:id', async (req, res) => {
                 description: issueResult.description,
                 image_url: issueResult.image_url,
                 end_date: issueResult.end_date ? new Date(issueResult.end_date).toISOString() : null,
+                betting_end_date: bettingEndDate ? new Date(bettingEndDate).toISOString() : null,
+                isBettingClosed, // 베팅 마감 여부
                 status: effectiveStatus,
                 result: issueResult.result, // 'yes', 'no', null
                 isPopular: Boolean(issueResult.is_popular),
@@ -328,7 +335,7 @@ router.post('/',
     logIssueModification('CREATE_ISSUE'),
     async (req, res) => {
     try {
-        const { title, category, description, imageUrl, endDate, yesPrice, isPopular } = req.body;
+        const { title, category, description, imageUrl, endDate, bettingEndDate, yesPrice, isPopular } = req.body;
         
         if (!title || !category || !endDate) {
             return res.status(400).json({ 
@@ -337,10 +344,13 @@ router.post('/',
             });
         }
         
+        // 베팅 마감일이 없으면 결과 확정일과 동일하게 설정
+        const effectiveBettingEndDate = bettingEndDate || endDate;
+        
         // PostgreSQL에 UTC 시간으로 저장
         const insertQuery = `
-            INSERT INTO issues (title, category, description, image_url, end_date, yes_price, is_popular, created_at, updated_at) 
-            VALUES ($1, $2, $3, $4, $5::timestamptz, $6, $7, NOW(), NOW())
+            INSERT INTO issues (title, category, description, image_url, end_date, betting_end_date, yes_price, is_popular, created_at, updated_at) 
+            VALUES ($1, $2, $3, $4, $5::timestamptz, $6::timestamptz, $7, $8, NOW(), NOW())
             RETURNING id
         `;
         
@@ -349,7 +359,8 @@ router.post('/',
             category, 
             description || null, 
             imageUrl || null, 
-            endDate, // UTC ISO string
+            endDate, // UTC ISO string - 결과 확정일
+            effectiveBettingEndDate, // UTC ISO string - 베팅 마감일
             yesPrice || 50, 
             isPopular ? true : false
         ]);
@@ -380,14 +391,18 @@ router.put('/:id',
     async (req, res) => {
     try {
         const issueId = req.params.id;
-        const { title, category, description, imageUrl, endDate, yesPrice, isPopular } = req.body;
+        const { title, category, description, imageUrl, endDate, bettingEndDate, yesPrice, isPopular } = req.body;
+        
+        // 베팅 마감일이 없으면 결과 확정일과 동일하게 설정
+        const effectiveBettingEndDate = bettingEndDate || endDate;
         
         // PostgreSQL에 UTC 시간으로 업데이트
         const updateQuery = `
             UPDATE issues 
             SET title = $1, category = $2, description = $3, image_url = $4, 
-                end_date = $5::timestamptz, yes_price = $6, is_popular = $7, updated_at = CURRENT_TIMESTAMP 
-            WHERE id = $8
+                end_date = $5::timestamptz, betting_end_date = $6::timestamptz, 
+                yes_price = $7, is_popular = $8, updated_at = CURRENT_TIMESTAMP 
+            WHERE id = $9
         `;
         
         const result = await run(updateQuery, [
@@ -395,7 +410,8 @@ router.put('/:id',
             category, 
             description || null, 
             imageUrl || null, 
-            endDate, // UTC ISO string
+            endDate, // UTC ISO string - 결과 확정일
+            effectiveBettingEndDate, // UTC ISO string - 베팅 마감일
             yesPrice, 
             isPopular ? true : false, 
             issueId

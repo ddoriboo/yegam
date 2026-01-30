@@ -110,7 +110,10 @@ router.post('/issues',
     logIssueModification('ADMIN_CREATE_ISSUE'),
     async (req, res) => {
     try {
-        const { title, category, description, image_url, yes_price = 50, end_date, is_popular = false } = req.body;
+        // endDate, bettingEndDate 둘 다 지원 (camelCase & snake_case)
+        const { title, category, description, image_url, yes_price = 50, is_popular = false } = req.body;
+        const end_date = req.body.endDate || req.body.end_date;
+        const betting_end_date = req.body.bettingEndDate || req.body.betting_end_date || end_date;
         
         if (!title || !category || !end_date) {
             return res.status(400).json({ 
@@ -134,12 +137,12 @@ router.post('/issues',
                 sessionId: req.sessionID
             });
             
-            // end_date는 프론트엔드에서 UTC ISO string으로 변환되어 전달됨
+            // end_date, betting_end_date는 프론트엔드에서 UTC ISO string으로 변환되어 전달됨
             const result = await client.query(`
-                INSERT INTO issues (title, category, description, image_url, yes_price, end_date, is_popular, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6::timestamptz, $7, NOW(), NOW())
+                INSERT INTO issues (title, category, description, image_url, yes_price, end_date, betting_end_date, is_popular, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6::timestamptz, $7::timestamptz, $8, NOW(), NOW())
                 RETURNING *
-            `, [title, category, description, image_url, yes_price, end_date, is_popular]);
+            `, [title, category, description, image_url, yes_price, end_date, betting_end_date, is_popular]);
         
             const issue = result.rows[0];
             
@@ -170,7 +173,12 @@ router.put('/issues/:id',
     async (req, res) => {
     try {
         const { id } = req.params;
-        const { title, category, description, image_url, yes_price, end_date, is_popular } = req.body;
+        const { title, category, description, image_url } = req.body;
+        // endDate, bettingEndDate, yesPrice, isPopular 둘 다 지원 (camelCase & snake_case)
+        const end_date = req.body.endDate || req.body.end_date;
+        const betting_end_date = req.body.bettingEndDate || req.body.betting_end_date || end_date;
+        const yes_price = req.body.yesPrice || req.body.yes_price;
+        const is_popular = req.body.isPopular !== undefined ? req.body.isPopular : req.body.is_popular;
         
         if (!title || !category || !end_date) {
             return res.status(400).json({ 
@@ -197,15 +205,15 @@ router.put('/issues/:id',
                 });
             }
             
-            // end_date는 프론트엔드에서 UTC ISO string으로 변환되어 전달됨
+            // end_date, betting_end_date는 프론트엔드에서 UTC ISO string으로 변환되어 전달됨
             const result = await client.query(`
                 UPDATE issues 
                 SET title = $1, category = $2, description = $3, image_url = $4, 
-                    yes_price = $5, end_date = $6::timestamptz, is_popular = $7, 
-                    updated_at = NOW()
-                WHERE id = $8
+                    yes_price = $5, end_date = $6::timestamptz, betting_end_date = $7::timestamptz, 
+                    is_popular = $8, updated_at = NOW()
+                WHERE id = $9
                 RETURNING *
-            `, [title, category, description, image_url, yes_price, end_date, is_popular ? true : false, id]);
+            `, [title, category, description, image_url, yes_price, end_date, betting_end_date, is_popular ? true : false, id]);
         
             if (result.rows.length === 0) {
                 return res.status(404).json({ success: false, message: '이슈를 찾을 수 없습니다.' });

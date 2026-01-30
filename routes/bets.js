@@ -53,6 +53,17 @@ router.post('/', authMiddleware, validateBetRequest, async (req, res) => {
             });
         }
         
+        // 베팅 마감일 확인 (betting_end_date가 있으면 사용, 없으면 end_date 사용)
+        const bettingDeadline = issue.betting_end_date || issue.end_date;
+        if (new Date(bettingDeadline) < new Date()) {
+            await client.query('ROLLBACK');
+            client.release();
+            return res.status(400).json({ 
+                success: false, 
+                message: '베팅이 마감되었습니다.' 
+            });
+        }
+        
         // 이미 베팅했는지 확인
         const betResult = await client.query('SELECT id FROM bets WHERE user_id = $1 AND issue_id = $2', [userId, issueId]);
         const existingBet = betResult.rows[0];

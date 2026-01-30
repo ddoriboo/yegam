@@ -304,6 +304,25 @@ function setupCreateIssueModal() {
         });
     });
 
+    // 🎰 베팅 마감일 빠른 선택 버튼 핸들러
+    const quickBettingDateButtons = document.querySelectorAll('.quick-betting-date-btn');
+    const bettingDateInput = document.getElementById('issue-betting-end-date');
+
+    console.log(`🎰 베팅 마감일 버튼 개수: ${quickBettingDateButtons.length}`);
+
+    quickBettingDateButtons.forEach((btn, index) => {
+        btn.addEventListener('click', (e) => {
+            console.log(`🖱️ 베팅 마감일 버튼 클릭: ${btn.dataset.days}일 후`);
+            e.preventDefault();
+            const days = parseInt(btn.dataset.days);
+            const koreanDateTime = timezoneUtils.getKoreanTimeAfterDays(days);
+            if (bettingDateInput) {
+                bettingDateInput.value = koreanDateTime;
+            }
+            console.log(`✅ 베팅 마감일 설정됨: ${days}일 후 → ${koreanDateTime} (한국 시간)`);
+        });
+    });
+
     // Form submission
     form.addEventListener('submit', handleCreateIssue);
 
@@ -362,19 +381,32 @@ async function handleCreateIssue(e) {
 
         // 한국 시간대로 마감일 처리
         const endDateLocal = formData.get('endDate');
-        const endDateKST = timezoneUtils.datetimeLocalToUTC(endDateLocal);
+        const bettingEndDateLocal = formData.get('bettingEndDate');
+        const endDateUTC = timezoneUtils.datetimeLocalToUTC(endDateLocal);
+        const bettingEndDateUTC = timezoneUtils.datetimeLocalToUTC(bettingEndDateLocal);
+
+        // 베팅 마감일이 결과 확정일보다 늦으면 경고
+        if (new Date(bettingEndDateUTC) > new Date(endDateUTC)) {
+            alert('⚠️ 베팅 마감일은 결과 확정일보다 이전이어야 합니다!');
+            submitBtn.disabled = false;
+            submitBtn.textContent = '이슈 생성';
+            return;
+        }
 
         console.log('=== 이슈 생성 시작 ===');
         console.log('제목:', formData.get('title'));
         console.log('카테고리:', formData.get('category'));
-        console.log('입력 마감일:', endDateLocal);
-        console.log('변환 UTC:', endDateKST);
+        console.log('베팅 마감일 (입력):', bettingEndDateLocal);
+        console.log('베팅 마감일 (UTC):', bettingEndDateUTC);
+        console.log('결과 확정일 (입력):', endDateLocal);
+        console.log('결과 확정일 (UTC):', endDateUTC);
 
         const issueData = {
             title: formData.get('title'),
             category: formData.get('category'),
             description: formData.get('description') || '',
-            end_date: endDateKST,
+            endDate: endDateUTC,
+            bettingEndDate: bettingEndDateUTC,
             yes_price: parseInt(formData.get('yesPrice')) || 50,
             image_url: formData.get('image_url') || null,
             change_reason: 'Admin creation'
@@ -414,19 +446,28 @@ async function handleEditIssue(e) {
     
     // 한국 시간대로 마감일 처리
     const endDateLocal = formData.get('endDate');
-    const endDateKST = timezoneUtils.datetimeLocalToUTC(endDateLocal);
+    const bettingEndDateLocal = formData.get('bettingEndDate');
+    const endDateUTC = timezoneUtils.datetimeLocalToUTC(endDateLocal);
+    const bettingEndDateUTC = timezoneUtils.datetimeLocalToUTC(bettingEndDateLocal);
+
+    // 베팅 마감일이 결과 확정일보다 늦으면 경고
+    if (new Date(bettingEndDateUTC) > new Date(endDateUTC)) {
+        alert('⚠️ 베팅 마감일은 결과 확정일보다 이전이어야 합니다!');
+        return;
+    }
     
     const issueData = {
         title: formData.get('title'),
         category: formData.get('category'),
         description: formData.get('description') || '',
-        end_date: endDateKST,
-        yes_price: parseInt(formData.get('yesPrice')) || 50,
-        is_popular: formData.get('isPopular') === 'on',
+        endDate: endDateUTC,
+        bettingEndDate: bettingEndDateUTC,
+        yesPrice: parseInt(formData.get('yesPrice')) || 50,
+        isPopular: formData.get('isPopular') === 'on',
         change_reason: 'Admin modification' // 어드민 수정 시 기본 사유
     };
 
-    const issueId = formData.get('id');
+    const issueId = formData.get('id') || formData.get('issueId');
 
     try {
         const response = await window.adminFetch(`/api/admin/issues/${issueId}`, {
@@ -636,7 +677,17 @@ window.editIssue = async function(issueId) {
         document.getElementById('edit-issue-yes-price').value = issue.yes_price || 50;
         document.getElementById('edit-issue-popular').checked = issue.is_popular || false;
         
-        // 마감일 설정 (UTC 시간을 한국 시간으로 변환)
+        // 베팅 마감일 설정 (UTC 시간을 한국 시간으로 변환)
+        const bettingEndDate = issue.betting_end_date || issue.end_date;
+        if (bettingEndDate) {
+            const localBettingDateTime = timezoneUtils.utcToDatetimeLocal(bettingEndDate);
+            const bettingInput = document.getElementById('edit-issue-betting-end-date') || document.getElementById('edit-issue-betting-end-date-2');
+            if (bettingInput) {
+                bettingInput.value = localBettingDateTime;
+            }
+        }
+        
+        // 결과 확정일 설정 (UTC 시간을 한국 시간으로 변환)
         if (issue.end_date) {
             const localDateTime = timezoneUtils.utcToDatetimeLocal(issue.end_date);
             document.getElementById('edit-issue-end-date').value = localDateTime;
