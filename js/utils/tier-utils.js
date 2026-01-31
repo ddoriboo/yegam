@@ -93,7 +93,7 @@ export function createTierDisplay(tier, showName = true) {
     
     return `
         <div class="tier-display ${tierClass}" title="${tier.name} (${tier.nameEn})">
-            <span class="tier-icon">${tier.icon}</span>
+            <span class="tier-icon" style="font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;">${tier.icon}</span>
             ${showName ? `<span class="tier-name">${tier.name}</span>` : ''}
         </div>
     `;

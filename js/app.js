@@ -3938,7 +3938,7 @@ function updateUserTier(gamAmount) {
     const tierIconEl = document.getElementById('user-tier-icon');
     if (tierIconEl) {
         tierIconEl.innerHTML = `
-            <div class="text-4xl tier-icon" title="${tierInfo.name} (${tierInfo.minGam.toLocaleString()} GAM 이상)">
+            <div class="text-4xl tier-icon" style="font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;" title="${tierInfo.name} (${tierInfo.minGam.toLocaleString()} GAM 이상)">
                 ${tierInfo.icon}
             </div>
         `;
@@ -3965,7 +3965,7 @@ function generateEnhancedTierProgress(tierInfo) {
             <div class="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl p-4">
                 <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center space-x-2">
-                        <div class="text-2xl tier-icon">${tierInfo.icon}</div>
+                        <div class="text-2xl tier-icon" style="font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;">${tierInfo.icon}</div>
                         <div>
                             <div class="font-bold text-yellow-800">최고 티어 달성!</div>
                             <div class="text-sm text-yellow-700">축하합니다! 모든 업적을 달성했습니다.</div>
@@ -3997,9 +3997,9 @@ function generateEnhancedTierProgress(tierInfo) {
             <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center space-x-3">
                     <div class="flex items-center space-x-1">
-                        <div class="text-lg tier-icon" title="현재 티어">${tierInfo.icon}</div>
+                        <div class="text-lg tier-icon" style="font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;" title="현재 티어">${tierInfo.icon}</div>
                         <i data-lucide="arrow-right" class="w-4 h-4 text-gray-400"></i>
-                        <div class="text-lg tier-icon" title="다음 티어">${nextTier.icon}</div>
+                        <div class="text-lg tier-icon" style="font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;" title="다음 티어">${nextTier.icon}</div>
                     </div>
                     <div>
                         <div class="font-semibold text-gray-900">${tierInfo.name} → ${nextTier.name}</div>
@@ -4019,7 +4019,7 @@ function generateEnhancedTierProgress(tierInfo) {
                     <span class="text-gray-600">목표:</span>
                     <span class="font-semibold text-indigo-600">${nextTier.minGam.toLocaleString()} GAM</span>
                     <div class="flex items-center space-x-1 ml-2 px-2 py-1 bg-indigo-100 rounded-full">
-                        <div class="text-sm tier-icon">${nextTier.icon}</div>
+                        <div class="text-sm tier-icon" style="font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;">${nextTier.icon}</div>
                         <span class="text-xs font-medium text-indigo-700">${nextTier.name}</span>
                     </div>
                 </div>
