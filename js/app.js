@@ -514,53 +514,54 @@ function setupCategoryFilters() {
     const filtersContainer = document.getElementById('category-filters');
     const mobileFiltersContainer = document.getElementById('category-filters-mobile');
     
-    // Polymarket Style - Neutral colors for all categories
-    const categoryColors = {
-        '전체': 'background: #F3F4F6; color: #4B5563;',
-        '정치': 'background: #F3F4F6; color: #4B5563;',
-        '스포츠': 'background: #F3F4F6; color: #4B5563;',
-        '경제': 'background: #F3F4F6; color: #4B5563;',
-        '코인': 'background: #F3F4F6; color: #4B5563;',
-        '테크': 'background: #F3F4F6; color: #4B5563;',
-        '엔터': 'background: #F3F4F6; color: #4B5563;',
-        '날씨': 'background: #F3F4F6; color: #4B5563;',
-        '해외': 'background: #F3F4F6; color: #4B5563;'
-    };
+    // 카테고리 데이터 - 분석방과 동일한 이모지 사용
+    const categoriesData = [
+        { name: '전체', icon: '💬' },
+        { name: '정치', icon: '🏛️' },
+        { name: '스포츠', icon: '⚽' },
+        { name: '경제', icon: '📈' },
+        { name: '코인', icon: '₿' },
+        { name: '테크', icon: '💻' },
+        { name: '엔터', icon: '🎭' },
+        { name: '날씨', icon: '🌤️' },
+        { name: '해외', icon: '🌍' }
+    ];
     
-    const categories = ['전체', '정치', '스포츠', '경제', '코인', '테크', '엔터', '날씨', '해외'];
-    
-    const createCategoryButton = (category, index, isMobile = false) => `
-        <button class="category-filter-btn ${index === 0 ? 'active' : ''} ${isMobile ? 'mobile-touch-btn' : ''} px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 transform hover:scale-105 shadow-md hover:shadow-lg"
-                style="${index === 0 ? categoryColors['전체'] : categoryColors[category]}"
-                data-category="${category}">
-            ${category}
+    // 분석방과 동일한 스타일의 버튼 생성
+    const createCategoryButton = (category, index) => `
+        <button class="category-btn ${index === 0 ? 'active' : ''}"
+                data-category="${category.name}"
+                style="white-space: nowrap;">
+            ${category.icon} ${category.name}
         </button>
     `;
     
     // Setup desktop category filters
     if (filtersContainer) {
-        filtersContainer.innerHTML = categories.map((category, index) => 
-            createCategoryButton(category, index, false)
+        filtersContainer.innerHTML = categoriesData.map((category, index) => 
+            createCategoryButton(category, index)
         ).join('');
         
         filtersContainer.addEventListener('click', (e) => {
-            if (e.target.classList.contains('category-filter-btn')) {
-                const category = e.target.dataset.category;
-                selectCategory(category, e.target);
+            const btn = e.target.closest('.category-btn');
+            if (btn) {
+                const category = btn.dataset.category;
+                selectCategory(category, btn);
             }
         });
     }
     
     // Setup mobile category filters
     if (mobileFiltersContainer) {
-        mobileFiltersContainer.innerHTML = categories.map((category, index) => 
-            createCategoryButton(category, index, true)
+        mobileFiltersContainer.innerHTML = categoriesData.map((category, index) => 
+            createCategoryButton(category, index)
         ).join('');
         
         mobileFiltersContainer.addEventListener('click', (e) => {
-            if (e.target.classList.contains('category-filter-btn')) {
-                const category = e.target.dataset.category;
-                selectCategory(category, e.target, true);
+            const btn = e.target.closest('.category-btn');
+            if (btn) {
+                const category = btn.dataset.category;
+                selectCategory(category, btn, true);
             }
         });
     }
@@ -568,10 +569,8 @@ function setupCategoryFilters() {
 
 function selectCategory(category, buttonElement, isMobile = false) {
     // Update active state for both desktop and mobile
-    document.querySelectorAll('.category-filter-btn').forEach(btn => {
+    document.querySelectorAll('.category-btn').forEach(btn => {
         btn.classList.remove('active');
-        btn.style.opacity = '0.7';
-        btn.style.transform = 'scale(1)';
     });
     
     // Find corresponding buttons in both desktop and mobile versions
@@ -582,8 +581,6 @@ function selectCategory(category, buttonElement, isMobile = false) {
     [desktopBtn, mobileBtn].forEach(btn => {
         if (btn) {
             btn.classList.add('active');
-            btn.style.opacity = '1';
-            btn.style.transform = 'scale(1.05)';
         }
     });
     
