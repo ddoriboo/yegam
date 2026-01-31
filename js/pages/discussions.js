@@ -781,7 +781,7 @@ function renderPosts(posts) {
                 <div class="post-meta">
                     <span class="post-category-tag">${categoryName}</span>
                     <span class="separator">·</span>
-                    <span>${tierIcon} ${authorName}</span>
+                    <span><span class="tier-icon">${tierIcon}</span> ${authorName}</span>
                     <span class="separator">·</span>
                     <span>${timeDisplay}</span>
                     <span class="separator">·</span>
