@@ -10,14 +10,14 @@
  *   node create-issue.js -t "손흥민 골?" -c 스포츠 -d 2026-01-27T22:00 -i ./image.png -p
  */
 
-const { createIssue, uploadImage, downloadImage } = require('./lib/api-client');
+const { createIssue, uploadImage, downloadImage, saveImageToGitHub } = require('./lib/api-client');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
 
 // 간단한 인자 파싱
 function parseArgs(args) {
-    const result = { popular: false };
+    const result = { popular: false, useGitHub: true }; // 기본값: GitHub에 이미지 저장
     
     for (let i = 0; i < args.length; i++) {
         const arg = args[i];
@@ -40,6 +40,12 @@ function parseArgs(args) {
                 result.endDate = next;
                 i++;
                 break;
+            case '-b':
+            case '--betting-date':
+            case '--betting-end-date':
+                result.bettingEndDate = next;
+                i++;
+                break;
             case '-D':
             case '--desc':
             case '--description':
@@ -54,6 +60,9 @@ function parseArgs(args) {
             case '-p':
             case '--popular':
                 result.popular = true;
+                break;
+            case '--railway':
+                result.useGitHub = false; // Railway 서버에 업로드 (기존 방식)
                 break;
             case '-h':
             case '--help':
@@ -81,12 +90,17 @@ function showHelp() {
   -D, --description <설명> 이슈 설명
   -i, --image <경로/URL>   이미지 파일 또는 URL
   -p, --popular            인기 이슈로 설정
+  --railway                이미지를 Railway 서버에 업로드 (기본값: GitHub)
   -h, --help               도움말
+
+이미지 저장:
+  기본값: GitHub repo에 저장 (raw.githubusercontent.com URL)
+  --railway 옵션 시: Railway 서버에 업로드 (재배포 시 삭제됨!)
 
 예시:
   node create-issue.js -t "비트코인 10만달러?" -c 코인 -d 2026-01-31
   node create-issue.js -t "손흥민 골?" -c 스포츠 -d 2026-01-27T22:00 -p
-  node create-issue.js -t "테스트" -c 테크 -d 2026-02-01 -i https://example.com/img.png
+  node create-issue.js -t "테스트" -c 테크 -d 2026-02-01 -i https://news.com/img.jpg
 `);
 }
 
@@ -122,6 +136,7 @@ async function main() {
             console.log('📷 이미지 처리 중...');
             
             let imagePath = args.image;
+            let isTempFile = false;
             
             // URL이면 다운로드
             if (args.image.startsWith('http://') || args.image.startsWith('https://')) {
@@ -129,19 +144,46 @@ async function main() {
                 imagePath = path.join(os.tmpdir(), `yegam-img-${Date.now()}${ext}`);
                 await downloadImage(args.image, imagePath);
                 console.log(`   ↓ 다운로드 완료: ${imagePath}`);
+                isTempFile = true;
             }
             
-            // 업로드
-            const uploadResult = await uploadImage(imagePath);
-            if (uploadResult.success) {
-                imageUrl = uploadResult.imageUrl;
-                console.log(`   ↑ 업로드 완료: ${imageUrl}`);
+            if (args.useGitHub) {
+                // GitHub에 저장 (기본값)
+                const ext = path.extname(imagePath) || '.jpg';
+                const filename = `issue-${Date.now()}${ext}`;
+                
+                console.log('   📤 GitHub에 업로드 중...');
+                const result = await saveImageToGitHub(imagePath, filename);
+                
+                if (result.success) {
+                    imageUrl = result.url;
+                    console.log(`   ✅ GitHub 저장 완료: ${imageUrl}`);
+                } else {
+                    console.error('   ⚠️ GitHub 저장 실패:', result.error);
+                    console.log('   🔄 Railway 업로드로 fallback...');
+                    
+                    // Fallback to Railway upload
+                    const uploadResult = await uploadImage(imagePath);
+                    if (uploadResult.success) {
+                        imageUrl = uploadResult.imageUrl;
+                        console.log(`   ↑ Railway 업로드 완료: ${imageUrl}`);
+                    } else {
+                        console.error('   ❌ 이미지 업로드 완전 실패:', uploadResult.message);
+                    }
+                }
             } else {
-                console.error('   ⚠️ 이미지 업로드 실패:', uploadResult.message);
+                // Railway 서버에 업로드 (--railway 옵션)
+                const uploadResult = await uploadImage(imagePath);
+                if (uploadResult.success) {
+                    imageUrl = uploadResult.imageUrl;
+                    console.log(`   ↑ Railway 업로드 완료: ${imageUrl}`);
+                } else {
+                    console.error('   ⚠️ 이미지 업로드 실패:', uploadResult.message);
+                }
             }
             
             // 임시 파일 정리
-            if (imagePath !== args.image && fs.existsSync(imagePath)) {
+            if (isTempFile && fs.existsSync(imagePath)) {
                 fs.unlinkSync(imagePath);
             }
         }
@@ -149,10 +191,20 @@ async function main() {
         // 이슈 생성
         console.log('📝 이슈 생성 중...');
         
+        // 베팅 마감일이 없으면 결과 확정일과 동일
+        let bettingEndDate = endDate;
+        if (args.bettingEndDate) {
+            bettingEndDate = args.bettingEndDate;
+            if (!bettingEndDate.includes('T')) {
+                bettingEndDate += 'T23:59:00';
+            }
+        }
+        
         const result = await createIssue({
             title: args.title,
             category: args.category,
             endDate: endDate,
+            bettingEndDate: bettingEndDate,
             description: args.description || '',
             popular: args.popular,
             imageUrl: imageUrl

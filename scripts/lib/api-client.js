@@ -107,13 +107,17 @@ async function authRequest(endpoint, options = {}) {
  * 이슈 생성
  */
 async function createIssue(issue) {
+    const endDate = issue.endDate || issue.end_date;
+    const bettingEndDate = issue.bettingEndDate || issue.betting_end_date || endDate;
+    
     return authRequest('/api/admin/issues', {
         method: 'POST',
         body: JSON.stringify({
             title: issue.title,
             description: issue.description || '',
             category: issue.category,
-            end_date: issue.endDate || issue.end_date,
+            endDate: endDate,
+            bettingEndDate: bettingEndDate,
             is_popular: issue.popular || issue.is_popular || false,
             image_url: issue.imageUrl || issue.image_url || null
         })
@@ -237,6 +241,49 @@ async function downloadImage(url, outputPath) {
     });
 }
 
+/**
+ * GitHub에 이미지 저장 & URL 반환
+ * @param {string} imagePath - 로컬 이미지 파일 경로
+ * @param {string} filename - 저장할 파일명 (예: issue-113.jpg)
+ * @returns {Promise<{success: boolean, url: string}>}
+ */
+async function saveImageToGitHub(imagePath, filename) {
+    const { execSync } = require('child_process');
+    const repoRoot = path.resolve(__dirname, '../..');
+    const imagesDir = path.join(repoRoot, 'public', 'images', 'issues');
+    
+    // 이미지 폴더 확인/생성
+    if (!fs.existsSync(imagesDir)) {
+        fs.mkdirSync(imagesDir, { recursive: true });
+    }
+    
+    // 파일 복사
+    const destPath = path.join(imagesDir, filename);
+    fs.copyFileSync(imagePath, destPath);
+    
+    // Git commit & push
+    try {
+        const relativePath = path.relative(repoRoot, destPath).replace(/\\/g, '/');
+        execSync(`git add "${relativePath}"`, { cwd: repoRoot, stdio: 'pipe' });
+        execSync(`git commit -m "Add image: ${filename}"`, { cwd: repoRoot, stdio: 'pipe' });
+        execSync('git push', { cwd: repoRoot, stdio: 'pipe' });
+        
+        // GitHub raw URL 생성
+        const url = `https://raw.githubusercontent.com/ddoriboo/yegam/main/public/images/issues/${filename}`;
+        
+        return { success: true, url };
+    } catch (error) {
+        // commit 실패해도 로컬에는 파일 있음
+        console.error('Git 작업 실패:', error.message);
+        return { 
+            success: false, 
+            url: null,
+            localPath: destPath,
+            error: error.message 
+        };
+    }
+}
+
 module.exports = {
     CONFIG,
     login,
@@ -246,5 +293,6 @@ module.exports = {
     deleteIssue,
     listIssues,
     uploadImage,
-    downloadImage
+    downloadImage,
+    saveImageToGitHub
 };

@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>예겜 홍보 영상</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            width: 1080px;
+            height: 1920px;
+            overflow: hidden;
+            font-family: 'Pretendard', 'Noto Sans KR', -apple-system, sans-serif;
+        }
+        
+        .container {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* 눈 효과 */
+        .snowflake {
+            position: absolute;
+            color: white;
+            font-size: 20px;
+            opacity: 0.8;
+            animation: fall linear infinite;
+            text-shadow: 0 0 10px rgba(255,255,255,0.5);
+        }
+        
+        @keyframes fall {
+            0% { transform: translateY(-100px) rotate(0deg); }
+            100% { transform: translateY(2000px) rotate(360deg); }
+        }
+        
+        /* 장면들 */
+        .scene {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            padding: 60px;
+        }
+        
+        /* 장면 1: 설날 눈 질문 */
+        .scene1 {
+            animation: scene1Anim 15s ease-in-out forwards;
+        }
+        
+        @keyframes scene1Anim {
+            0% { opacity: 0; }
+            3% { opacity: 1; }
+            30% { opacity: 1; }
+            35% { opacity: 0; }
+            100% { opacity: 0; }
+        }
+        
+        .scene1 .emoji {
+            font-size: 150px;
+            animation: bounce 1s ease-in-out infinite;
+            margin-bottom: 40px;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+        
+        .scene1 .title {
+            font-size: 90px;
+            font-weight: 800;
+            color: white;
+            text-align: center;
+            text-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            margin-bottom: 30px;
+        }
+        
+        .scene1 .subtitle {
+            font-size: 70px;
+            font-weight: 600;
+            color: #a8dadc;
+            text-align: center;
+        }
+        
+        /* 장면 2: 예측하고 GAM 벌자 */
+        .scene2 {
+            animation: scene2Anim 15s ease-in-out forwards;
+        }
+        
+        @keyframes scene2Anim {
+            0%, 35% { opacity: 0; }
+            40% { opacity: 1; }
+            65% { opacity: 1; }
+            70% { opacity: 0; }
+            100% { opacity: 0; }
+        }
+        
+        .scene2 .title {
+            font-size: 80px;
+            font-weight: 800;
+            color: #ffd700;
+            text-align: center;
+            margin-bottom: 40px;
+            animation: glow 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes glow {
+            0%, 100% { text-shadow: 0 0 20px rgba(255,215,0,0.5); }
+            50% { text-shadow: 0 0 40px rgba(255,215,0,0.8), 0 0 60px rgba(255,215,0,0.4); }
+        }
+        
+        .scene2 .subtitle {
+            font-size: 100px;
+            font-weight: 900;
+            color: white;
+            margin-bottom: 60px;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 40px;
+        }
+        
+        .btn {
+            padding: 30px 80px;
+            font-size: 60px;
+            font-weight: 700;
+            border-radius: 20px;
+            animation: pulse 0.8s ease-in-out infinite alternate;
+        }
+        
+        .btn-yes {
+            background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+            color: white;
+        }
+        
+        .btn-no {
+            background: linear-gradient(135deg, #e17055 0%, #d63031 100%);
+            color: white;
+            animation-delay: 0.4s;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.05); }
+        }
+        
+        /* 장면 3: URL */
+        .scene3 {
+            animation: scene3Anim 15s ease-in-out forwards;
+        }
+        
+        @keyframes scene3Anim {
+            0%, 70% { opacity: 0; }
+            75% { opacity: 1; }
+            100% { opacity: 1; }
+        }
+        
+        .scene3 .logo {
+            font-size: 120px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 40px;
+        }
+        
+        .scene3 .url {
+            font-size: 100px;
+            font-weight: 800;
+            color: #00d2d3;
+            text-shadow: 0 0 30px rgba(0,210,211,0.5);
+            margin-bottom: 40px;
+            animation: urlPulse 1s ease-in-out infinite;
+        }
+        
+        @keyframes urlPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+        
+        .scene3 .cta {
+            font-size: 60px;
+            color: white;
+            opacity: 0.9;
+        }
+        
+        .scene3 .arrow {
+            font-size: 80px;
+            animation: arrowBounce 0.6s ease-in-out infinite;
+            margin-top: 20px;
+        }
+        
+        @keyframes arrowBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(15px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 눈 효과 (JavaScript로 생성) -->
+        <div id="snow-container"></div>
+        
+        <!-- 장면 1: 설날 눈 질문 -->
+        <div class="scene scene1">
+            <div class="emoji">❄️</div>
+            <div class="title">설날</div>
+            <div class="subtitle">서울에 눈이 올까?</div>
+        </div>
+        
+        <!-- 장면 2: 예측하고 벌자 -->
+        <div class="scene scene2">
+            <div class="title">🎰 예측하고</div>
+            <div class="subtitle">GAM 벌자!</div>
+            <div class="buttons">
+                <div class="btn btn-yes">✅ YES</div>
+                <div class="btn btn-no">❌ NO</div>
+            </div>
+        </div>
+        
+        <!-- 장면 3: URL -->
+        <div class="scene scene3">
+            <div class="logo">예겜</div>
+            <div class="url">yegam.ai.kr</div>
+            <div class="cta">지금 바로 접속!</div>
+            <div class="arrow">👇</div>
+        </div>
+    </div>
+    
+    <script>
+        // 눈 효과 생성
+        const snowContainer = document.getElementById('snow-container');
+        const snowflakes = ['❄', '❅', '❆', '✻', '✼'];
+        
+        function createSnowflake() {
+            const snow = document.createElement('div');
+            snow.className = 'snowflake';
+            snow.textContent = snowflakes[Math.floor(Math.random() * snowflakes.length)];
+            snow.style.left = Math.random() * 100 + '%';
+            snow.style.fontSize = (Math.random() * 30 + 15) + 'px';
+            snow.style.animationDuration = (Math.random() * 5 + 5) + 's';
+            snow.style.animationDelay = Math.random() * 5 + 's';
+            snowContainer.appendChild(snow);
+            
+            // 애니메이션 끝나면 제거
+            setTimeout(() => snow.remove(), 15000);
+        }
+        
+        // 초기 눈 생성
+        for (let i = 0; i < 50; i++) {
+            setTimeout(createSnowflake, Math.random() * 2000);
+        }
+        
+        // 지속적으로 눈 생성
+        setInterval(createSnowflake, 200);
+    </script>
+</body>
+</html>
