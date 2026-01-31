@@ -18,7 +18,7 @@ const TIERS = [
         level: 1,
         name: '조약돌',
         nameEn: 'Pebble',
-        icon: '🪨',
+        icon: '🔘',
         minGam: 10000,
         maxGam: 24999,
         color: '#78716C',
