@@ -175,14 +175,15 @@
             <!-- Discussion Content -->
             <section class="container mx-auto px-4 lg:px-8 py-2 md:py-3">
                 <!-- 🖥️ PC 인라인 글쓰기 박스 (md 이상에서만 표시) -->
-                <div id="inline-write-box" class="hidden md:block bg-white rounded-lg border border-gray-100 mb-2 shadow-sm">
+                <div id="inline-write-box" class="hidden md:block bg-white rounded-lg border-2 border-blue-100 mb-2 shadow-sm hover:border-blue-200 transition-colors">
                     <div class="p-4">
                         <!-- 축소 상태: 한 줄 입력창 -->
                         <div id="write-box-collapsed" class="cursor-pointer">
                             <div class="flex items-center space-x-3">
                                 <span id="write-box-tier-icon" class="text-lg">⚪</span>
-                                <div class="flex-1 bg-gray-100 rounded-full px-4 py-2.5 text-gray-500 text-sm hover:bg-gray-200 transition-colors">
-                                    무슨 생각을 하고 계신가요?
+                                <div class="flex-1 bg-blue-50 rounded-full px-4 py-2.5 text-blue-600 text-sm hover:bg-blue-100 transition-colors flex items-center">
+                                    <i data-lucide="pencil" class="w-4 h-4 mr-2"></i>
+                                    새 글 작성하기
                                 </div>
                             </div>
                         </div>
