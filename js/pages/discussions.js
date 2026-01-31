@@ -55,20 +55,28 @@ export async function renderDiscussionsPage() {
     }
 }
 
-// 인라인 글쓰기 박스 초기화
+// 인라인 글쓰기 박스 초기화 (PC + 모바일 FAB)
 function initInlineWriteBox() {
     const writeBox = document.getElementById('inline-write-box');
     const collapsed = document.getElementById('write-box-collapsed');
     const expanded = document.getElementById('write-box-expanded');
     const collapseBtn = document.getElementById('collapse-write-box');
     const inlineForm = document.getElementById('inline-post-form');
-    const inlineCategorySelect = document.getElementById('inline-category');
-    
-    if (!writeBox) return;
+    const mobileFab = document.getElementById('mobile-write-fab');
     
     // 로그인 상태 확인
     if (auth.isLoggedIn()) {
-        writeBox.classList.remove('hidden');
+        // PC: 인라인 글쓰기 박스 표시 (md:block은 CSS로 처리, hidden만 제거)
+        if (writeBox) {
+            // 'hidden' 클래스를 제거하고 'md:block'만 유지
+            writeBox.classList.remove('hidden');
+            writeBox.classList.add('hidden', 'md:block');
+        }
+        
+        // 모바일: FAB 표시
+        if (mobileFab) {
+            mobileFab.classList.remove('hidden');
+        }
         
         // 사용자 티어 아이콘 설정
         const userInfo = auth.getCurrentUser();
@@ -80,7 +88,7 @@ function initInlineWriteBox() {
         renderInlineCategoryOptions();
     }
     
-    // 축소 상태 클릭 시 확장
+    // PC: 축소 상태 클릭 시 확장
     collapsed?.addEventListener('click', () => {
         if (!auth.isLoggedIn()) {
             alert('로그인이 필요합니다.');
@@ -92,15 +100,25 @@ function initInlineWriteBox() {
         document.getElementById('inline-title')?.focus();
     });
     
-    // 취소 버튼 클릭 시 축소
+    // PC: 취소 버튼 클릭 시 축소
     collapseBtn?.addEventListener('click', () => {
         expanded.classList.add('hidden');
         collapsed.classList.remove('hidden');
         inlineForm?.reset();
     });
     
-    // 인라인 폼 제출
+    // PC: 인라인 폼 제출
     inlineForm?.addEventListener('submit', handleInlinePostSubmit);
+    
+    // 📱 모바일: FAB 클릭 시 모달 열기
+    mobileFab?.addEventListener('click', () => {
+        if (!auth.isLoggedIn()) {
+            alert('로그인이 필요합니다.');
+            window.location.href = 'login.html';
+            return;
+        }
+        openPostModal(false);
+    });
 }
 
 // 인라인 카테고리 옵션 렌더링

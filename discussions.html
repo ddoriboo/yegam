@@ -162,8 +162,8 @@
 
             <!-- Discussion Content -->
             <section class="container mx-auto px-4 lg:px-8 py-3 md:py-4">
-                <!-- 인라인 글쓰기 박스 -->
-                <div id="inline-write-box" class="bg-white rounded-lg border border-gray-200 mb-3 hidden">
+                <!-- 🖥️ PC 인라인 글쓰기 박스 (md 이상에서만 표시) -->
+                <div id="inline-write-box" class="hidden md:block bg-white rounded-lg border border-gray-200 mb-3">
                     <div class="p-4">
                         <!-- 축소 상태: 한 줄 입력창 -->
                         <div id="write-box-collapsed" class="cursor-pointer">
@@ -183,7 +183,7 @@
                                     <div class="flex-1 space-y-3">
                                         <!-- 카테고리 선택 -->
                                         <select id="inline-category" name="category_id" required 
-                                            class="w-full md:w-48 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                            class="w-48 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                                             <option value="">카테고리 선택</option>
                                         </select>
                                         
@@ -235,7 +235,7 @@
                         <!-- Top Controls -->
                         <div class="controls-top flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-3">
                             <div class="flex items-center space-x-2">
-                                <button id="new-post-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center">
+                                <button id="new-post-btn" class="hidden md:flex bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors items-center">
                                     <i data-lucide="plus" class="w-4 h-4 mr-1"></i>
                                     새 글
                                 </button>
@@ -434,6 +434,11 @@
             </div>
         </div>
     </div>
+
+    <!-- 📱 모바일 글쓰기 FAB (모바일에서만 표시) -->
+    <button id="mobile-write-fab" class="md:hidden fixed right-4 bottom-20 z-40 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all active:scale-95 hidden">
+        <i data-lucide="plus" class="w-6 h-6"></i>
+    </button>
 
     <!-- Mobile Bottom Navigation -->
     <nav class="bottom-nav">
