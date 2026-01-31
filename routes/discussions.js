@@ -1,9 +1,94 @@
 const express = require('express');
+const jwt = require('jsonwebtoken');
 const { query } = require('../database/postgres');
 const { authMiddleware } = require('../middleware/auth');
 const { secureAdminMiddleware } = require('../middleware/admin-auth-secure');
 
 const router = express.Router();
+
+const JWT_SECRET = process.env.JWT_SECRET || 'yegame-production-secret-key-2025-very-secure-random-string';
+
+// 선택적 인증 헬퍼 (토큰이 있으면 파싱, 없으면 null)
+function getOptionalUser(req) {
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
+        if (!token) return null;
+        const decoded = jwt.verify(token, JWT_SECRET);
+        return decoded;
+    } catch (error) {
+        return null;
+    }
+}
+
+// 인기글 조회 (최근 7일 내 좋아요 많은 글)
+router.get('/posts/popular', async (req, res) => {
+    try {
+        const { limit = 5 } = req.query;
+        
+        const postsQuery = `
+            SELECT 
+                p.id,
+                p.title,
+                p.category_id,
+                p.view_count,
+                p.like_count,
+                p.comment_count,
+                p.created_at,
+                p.media_urls,
+                u.username as author_name,
+                u.gam_balance,
+                CASE 
+                  WHEN u.gam_balance >= 150000000 THEN '👁️‍🗨️'
+                  WHEN u.gam_balance >= 100000000 THEN '🌌'
+                  WHEN u.gam_balance >= 65000000 THEN '🌟'
+                  WHEN u.gam_balance >= 40000000 THEN '☄️'
+                  WHEN u.gam_balance >= 25000000 THEN '✨'
+                  WHEN u.gam_balance >= 16000000 THEN '📔'
+                  WHEN u.gam_balance >= 10000000 THEN '⏳'
+                  WHEN u.gam_balance >= 6500000 THEN '🌳'
+                  WHEN u.gam_balance >= 4000000 THEN '🐉'
+                  WHEN u.gam_balance >= 2500000 THEN '📜'
+                  WHEN u.gam_balance >= 1500000 THEN '👑'
+                  WHEN u.gam_balance >= 1000000 THEN '🏆'
+                  WHEN u.gam_balance >= 650000 THEN '🥇'
+                  WHEN u.gam_balance >= 400000 THEN '🥈'
+                  WHEN u.gam_balance >= 250000 THEN '🥉'
+                  WHEN u.gam_balance >= 150000 THEN '⚔️'
+                  WHEN u.gam_balance >= 90000 THEN '🛡️'
+                  WHEN u.gam_balance >= 50000 THEN '⛓️'
+                  WHEN u.gam_balance >= 25000 THEN '⛏️'
+                  WHEN u.gam_balance >= 10000 THEN '🪨'
+                  ELSE '⚪'
+                END as tier_icon,
+                c.name as category_name,
+                c.color as category_color,
+                c.icon as category_icon
+            FROM discussion_posts p
+            LEFT JOIN users u ON p.author_id = u.id
+            LEFT JOIN discussion_categories c ON p.category_id = c.id
+            WHERE p.created_at >= NOW() - INTERVAL '7 days'
+              AND p.is_notice = false
+              AND p.like_count >= 1
+            ORDER BY p.like_count DESC, p.view_count DESC
+            LIMIT $1
+        `;
+        
+        const postsResult = await query(postsQuery, [limit]);
+        
+        res.json({
+            success: true,
+            data: postsResult.rows
+        });
+        
+    } catch (error) {
+        console.error('[인기글] 조회 오류:', error);
+        res.status(500).json({
+            success: false,
+            message: '인기글 조회 중 오류가 발생했습니다.',
+            error: error.message
+        });
+    }
+});
 
 // 카테고리 조회
 router.get('/categories', async (req, res) => {
@@ -40,6 +125,10 @@ router.get('/posts', async (req, res) => {
         } = req.query;
         
         const offset = (page - 1) * limit;
+        
+        // 선택적 인증 - 로그인 사용자의 좋아요 여부 확인용
+        const user = getOptionalUser(req);
+        const userId = user?.id || user?.userId || null;
         
         let whereClause = '1=1';
         let orderClause = 'p.created_at DESC';
@@ -92,7 +181,18 @@ router.get('/posts', async (req, res) => {
         const countResult = await query(countQuery, params);
         const total = parseInt(countResult.rows[0].total);
         
-        // 게시글 목록 조회 (YEGAM 티어 정보 포함)
+        // user_liked 서브쿼리 (로그인한 경우)
+        const userLikedColumn = userId 
+            ? `(SELECT EXISTS(SELECT 1 FROM discussion_post_likes WHERE post_id = p.id AND user_id = $${paramIndex})) as user_liked`
+            : 'false as user_liked';
+        
+        // userId가 있으면 params에 추가
+        if (userId) {
+            params.push(userId);
+            paramIndex++;
+        }
+        
+        // 게시글 목록 조회 (YEGAM 티어 정보 포함 + user_liked)
         const postsQuery = `
             SELECT 
                 p.id,
@@ -109,6 +209,7 @@ router.get('/posts', async (req, res) => {
                 p.media_types,
                 u.username as author_name,
                 u.gam_balance,
+                ${userLikedColumn},
                 CASE 
                   WHEN u.gam_balance >= 150000000 THEN 'Lv.20 모든 것을 보는 눈 👁️‍🗨️'
                   WHEN u.gam_balance >= 100000000 THEN 'Lv.19 은하의 지배자 🌌'

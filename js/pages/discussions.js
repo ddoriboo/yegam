@@ -28,6 +28,12 @@ export async function renderDiscussionsPage() {
             renderCategoryOptions();
         }
         
+        // 인라인 글쓰기 박스 초기화
+        initInlineWriteBox();
+        
+        // 인기글 로드
+        await loadPopularPosts();
+        
         // 게시글 로드
         await loadPosts();
         
@@ -44,7 +50,250 @@ export async function renderDiscussionsPage() {
         loadFallbackCategories();
         renderCategoryFilter();
         renderCategoryOptions();
+        initInlineWriteBox();
         setupEventListeners();
+    }
+}
+
+// 인라인 글쓰기 박스 초기화
+function initInlineWriteBox() {
+    const writeBox = document.getElementById('inline-write-box');
+    const collapsed = document.getElementById('write-box-collapsed');
+    const expanded = document.getElementById('write-box-expanded');
+    const collapseBtn = document.getElementById('collapse-write-box');
+    const inlineForm = document.getElementById('inline-post-form');
+    const inlineCategorySelect = document.getElementById('inline-category');
+    
+    if (!writeBox) return;
+    
+    // 로그인 상태 확인
+    if (auth.isLoggedIn()) {
+        writeBox.classList.remove('hidden');
+        
+        // 사용자 티어 아이콘 설정
+        const userInfo = auth.getCurrentUser();
+        if (userInfo) {
+            updateWriteBoxTierIcon(userInfo);
+        }
+        
+        // 인라인 카테고리 옵션 렌더링
+        renderInlineCategoryOptions();
+    }
+    
+    // 축소 상태 클릭 시 확장
+    collapsed?.addEventListener('click', () => {
+        if (!auth.isLoggedIn()) {
+            alert('로그인이 필요합니다.');
+            window.location.href = 'login.html';
+            return;
+        }
+        collapsed.classList.add('hidden');
+        expanded.classList.remove('hidden');
+        document.getElementById('inline-title')?.focus();
+    });
+    
+    // 취소 버튼 클릭 시 축소
+    collapseBtn?.addEventListener('click', () => {
+        expanded.classList.add('hidden');
+        collapsed.classList.remove('hidden');
+        inlineForm?.reset();
+    });
+    
+    // 인라인 폼 제출
+    inlineForm?.addEventListener('submit', handleInlinePostSubmit);
+}
+
+// 인라인 카테고리 옵션 렌더링
+function renderInlineCategoryOptions() {
+    const selectElement = document.getElementById('inline-category');
+    if (!selectElement || !categories || categories.length === 0) return;
+    
+    // 기존 옵션 제거 (첫 번째 유지)
+    while (selectElement.children.length > 1) {
+        selectElement.removeChild(selectElement.lastChild);
+    }
+    
+    categories.forEach(category => {
+        const option = document.createElement('option');
+        option.value = category.id;
+        option.textContent = `${category.icon || '📝'} ${category.name}`;
+        selectElement.appendChild(option);
+    });
+}
+
+// 글쓰기 박스 티어 아이콘 업데이트
+function updateWriteBoxTierIcon(userInfo) {
+    const tierIcon1 = document.getElementById('write-box-tier-icon');
+    const tierIcon2 = document.getElementById('write-box-tier-icon-expanded');
+    
+    // 사용자의 GAM 잔액으로 티어 계산
+    const gamBalance = userInfo.gam_balance || 0;
+    const icon = getTierIconFromBalance(gamBalance);
+    
+    if (tierIcon1) tierIcon1.textContent = icon;
+    if (tierIcon2) tierIcon2.textContent = icon;
+}
+
+// GAM 잔액으로 티어 아이콘 가져오기
+function getTierIconFromBalance(balance) {
+    if (balance >= 150000000) return '👁️‍🗨️';
+    if (balance >= 100000000) return '🌌';
+    if (balance >= 65000000) return '🌟';
+    if (balance >= 40000000) return '☄️';
+    if (balance >= 25000000) return '✨';
+    if (balance >= 16000000) return '📔';
+    if (balance >= 10000000) return '⏳';
+    if (balance >= 6500000) return '🌳';
+    if (balance >= 4000000) return '🐉';
+    if (balance >= 2500000) return '📜';
+    if (balance >= 1500000) return '👑';
+    if (balance >= 1000000) return '🏆';
+    if (balance >= 650000) return '🥇';
+    if (balance >= 400000) return '🥈';
+    if (balance >= 250000) return '🥉';
+    if (balance >= 150000) return '⚔️';
+    if (balance >= 90000) return '🛡️';
+    if (balance >= 50000) return '⛓️';
+    if (balance >= 25000) return '⛏️';
+    if (balance >= 10000) return '🪨';
+    return '⚪';
+}
+
+// 인라인 게시글 제출 처리
+async function handleInlinePostSubmit(e) {
+    e.preventDefault();
+    
+    const submitBtn = document.getElementById('inline-submit-btn');
+    const form = e.target;
+    
+    const postData = {
+        title: document.getElementById('inline-title').value.trim(),
+        content: document.getElementById('inline-content').value.trim(),
+        category_id: document.getElementById('inline-category').value
+    };
+    
+    if (!postData.title) {
+        alert('제목을 입력해주세요.');
+        return;
+    }
+    if (!postData.content) {
+        alert('내용을 입력해주세요.');
+        return;
+    }
+    if (!postData.category_id) {
+        alert('카테고리를 선택해주세요.');
+        return;
+    }
+    
+    try {
+        submitBtn.disabled = true;
+        submitBtn.textContent = '게시 중...';
+        
+        const token = auth.getToken();
+        const response = await fetch('/api/discussions/posts', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(postData)
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // 폼 초기화 및 축소
+            form.reset();
+            document.getElementById('write-box-expanded').classList.add('hidden');
+            document.getElementById('write-box-collapsed').classList.remove('hidden');
+            
+            // 목록 새로고침
+            currentPage = 1;
+            await loadPosts();
+            
+            // 성공 알림
+            alert('게시글이 작성되었습니다.');
+        } else {
+            alert(data.message || '작성 중 오류가 발생했습니다.');
+        }
+    } catch (error) {
+        console.error('게시글 작성 오류:', error);
+        alert('작성 중 오류가 발생했습니다.');
+    } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '게시';
+    }
+}
+
+// 인기글 로드
+async function loadPopularPosts() {
+    const section = document.getElementById('popular-posts-section');
+    const container = document.getElementById('popular-posts-container');
+    
+    if (!section || !container) return;
+    
+    try {
+        const response = await fetch('/api/discussions/posts/popular?limit=5');
+        const data = await response.json();
+        
+        if (data.success && data.data && data.data.length > 0) {
+            section.classList.remove('hidden');
+            renderPopularPosts(data.data);
+        } else {
+            section.classList.add('hidden');
+        }
+    } catch (error) {
+        console.error('인기글 로드 오류:', error);
+        section.classList.add('hidden');
+    }
+}
+
+// 인기글 렌더링
+function renderPopularPosts(posts) {
+    const container = document.getElementById('popular-posts-container');
+    if (!container) return;
+    
+    const cardsHTML = posts.map(post => {
+        const category = categories.find(c => c.id === post.category_id);
+        const categoryColor = category?.color || post.category_color || '#6B7280';
+        const tierIcon = post.tier_icon || '⚪';
+        
+        return `
+            <div class="flex-shrink-0 w-64 bg-gray-50 rounded-lg p-3 border border-gray-100 hover:border-blue-200 hover:shadow-sm transition-all cursor-pointer"
+                 onclick="goToPost(${post.id})">
+                <div class="flex items-center space-x-2 mb-2">
+                    <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium" 
+                          style="background-color: ${categoryColor}15; color: ${categoryColor};">
+                        ${post.category_icon || '📝'}
+                    </span>
+                    <span class="text-xs text-gray-500">${tierIcon} ${post.author_name || '익명'}</span>
+                </div>
+                <h3 class="text-sm font-medium text-gray-900 line-clamp-2 mb-2">${post.title}</h3>
+                <div class="flex items-center justify-between text-xs text-gray-500">
+                    <div class="flex items-center space-x-2">
+                        <span class="flex items-center text-red-500">
+                            <i data-lucide="heart" class="w-3 h-3 mr-1 fill-current"></i>
+                            ${post.like_count || 0}
+                        </span>
+                        <span class="flex items-center">
+                            <i data-lucide="message-circle" class="w-3 h-3 mr-1"></i>
+                            ${post.comment_count || 0}
+                        </span>
+                    </div>
+                    <span class="flex items-center">
+                        <i data-lucide="eye" class="w-3 h-3 mr-1"></i>
+                        ${post.view_count || 0}
+                    </span>
+                </div>
+            </div>
+        `;
+    }).join('');
+    
+    container.innerHTML = `<div class="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">${cardsHTML}</div>`;
+    
+    // Lucide 아이콘 초기화
+    if (window.lucide) {
+        window.lucide.createIcons();
     }
 }
 
@@ -521,10 +770,13 @@ function renderPosts(posts) {
                                 <i data-lucide="eye" class="w-3 h-3 mr-1"></i>
                                 ${post.view_count || 0}
                             </span>
-                            <span class="flex items-center">
-                                <i data-lucide="heart" class="w-3 h-3 mr-1"></i>
-                                ${post.like_count || 0}
-                            </span>
+                            <button class="like-btn flex items-center hover:text-red-500 transition-colors ${post.user_liked ? 'text-red-500' : ''}"
+                                    data-post-id="${post.id}"
+                                    data-liked="${post.user_liked ? 'true' : 'false'}"
+                                    onclick="event.stopPropagation(); toggleLike(${post.id}, this)">
+                                <i data-lucide="heart" class="w-3 h-3 mr-1 ${post.user_liked ? 'fill-current' : ''}"></i>
+                                <span class="like-count">${post.like_count || 0}</span>
+                            </button>
                         </div>
                         
                         <!-- Date & Time -->
@@ -581,10 +833,13 @@ function renderPosts(posts) {
                                     <i data-lucide="eye" class="w-3 h-3 mr-1"></i>
                                     ${post.view_count || 0}
                                 </span>
-                                <span class="flex items-center">
-                                    <i data-lucide="heart" class="w-3 h-3 mr-1"></i>
-                                    ${post.like_count || 0}
-                                </span>
+                                <button class="like-btn-mobile flex items-center hover:text-red-500 transition-colors ${post.user_liked ? 'text-red-500' : ''}"
+                                        data-post-id="${post.id}"
+                                        data-liked="${post.user_liked ? 'true' : 'false'}"
+                                        onclick="event.stopPropagation(); toggleLike(${post.id}, this)">
+                                    <i data-lucide="heart" class="w-3 h-3 mr-1 ${post.user_liked ? 'fill-current' : ''}"></i>
+                                    <span class="like-count">${post.like_count || 0}</span>
+                                </button>
                             </div>
                             <div class="flex items-center space-x-1">
                                 <span>${postDate}</span>
@@ -671,6 +926,71 @@ window.changePage = function(page) {
 // 게시글 상세 페이지로 이동
 window.goToPost = function(postId) {
     window.location.href = `discussion-post.html?id=${postId}`;
+};
+
+// 좋아요 토글
+window.toggleLike = async function(postId, buttonElement) {
+    if (!auth.isLoggedIn()) {
+        alert('로그인이 필요합니다.');
+        window.location.href = 'login.html';
+        return;
+    }
+    
+    try {
+        const token = auth.getToken();
+        const response = await fetch(`/api/discussions/posts/${postId}/like`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // 현재 좋아요 수 가져오기
+            const likeCountSpan = buttonElement.querySelector('.like-count');
+            let currentCount = parseInt(likeCountSpan.textContent) || 0;
+            
+            // 좋아요 상태 토글
+            const isLiked = data.liked;
+            
+            // UI 업데이트
+            if (isLiked) {
+                buttonElement.classList.add('text-red-500');
+                buttonElement.querySelector('i').classList.add('fill-current');
+                likeCountSpan.textContent = currentCount + 1;
+            } else {
+                buttonElement.classList.remove('text-red-500');
+                buttonElement.querySelector('i').classList.remove('fill-current');
+                likeCountSpan.textContent = Math.max(0, currentCount - 1);
+            }
+            
+            buttonElement.dataset.liked = isLiked ? 'true' : 'false';
+            
+            // 같은 게시글의 다른 버튼도 업데이트 (데스크톱/모바일)
+            document.querySelectorAll(`[data-post-id="${postId}"]`).forEach(btn => {
+                if (btn !== buttonElement) {
+                    const otherCountSpan = btn.querySelector('.like-count');
+                    if (isLiked) {
+                        btn.classList.add('text-red-500');
+                        btn.querySelector('i')?.classList.add('fill-current');
+                        if (otherCountSpan) otherCountSpan.textContent = currentCount + 1;
+                    } else {
+                        btn.classList.remove('text-red-500');
+                        btn.querySelector('i')?.classList.remove('fill-current');
+                        if (otherCountSpan) otherCountSpan.textContent = Math.max(0, currentCount - 1);
+                    }
+                    btn.dataset.liked = isLiked ? 'true' : 'false';
+                }
+            });
+        } else {
+            alert(data.message || '좋아요 처리 중 오류가 발생했습니다.');
+        }
+    } catch (error) {
+        console.error('좋아요 오류:', error);
+        alert('좋아요 처리 중 오류가 발생했습니다.');
+    }
 };
 
 // 이벤트 리스너 설정
