@@ -4046,6 +4046,7 @@ function generateCommentTierIcon(userCoins) {
     const tierInfo = getUserTier(userCoins || 0);
     return `
         <div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white text-sm font-medium tier-icon" 
+             style="font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;"
              title="${tierInfo.name}">
             ${tierInfo.icon}
         </div>
@@ -4057,6 +4058,7 @@ function generateReplyTierIcon(userCoins) {
     const tierInfo = getUserTier(userCoins || 0);
     return `
         <div class="w-6 h-6 bg-gradient-to-br from-green-400 to-blue-500 rounded-full flex items-center justify-center text-white text-xs font-medium tier-icon" 
+             style="font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;"
              title="${tierInfo.name}">
             ${tierInfo.icon}
         </div>

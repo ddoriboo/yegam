@@ -101,7 +101,7 @@ function renderPost(post) {
     if (authorElement) {
         const tierIcon = post.tier_icon || '⚪';
         const authorName = post.author_name || '익명';
-        authorElement.innerHTML = `<span class="tier-icon">${tierIcon}</span> ${authorName}`;
+        authorElement.innerHTML = `<span class="tier-icon" style="font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;">${tierIcon}</span> ${authorName}`;
     }
     
     // 작성일
@@ -236,7 +236,7 @@ function renderComments(comments) {
                         <!-- Comment Header -->
                         <div class="flex items-center justify-between mb-3">
                             <div class="flex items-center space-x-3">
-                                <span class="font-medium text-gray-900"><span class="tier-icon">${(comment.tier_icon || '⚪')}</span> ${comment.author_name || '익명'}</span>
+                                <span class="font-medium text-gray-900"><span class="tier-icon" style="font-family: 'Segoe UI Emoji', 'Apple Color Emoji', 'Noto Color Emoji', sans-serif;">${(comment.tier_icon || '⚪')}</span> ${comment.author_name || '익명'}</span>
                                 <span class="text-sm text-gray-500">
                                     ${new Date(comment.created_at).toLocaleDateString('ko-KR', {
                                         month: 'short',
