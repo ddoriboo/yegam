@@ -1164,49 +1164,152 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* ===========================================
-   Discussion Page Specific
+   Discussion Page Specific - Redesigned
    =========================================== */
+
+/* 분석방 전체 배경 - 더 밝게 */
+.discussions-page,
+.discussions-page main,
+.discussions-page section {
+    background-color: #FAFAFA;
+}
+
 .post-list-item:hover {
     background: var(--gray-50);
 }
 
 .compact-spacing {
-    padding: 0.75rem;
+    padding: 0.5rem 0.75rem;
 }
 
 @media (min-width: 768px) {
     .compact-spacing {
-        padding: 1rem;
+        padding: 0.75rem 1rem;
     }
 }
 
-/* Discussion Category Buttons */
-.category-btn {
-    padding: 0.5rem 1rem;
-    border-radius: 9999px;
-    border: 1px solid var(--gray-300);
+/* 글 목록 아이템 - 깔끔한 2줄 레이아웃 */
+.discussion-post-item {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #F3F4F6;
+    cursor: pointer;
+    transition: background-color 150ms ease;
+}
+
+.discussion-post-item:last-child {
+    border-bottom: none;
+}
+
+.discussion-post-item:hover {
+    background-color: #FAFAFA;
+}
+
+/* 제목 스타일 - 진하게 */
+.post-title {
+    font-size: 0.9375rem;
     font-weight: 500;
+    color: #111827;
+    line-height: 1.4;
+    margin-bottom: 0.375rem;
+}
+
+.post-title:hover {
+    color: #2563EB;
+}
+
+/* 메타 정보 스타일 - 톤다운 */
+.post-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.8125rem;
+    color: #9CA3AF;
+}
+
+.post-meta .separator {
+    color: #D1D5DB;
+}
+
+/* 카테고리 태그 - 작고 일정하게 */
+.post-category-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.375rem;
     font-size: 0.75rem;
+    font-weight: 500;
+    color: #6B7280;
+    background: transparent;
+    border: none;
+    white-space: nowrap;
+}
+
+/* 상단 컨트롤 영역 - 더 컴팩트 */
+.discussions-controls {
+    padding: 0.5rem 0.75rem;
+    background: white;
+    border-bottom: 1px solid #F3F4F6;
+}
+
+@media (min-width: 768px) {
+    .discussions-controls {
+        padding: 0.75rem 1rem;
+    }
+}
+
+/* 검색창 - 더 작게 */
+.discussions-search-input {
+    height: 2rem;
+    font-size: 0.8125rem;
+    padding: 0.375rem 0.625rem 0.375rem 2rem;
+}
+
+/* 분석방 글 목록 컨테이너 - 테두리 최소화 */
+.discussions-list-container {
+    background: white;
+    border: none;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+/* 조회수, 좋아요 아이콘 스타일 */
+.post-stats {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    color: #9CA3AF;
+    font-size: 0.75rem;
+}
+
+.post-stats svg {
+    width: 0.875rem;
+    height: 0.875rem;
+}
+
+/* Discussion Category Buttons - Compact */
+.category-btn {
+    padding: 0.25rem 0.625rem;
+    border-radius: 4px;
+    border: 1px solid var(--gray-200);
+    font-weight: 500;
+    font-size: 0.6875rem;
     transition: all var(--transition);
     cursor: pointer;
     background: white;
-    color: var(--gray-600);
+    color: var(--gray-500);
     box-shadow: none;
+    white-space: nowrap;
 }
 
 .category-btn:hover {
-    border-color: var(--gray-400);
-    color: var(--gray-900);
-    transform: none;
-    box-shadow: none;
+    border-color: var(--gray-300);
+    color: var(--gray-700);
+    background: var(--gray-50);
 }
 
 .category-btn.active {
     background: var(--primary-blue);
     border-color: var(--primary-blue);
     color: white;
-    transform: none;
-    box-shadow: none;
 }
 
 /* Override discussion page gradient styles */

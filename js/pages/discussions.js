@@ -712,7 +712,38 @@ function showEmpty() {
     document.getElementById('posts-empty').classList.remove('hidden');
 }
 
-// 게시글 렌더링 (데스크톱: 한 줄, 모바일: 2줄 레이아웃)
+// 시간 포맷 함수 - 당일: 시간만 (24시간), 다른 날: 날짜만
+function formatPostTime(createdAt) {
+    const date = new Date(createdAt);
+    const now = new Date();
+    
+    // 한국 시간대로 변환
+    const koreaOffset = 9 * 60; // UTC+9
+    const localOffset = now.getTimezoneOffset();
+    const offsetDiff = (koreaOffset + localOffset) * 60 * 1000;
+    
+    const koreaDate = new Date(date.getTime() + offsetDiff);
+    const koreaToday = new Date(now.getTime() + offsetDiff);
+    
+    // 같은 날짜인지 확인
+    const isSameDay = koreaDate.getFullYear() === koreaToday.getFullYear() &&
+                      koreaDate.getMonth() === koreaToday.getMonth() &&
+                      koreaDate.getDate() === koreaToday.getDate();
+    
+    if (isSameDay) {
+        // 당일 글: 24시간 형식 시간만 (예: 13:06)
+        const hours = koreaDate.getHours().toString().padStart(2, '0');
+        const minutes = koreaDate.getMinutes().toString().padStart(2, '0');
+        return `${hours}:${minutes}`;
+    } else {
+        // 다른 날: 날짜만 (예: 1/30)
+        const month = koreaDate.getMonth() + 1;
+        const day = koreaDate.getDate();
+        return `${month}/${day}`;
+    }
+}
+
+// 게시글 렌더링 - 리디자인 버전 (제목 강조, 메타정보 톤다운)
 function renderPosts(posts) {
     const container = document.getElementById('posts-list');
     if (!container) return;
@@ -724,148 +755,47 @@ function renderPosts(posts) {
     
     container.innerHTML = posts.map(post => {
         const category = categories.find(c => c.id === post.category_id);
-        const categoryColor = category?.color || '#6B7280';
         
-        // 날짜와 시간 분리
-        const date = new Date(post.created_at);
-        const postDate = date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', timeZone: 'Asia/Seoul' });
-        const postTime = date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+        // 시간 포맷 (당일: 시간만, 다른 날: 날짜만)
+        const timeDisplay = formatPostTime(post.created_at);
         
         // 티어 아이콘과 닉네임
         const tierIcon = post.tier_icon || '⚪';
         const authorName = post.author_name || '익명';
+        const categoryName = category?.name || '일반';
         
         return `
-            <div class="border-b border-gray-200 last:border-b-0 hover:bg-gray-50 transition-colors cursor-pointer"
-                 onclick="goToPost(${post.id})">
-                <!-- Desktop Layout -->
-                <div class="hidden md:block p-3">
-                    <div class="flex items-center space-x-3 text-sm">
-                        <!-- Category -->
-                        <div class="flex-shrink-0">
-                            <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium" 
-                                  style="background-color: ${categoryColor}15; color: ${categoryColor};">
-                                ${category?.icon || '📝'} ${category?.name || '기타'}
-                            </span>
-                        </div>
-                        
-                        <!-- Notice/Pinned Badges -->
-                        <div class="flex items-center space-x-1">
-                            ${post.is_notice ? `
-                                <span class="bg-purple-100 text-purple-800 px-1.5 py-0.5 rounded text-xs font-medium">공지</span>
-                            ` : ''}
-                            ${post.is_pinned ? `
-                                <span class="bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded text-xs font-medium">고정</span>
-                            ` : ''}
-                        </div>
-                        
-                        <!-- Title -->
-                        <div class="flex-1 min-w-0">
-                            <span class="font-medium text-gray-900 truncate hover:text-blue-600 transition-colors">
-                                ${post.title}
-                                ${post.media_urls && post.media_urls.length > 0 ? `
-                                    <i data-lucide="paperclip" class="w-3 h-3 ml-1 text-blue-500 inline"></i>
-                                ` : ''}
-                                ${(post.comment_count || 0) > 0 ? `
-                                    <span class="inline-flex items-center ml-2 px-1.5 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                        <i data-lucide="message-circle" class="w-3 h-3 mr-1"></i>
-                                        ${post.comment_count}
-                                    </span>
-                                ` : ''}
-                            </span>
-                        </div>
-                        
-                        <!-- Author with Tier -->
-                        <div class="flex-shrink-0">
-                            <span class="text-gray-600">
-                                ${tierIcon} ${authorName}
-                            </span>
-                        </div>
-                        
-                        <!-- Stats -->
-                        <div class="flex items-center space-x-3 text-xs text-gray-500 flex-shrink-0">
-                            <span class="flex items-center">
-                                <i data-lucide="eye" class="w-3 h-3 mr-1"></i>
-                                ${post.view_count || 0}
-                            </span>
-                            <button class="like-btn flex items-center hover:text-red-500 transition-colors ${post.user_liked ? 'text-red-500' : ''}"
-                                    data-post-id="${post.id}"
-                                    data-liked="${post.user_liked ? 'true' : 'false'}"
-                                    onclick="event.stopPropagation(); toggleLike(${post.id}, this)">
-                                <i data-lucide="heart" class="w-3 h-3 mr-1 ${post.user_liked ? 'fill-current' : ''}"></i>
-                                <span class="like-count">${post.like_count || 0}</span>
-                            </button>
-                        </div>
-                        
-                        <!-- Date & Time -->
-                        <div class="flex items-center space-x-1 text-xs text-gray-500 flex-shrink-0">
-                            <span>${postDate}</span>
-                            <span class="text-gray-400">•</span>
-                            <span>${postTime}</span>
-                        </div>
-                    </div>
+            <div class="discussion-post-item" onclick="goToPost(${post.id})">
+                <!-- 제목 줄 -->
+                <div class="flex items-start gap-2 mb-1">
+                    ${post.is_notice ? `<span class="flex-shrink-0 text-xs font-medium text-purple-600">[공지]</span>` : ''}
+                    ${post.is_pinned && !post.is_notice ? `<span class="flex-shrink-0 text-xs font-medium text-yellow-600">[고정]</span>` : ''}
+                    <h3 class="post-title flex-1 min-w-0 truncate">
+                        ${post.title}
+                        ${post.media_urls && post.media_urls.length > 0 ? `<i data-lucide="image" class="inline w-3.5 h-3.5 ml-1 text-gray-400"></i>` : ''}
+                        ${(post.comment_count || 0) > 0 ? `<span class="ml-1 text-blue-500 font-medium text-sm">[${post.comment_count}]</span>` : ''}
+                    </h3>
                 </div>
                 
-                <!-- Mobile Layout -->
-                <div class="md:hidden p-3">
-                    <div class="space-y-2">
-                        <!-- First Row: Category + Title -->
-                        <div class="flex items-start space-x-2">
-                            <div class="flex-shrink-0">
-                                <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium" 
-                                      style="background-color: ${categoryColor}15; color: ${categoryColor};">
-                                    ${category?.icon || '📝'}
-                                </span>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <div class="flex items-center space-x-1 mb-1">
-                                    ${post.is_notice ? `
-                                        <span class="bg-purple-100 text-purple-800 px-1 py-0.5 rounded text-xs font-medium">공지</span>
-                                    ` : ''}
-                                    ${post.is_pinned ? `
-                                        <span class="bg-yellow-100 text-yellow-800 px-1 py-0.5 rounded text-xs font-medium">고정</span>
-                                    ` : ''}
-                                </div>
-                                <h3 class="font-medium text-gray-900 text-sm leading-tight hover:text-blue-600 transition-colors">
-                                    ${post.title}
-                                    ${post.media_urls && post.media_urls.length > 0 ? `
-                                        <i data-lucide="paperclip" class="w-3 h-3 ml-1 text-blue-500 inline"></i>
-                                    ` : ''}
-                                    ${(post.comment_count || 0) > 0 ? `
-                                        <span class="inline-flex items-center ml-1 px-1 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
-                                            <i data-lucide="message-circle" class="w-3 h-3 mr-1"></i>
-                                            ${post.comment_count}
-                                        </span>
-                                    ` : ''}
-                                </h3>
-                            </div>
-                        </div>
-                        
-                        <!-- Second Row: Author + Stats + Date -->
-                        <div class="flex items-center justify-between text-xs text-gray-500">
-                            <div class="flex items-center space-x-3">
-                                <span class="text-gray-600">
-                                    ${tierIcon} ${authorName}
-                                </span>
-                                <span class="flex items-center">
-                                    <i data-lucide="eye" class="w-3 h-3 mr-1"></i>
-                                    ${post.view_count || 0}
-                                </span>
-                                <button class="like-btn-mobile flex items-center hover:text-red-500 transition-colors ${post.user_liked ? 'text-red-500' : ''}"
-                                        data-post-id="${post.id}"
-                                        data-liked="${post.user_liked ? 'true' : 'false'}"
-                                        onclick="event.stopPropagation(); toggleLike(${post.id}, this)">
-                                    <i data-lucide="heart" class="w-3 h-3 mr-1 ${post.user_liked ? 'fill-current' : ''}"></i>
-                                    <span class="like-count">${post.like_count || 0}</span>
-                                </button>
-                            </div>
-                            <div class="flex items-center space-x-1">
-                                <span>${postDate}</span>
-                                <span class="text-gray-400">•</span>
-                                <span>${postTime}</span>
-                            </div>
-                        </div>
-                    </div>
+                <!-- 메타 정보 줄 -->
+                <div class="post-meta">
+                    <span class="post-category-tag">${categoryName}</span>
+                    <span class="separator">·</span>
+                    <span>${tierIcon} ${authorName}</span>
+                    <span class="separator">·</span>
+                    <span>${timeDisplay}</span>
+                    <span class="separator">·</span>
+                    <span class="post-stats">
+                        <i data-lucide="eye" class="w-3 h-3"></i>
+                        ${post.view_count || 0}
+                    </span>
+                    <button class="post-stats like-btn hover:text-red-500 transition-colors ${post.user_liked ? 'text-red-500' : ''}"
+                            data-post-id="${post.id}"
+                            data-liked="${post.user_liked ? 'true' : 'false'}"
+                            onclick="event.stopPropagation(); toggleLike(${post.id}, this)">
+                        <i data-lucide="heart" class="w-3 h-3 ${post.user_liked ? 'fill-current' : ''}"></i>
+                        <span class="like-count">${post.like_count || 0}</span>
+                    </button>
                 </div>
             </div>
         `;

@@ -101,7 +101,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-900 font-sans">
+<body class="bg-white text-gray-900 font-sans discussions-page">
 
     <div id="app-container" class="min-h-screen flex flex-col">
 
@@ -144,26 +144,21 @@
         </header>
 
         <!-- Main Content -->
-        <main class="flex-grow">
-            <!-- Hero Section - Clean -->
-            <section class="bg-white border-b border-gray-200">
-                <div class="container mx-auto px-4 lg:px-8 py-4">
-                    <div class="text-center">
-                        <div class="flex items-center justify-center mb-1">
-                            <i data-lucide="message-circle" class="w-5 h-5 text-blue-600 mr-2"></i>
-                            <h1 class="text-lg md:text-xl font-bold text-gray-900">분석방</h1>
-                        </div>
-                        <p class="text-sm text-gray-500">
-                            다양한 주제에 대해 토론하고 관점을 공유하세요
-                        </p>
+        <main class="flex-grow bg-gray-50">
+            <!-- Hero Section - Minimal -->
+            <section class="bg-white border-b border-gray-100">
+                <div class="container mx-auto px-4 lg:px-8 py-2">
+                    <div class="flex items-center justify-center">
+                        <i data-lucide="message-circle" class="w-4 h-4 text-blue-600 mr-1.5"></i>
+                        <h1 class="text-base font-semibold text-gray-900">분석방</h1>
                     </div>
                 </div>
             </section>
 
             <!-- Discussion Content -->
-            <section class="container mx-auto px-4 lg:px-8 py-3 md:py-4">
+            <section class="container mx-auto px-4 lg:px-8 py-2 md:py-3">
                 <!-- 🖥️ PC 인라인 글쓰기 박스 (md 이상에서만 표시) -->
-                <div id="inline-write-box" class="hidden md:block bg-white rounded-lg border border-gray-200 mb-3">
+                <div id="inline-write-box" class="hidden md:block bg-white rounded-lg border border-gray-100 mb-2 shadow-sm">
                     <div class="p-4">
                         <!-- 축소 상태: 한 줄 입력창 -->
                         <div id="write-box-collapsed" class="cursor-pointer">
@@ -215,7 +210,7 @@
                 </div>
                 
                 <!-- 🔥 인기글 섹션 -->
-                <div id="popular-posts-section" class="bg-white rounded-lg border border-gray-200 mb-3 hidden">
+                <div id="popular-posts-section" class="bg-white rounded-lg border border-gray-100 mb-2 shadow-sm hidden">
                     <div class="p-3 border-b border-gray-100">
                         <h2 class="text-sm font-semibold text-gray-900 flex items-center">
                             <span class="mr-2">🔥</span> 인기글
@@ -230,10 +225,10 @@
                 </div>
                 
                 <!-- Controls & Categories -->
-                <div class="bg-white rounded-lg border border-gray-200 mb-3">
+                <div class="bg-white rounded-lg border border-gray-100 mb-2 shadow-sm">
                     <div class="compact-spacing">
                         <!-- Top Controls -->
-                        <div class="controls-top flex flex-col md:flex-row justify-between items-start md:items-center gap-2 mb-3">
+                        <div class="controls-top flex flex-col md:flex-row justify-between items-start md:items-center gap-1.5 mb-2">
                             <div class="flex items-center space-x-2">
                                 <button id="new-post-btn" class="hidden md:flex bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors items-center">
                                     <i data-lucide="plus" class="w-4 h-4 mr-1"></i>
@@ -268,24 +263,18 @@
                             </div>
                         </div>
                         
-                        <!-- Category Filter -->
+                        <!-- Category Filter - Compact -->
                         <!-- Desktop Category Filter -->
                         <div class="hidden md:block">
-                            <div class="flex items-center gap-2 mb-2">
-                                <span class="text-sm font-medium text-gray-700">카테고리:</span>
-                            </div>
-                            <div id="category-filter-desktop" class="flex flex-wrap gap-2">
+                            <div id="category-filter-desktop" class="flex flex-wrap gap-1.5">
                                 <!-- Desktop categories will be loaded dynamically -->
                             </div>
                         </div>
                         
                         <!-- Mobile Category Filter -->
                         <div class="md:hidden">
-                            <div class="flex items-center gap-2 mb-2">
-                                <span class="text-sm font-medium text-gray-700">카테고리:</span>
-                            </div>
-                            <div class="overflow-x-auto scrollbar-hide">
-                                <div id="category-filter-mobile" class="flex gap-2 pb-1" style="min-width: fit-content;">
+                            <div class="overflow-x-auto scrollbar-hide -mx-3 px-3">
+                                <div id="category-filter-mobile" class="flex gap-1.5 pb-0.5" style="min-width: fit-content;">
                                     <!-- Mobile categories will be loaded dynamically -->
                                 </div>
                             </div>
@@ -294,7 +283,7 @@
                 </div>
 
                 <!-- Posts List -->
-                <div class="bg-white rounded-lg border border-gray-200">
+                <div class="bg-white rounded-lg border border-gray-100 shadow-sm discussions-list-container">
                     <div id="posts-loading" class="text-center py-6">
                         <i data-lucide="loader" class="w-5 h-5 animate-spin mx-auto mb-2 text-gray-400"></i>
                         <p class="text-gray-500 text-sm">게시글을 불러오는 중...</p>
