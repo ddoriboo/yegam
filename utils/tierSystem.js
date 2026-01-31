@@ -318,7 +318,7 @@ function generateTierIcon(tierInfo, size = 'md') {
         <div class="inline-flex items-center justify-center ${sizeClass.container} rounded-full font-semibold"
              style="color: ${tierInfo.color}; background-color: ${tierInfo.bgColor}; border: 2px solid ${tierInfo.borderColor};"
              title="${tierInfo.name} (${tierInfo.gamAmount.toLocaleString()} GAM)">
-            <span class="${sizeClass.icon}">${tierInfo.icon}</span>
+            <span class="${sizeClass.icon} tier-icon">${tierInfo.icon}</span>
         </div>
     `;
 }
@@ -353,7 +353,7 @@ function generateTierBadge(tierInfo, size = 'md') {
     return `
         <div class="inline-flex items-center space-x-1 rounded-full font-semibold ${sizeClass.container}"
              style="color: ${tierInfo.color}; background-color: ${tierInfo.bgColor}; border: 1px solid ${tierInfo.borderColor};">
-            <span class="${sizeClass.icon}">${tierInfo.icon}</span>
+            <span class="${sizeClass.icon} tier-icon">${tierInfo.icon}</span>
             <span class="${sizeClass.text}">${tierInfo.name}</span>
         </div>
     `;

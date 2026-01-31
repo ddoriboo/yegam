@@ -284,7 +284,7 @@ function renderPopularPosts(posts) {
                           style="background-color: ${categoryColor}15; color: ${categoryColor};">
                         ${post.category_icon || '📝'}
                     </span>
-                    <span class="text-xs text-gray-500">${tierIcon} ${post.author_name || '익명'}</span>
+                    <span class="text-xs text-gray-500"><span class="tier-icon">${tierIcon}</span> ${post.author_name || '익명'}</span>
                 </div>
                 <h3 class="text-sm font-medium text-gray-900 line-clamp-2 mb-2">${post.title}</h3>
                 <div class="flex items-center justify-between text-xs text-gray-500">

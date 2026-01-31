@@ -194,7 +194,7 @@ function updateTierInfo(user) {
         const tierColor = currentTier.color || '#6b7280';
         
         tierIconEl.innerHTML = `
-            <div class="text-2xl md:text-4xl">${tierIcon}</div>
+            <div class="text-2xl md:text-4xl tier-icon">${tierIcon}</div>
         `;
         tierIconEl.style.background = `linear-gradient(135deg, ${tierColor}, ${tierColor}dd)`;
     }
@@ -229,13 +229,13 @@ function updateTierInfo(user) {
                         </div>
                         <p class="text-xs text-gray-500 mt-1">${formatNumber(nextTierInfo.requiredGam)} GAM 더 필요</p>
                     </div>
-                    <div class="text-2xl">${nextTierInfo.nextTier.icon}</div>
+                    <div class="text-2xl tier-icon">${nextTierInfo.nextTier.icon}</div>
                 </div>
             `;
         } else {
             inlineTierProgressEl.innerHTML = `
                 <div class="flex items-center justify-center space-x-2">
-                    <span class="text-2xl">🏆</span>
+                    <span class="text-2xl tier-icon">🏆</span>
                     <span class="text-sm font-bold text-gray-900">최고 등급 달성!</span>
                 </div>
             `;
@@ -868,13 +868,13 @@ async function updateTierInfoWithRealtimeGam(gamBalance) {
                             </div>
                             <p class="text-xs text-gray-500 mt-1">${formatNumber(nextTierInfo.requiredGam)} GAM 더 필요</p>
                         </div>
-                        <div class="text-2xl">${nextTierInfo.nextTier.icon}</div>
+                        <div class="text-2xl tier-icon">${nextTierInfo.nextTier.icon}</div>
                     </div>
                 `;
             } else {
                 inlineTierProgressEl.innerHTML = `
                     <div class="flex items-center justify-center space-x-2">
-                        <span class="text-2xl">🏆</span>
+                        <span class="text-2xl tier-icon">🏆</span>
                         <span class="text-sm font-bold text-gray-900">최고 등급 달성!</span>
                     </div>
                 `;
