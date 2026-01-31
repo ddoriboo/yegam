@@ -145,12 +145,29 @@
 
         <!-- Main Content -->
         <main class="flex-grow bg-gray-50">
-            <!-- Hero Section - Minimal -->
+            <!-- Hero Section - Minimal with Search & Sort -->
             <section class="bg-white border-b border-gray-100">
                 <div class="container mx-auto px-4 lg:px-8 py-2">
-                    <div class="flex items-center justify-center">
-                        <i data-lucide="message-circle" class="w-4 h-4 text-blue-600 mr-1.5"></i>
-                        <h1 class="text-base font-semibold text-gray-900">분석방</h1>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <i data-lucide="message-circle" class="w-4 h-4 text-blue-600 mr-1.5"></i>
+                            <h1 class="text-base font-semibold text-gray-900">분석방</h1>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <!-- Search -->
+                            <div class="relative">
+                                <input type="text" id="search-input" placeholder="검색..." 
+                                    class="w-32 md:w-40 pl-7 pr-2 py-1 border border-gray-200 rounded-md text-sm focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                                <i data-lucide="search" class="w-3.5 h-3.5 text-gray-400 absolute left-2 top-1/2 transform -translate-y-1/2"></i>
+                            </div>
+                            <!-- Sort -->
+                            <select id="sort-select" class="border border-gray-200 rounded-md px-2 py-1 text-sm">
+                                <option value="latest">최신순</option>
+                                <option value="popular">인기순</option>
+                                <option value="discussed">댓글순</option>
+                                <option value="viewed">조회순</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -224,46 +241,13 @@
                     </div>
                 </div>
                 
-                <!-- Controls & Categories -->
+                <!-- Category Filter Only -->
                 <div class="bg-white rounded-lg border border-gray-100 mb-2 shadow-sm">
-                    <div class="compact-spacing">
-                        <!-- Top Controls -->
-                        <div class="controls-top flex flex-col md:flex-row justify-between items-start md:items-center gap-1.5 mb-2">
-                            <div class="flex items-center space-x-2">
-                                <button id="new-post-btn" class="hidden md:flex bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors items-center">
-                                    <i data-lucide="plus" class="w-4 h-4 mr-1"></i>
-                                    새 글
-                                </button>
-                                <button id="admin-notice-btn" class="hidden bg-purple-600 hover:bg-purple-700 text-white px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center">
-                                    <i data-lucide="megaphone" class="w-4 h-4 mr-1"></i>
-                                    공지
-                                </button>
-                            </div>
-                            
-                            <div class="controls-right flex items-center space-x-2">
-                                <!-- Search -->
-                                <div class="relative flex-1 md:flex-none">
-                                    <input type="text" id="search-input" placeholder="검색..." 
-                                        class="w-full md:w-48 pl-8 pr-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-                                    <i data-lucide="search" class="w-4 h-4 text-gray-400 absolute left-2.5 top-1/2 transform -translate-y-1/2"></i>
-                                </div>
-                                
-                                <!-- Concept Posts Toggle -->
-                                <button id="concept-posts-btn" class="concept-btn px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium transition-colors hover:bg-gray-50 whitespace-nowrap">
-                                    개념글
-                                </button>
-                                
-                                <!-- Sort -->
-                                <select id="sort-select" class="border border-gray-300 rounded-md px-2 py-1.5 text-sm min-w-0">
-                                    <option value="latest">최신순</option>
-                                    <option value="popular">인기순</option>
-                                    <option value="discussed">댓글순</option>
-                                    <option value="viewed">조회순</option>
-                                </select>
-                            </div>
-                        </div>
+                    <div class="p-2">
+                        <!-- Hidden buttons for JS compatibility -->
+                        <button id="new-post-btn" class="hidden"></button>
+                        <button id="admin-notice-btn" class="hidden"></button>
                         
-                        <!-- Category Filter - Compact -->
                         <!-- Desktop Category Filter -->
                         <div class="hidden md:block">
                             <div id="category-filter-desktop" class="flex flex-wrap gap-1.5">
@@ -273,7 +257,7 @@
                         
                         <!-- Mobile Category Filter -->
                         <div class="md:hidden">
-                            <div class="overflow-x-auto scrollbar-hide -mx-3 px-3">
+                            <div class="overflow-x-auto scrollbar-hide">
                                 <div id="category-filter-mobile" class="flex gap-1.5 pb-0.5" style="min-width: fit-content;">
                                     <!-- Mobile categories will be loaded dynamically -->
                                 </div>
