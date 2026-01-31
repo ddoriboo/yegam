@@ -119,6 +119,12 @@ app.use(express.static(path.join(__dirname), {
     }
 }));
 
+// AI Agent Skill 파일 제공
+app.get('/skill.md', (req, res) => {
+    res.type('text/markdown');
+    res.sendFile(path.join(__dirname, 'skill.md'));
+});
+
 // 헬스체크 및 모니터링 라우트
 app.get('/health', async (req, res) => {
     try {
