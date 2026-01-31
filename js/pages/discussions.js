@@ -154,7 +154,7 @@ function updateWriteBoxTierIcon(userInfo) {
 
 // GAM 잔액으로 티어 아이콘 가져오기
 function getTierIconFromBalance(balance) {
-    if (balance >= 150000000) return '👁️‍🗨️';
+    if (balance >= 150000000) return '🔮';
     if (balance >= 100000000) return '🌌';
     if (balance >= 65000000) return '🌟';
     if (balance >= 40000000) return '☄️';
@@ -171,9 +171,9 @@ function getTierIconFromBalance(balance) {
     if (balance >= 250000) return '🥉';
     if (balance >= 150000) return '⚔️';
     if (balance >= 90000) return '🛡️';
-    if (balance >= 50000) return '⛓️';
+    if (balance >= 50000) return '🔗';
     if (balance >= 25000) return '⛏️';
-    if (balance >= 10000) return '🪨';
+    if (balance >= 10000) return '🔘';
     return '⚪';
 }
 
