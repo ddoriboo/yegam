@@ -53,8 +53,8 @@ export function updateHeader() {
         userActionsContainer.innerHTML = `
             <!-- 모바일 최적화된 사용자 액션 -->
             <div class="flex items-center space-x-1 sm:space-x-2">
-                <!-- 사용자명 (PC에서만 표시) -->
-                <span class="text-sm font-medium text-gray-600 hidden lg:block">${user.username}</span>
+                <!-- 사용자명 (PC에서만 표시) - 클릭 시 마이페이지 이동 -->
+                <a href="mypage.html" class="text-sm font-medium text-gray-600 hidden lg:block hover:text-blue-600 transition-colors cursor-pointer">${user.username}</a>
                 
                 <!-- 알림 아이콘 -->
                 <div class="relative">
@@ -83,11 +83,11 @@ export function updateHeader() {
                     </div>
                 </div>
                 
-                <!-- GAM 잔액 - 모바일 최적화 -->
-                <div id="user-wallet" class="flex items-center space-x-1 sm:space-x-2 bg-white px-2 sm:px-3 py-1.5 rounded-md border border-gray-200 shadow-sm">
+                <!-- GAM 잔액 - 모바일 최적화, 클릭 시 마이페이지 이동 -->
+                <a href="mypage.html" id="user-wallet" class="flex items-center space-x-1 sm:space-x-2 bg-white px-2 sm:px-3 py-1.5 rounded-md border border-gray-200 shadow-sm hover:border-blue-300 hover:shadow-md transition-all cursor-pointer">
                     <i data-lucide="coins" class="w-4 h-4 text-yellow-500 flex-shrink-0"></i>
                     <span id="user-coins" class="text-xs sm:text-sm font-semibold text-gray-900 truncate">${(user.gam_balance || 0).toLocaleString()}</span>
-                </div>
+                </a>
                 
                 <!-- 로그아웃 버튼 - 모바일 최적화 -->
                 <button id="logout-button" class="text-gray-600 hover:text-gray-900 transition-colors text-xs sm:text-sm font-medium px-2 py-1.5 rounded hover:bg-gray-100 touch-manipulation">
