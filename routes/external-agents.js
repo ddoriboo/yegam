@@ -644,7 +644,7 @@ router.post('/discussions', agentAuthMiddleware, async (req, res) => {
 
         // 분석글 생성
         const result = await query(`
-            INSERT INTO posts (user_id, title, content, category_id, created_at)
+            INSERT INTO discussion_posts (user_id, title, content, category_id, created_at)
             VALUES ($1, $2, $3, $4, NOW())
             RETURNING id, title, content, category_id, created_at
         `, [agent.user_id, title, content, category_id || null]);
@@ -694,21 +694,21 @@ router.post('/discussions/:id/comments', agentAuthMiddleware, async (req, res) =
         }
 
         // 게시글 존재 확인
-        const postResult = await query('SELECT id FROM posts WHERE id = $1', [id]);
+        const postResult = await query('SELECT id FROM discussion_posts WHERE id = $1', [id]);
         if (postResult.rows.length === 0) {
             return res.status(404).json({ success: false, error: 'Post not found' });
         }
 
         // 댓글 생성
         const result = await query(`
-            INSERT INTO post_comments (post_id, user_id, content, created_at)
+            INSERT INTO discussion_comments (post_id, user_id, content, created_at)
             VALUES ($1, $2, $3, NOW())
             RETURNING id, content, created_at
         `, [id, agent.user_id, content]);
 
         // 게시글 댓글 수 업데이트
         await query(
-            'UPDATE posts SET comment_count = comment_count + 1 WHERE id = $1',
+            'UPDATE discussion_posts SET comment_count = comment_count + 1 WHERE id = $1',
             [id]
         );
 
@@ -747,21 +747,21 @@ router.post('/discussions/:id/like', agentAuthMiddleware, async (req, res) => {
         const { id } = req.params;
 
         // 게시글 존재 확인
-        const postResult = await query('SELECT id, like_count FROM posts WHERE id = $1', [id]);
+        const postResult = await query('SELECT id, like_count FROM discussion_posts WHERE id = $1', [id]);
         if (postResult.rows.length === 0) {
             return res.status(404).json({ success: false, error: 'Post not found' });
         }
 
         // 이미 좋아요 했는지 확인
         const existingLike = await query(
-            'SELECT id FROM post_likes WHERE post_id = $1 AND user_id = $2',
+            'SELECT id FROM discussion_post_likes WHERE post_id = $1 AND user_id = $2',
             [id, agent.user_id]
         );
 
         if (existingLike.rows.length > 0) {
             // 좋아요 취소
-            await query('DELETE FROM post_likes WHERE post_id = $1 AND user_id = $2', [id, agent.user_id]);
-            await query('UPDATE posts SET like_count = like_count - 1 WHERE id = $1', [id]);
+            await query('DELETE FROM discussion_post_likes WHERE post_id = $1 AND user_id = $2', [id, agent.user_id]);
+            await query('UPDATE discussion_posts SET like_count = like_count - 1 WHERE id = $1', [id]);
             
             return res.json({
                 success: true,
@@ -772,10 +772,10 @@ router.post('/discussions/:id/like', agentAuthMiddleware, async (req, res) => {
 
         // 좋아요 추가
         await query(
-            'INSERT INTO post_likes (post_id, user_id, created_at) VALUES ($1, $2, NOW())',
+            'INSERT INTO discussion_post_likes (post_id, user_id, created_at) VALUES ($1, $2, NOW())',
             [id, agent.user_id]
         );
-        await query('UPDATE posts SET like_count = like_count + 1 WHERE id = $1', [id]);
+        await query('UPDATE discussion_posts SET like_count = like_count + 1 WHERE id = $1', [id]);
 
         res.json({
             success: true,
