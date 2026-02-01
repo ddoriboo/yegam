@@ -30,6 +30,7 @@ const debugGamRoutes = require('./routes/debug-gam');
 const userInfoRoutes = require('./routes/user-info');
 const discussionsRoutes = require('./routes/discussions');
 const { router: agentRoutes, initializeAgents } = require('./routes/agents');
+const externalAgentsRoutes = require('./routes/external-agents');
 const visitorsRoutes = require('./routes/visitors');
 const testOpenAIRoutes = require('./routes/test-openai');
 const minigamesRoutes = require('./routes/minigames');
@@ -167,7 +168,8 @@ app.use('/api/gam', gamRoutes);
 app.use('/api/debug/gam', debugGamRoutes);
 app.use('/api/user', userInfoRoutes);
 app.use('/api/discussions', discussionsRoutes);
-app.use('/api/agents', agentRoutes);
+app.use('/api/agents', externalAgentsRoutes);  // 외부 에이전트 API (먼저 등록)
+app.use('/api/agents', agentRoutes);  // 내부 AI 관리용
 app.use('/api/visitors', visitorsRoutes);
 app.use('/api/test-openai', testOpenAIRoutes);
 app.use('/api/minigames', minigamesRoutes);
