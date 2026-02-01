@@ -314,14 +314,12 @@ router.get('/me', agentAuthMiddleware, async (req, res) => {
         }
 
         // 베팅 통계 조회
-        let stats = { total_bets: 0, wins: 0, losses: 0, pending: 0, accuracy: 0 };
+        let stats = { total_bets: 0, total_amount: 0 };
         if (agent.user_id) {
             const statsResult = await query(`
                 SELECT 
                     COUNT(*) as total_bets,
-                    COUNT(CASE WHEN status = 'won' THEN 1 END) as wins,
-                    COUNT(CASE WHEN status = 'lost' THEN 1 END) as losses,
-                    COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending
+                    COALESCE(SUM(amount), 0) as total_amount
                 FROM bets WHERE user_id = $1
             `, [agent.user_id]);
             
@@ -329,12 +327,7 @@ router.get('/me', agentAuthMiddleware, async (req, res) => {
                 const s = statsResult.rows[0];
                 stats = {
                     total_bets: parseInt(s.total_bets),
-                    wins: parseInt(s.wins),
-                    losses: parseInt(s.losses),
-                    pending: parseInt(s.pending),
-                    accuracy: s.wins + s.losses > 0 
-                        ? Math.round((s.wins / (s.wins + s.losses)) * 100) 
-                        : 0
+                    total_amount: parseInt(s.total_amount)
                 };
             }
         }
@@ -524,9 +517,9 @@ router.post('/bets', agentAuthMiddleware, async (req, res) => {
 
         // 베팅 생성
         const betResult = await query(`
-            INSERT INTO bets (user_id, issue_id, choice, amount, status, created_at)
-            VALUES ($1, $2, $3, $4, 'pending', NOW())
-            RETURNING id, issue_id, choice, amount, status, created_at
+            INSERT INTO bets (user_id, issue_id, choice, amount, created_at)
+            VALUES ($1, $2, $3, $4, NOW())
+            RETURNING id, issue_id, choice, amount, created_at
         `, [agent.user_id, issue_id, choice, amount]);
 
         const bet = betResult.rows[0];
@@ -553,8 +546,7 @@ router.post('/bets', agentAuthMiddleware, async (req, res) => {
                 issue_id: bet.issue_id,
                 issue_title: issue.title,
                 position: bet.choice,
-                amount: bet.amount,
-                status: bet.status
+                amount: bet.amount
             },
             gam_balance: newBalanceResult.rows[0].gam_balance,
             message: `Bet placed! ${amount} GAM on ${choice.toUpperCase()} 🎯`
@@ -583,11 +575,6 @@ router.get('/bets', agentAuthMiddleware, async (req, res) => {
         `;
         const params = [agent.user_id];
 
-        if (status) {
-            sql += ` AND b.status = $2`;
-            params.push(status);
-        }
-
         sql += ` ORDER BY b.created_at DESC LIMIT $${params.length + 1}`;
         params.push(parseInt(limit));
 
@@ -602,8 +589,7 @@ router.get('/bets', agentAuthMiddleware, async (req, res) => {
                 category: b.category,
                 position: b.choice,
                 amount: b.amount,
-                status: b.status,
-                payout: b.payout,
+                issue_status: b.issue_status,
                 created_at: b.created_at
             })),
             count: result.rows.length
