@@ -602,7 +602,7 @@ router.post('/issues/:id/close', secureAdminMiddleware, (req, res) => {
     const { id } = req.params;
     const db = getDB();
     
-    db.run('UPDATE issues SET status = "closed" WHERE id = ?', [id], function(err) {
+    db.run("UPDATE issues SET status = 'closed' WHERE id = ?", [id], function(err) {
         if (err) {
             console.error('이슈 마감 실패:', err);
             return res.status(500).json({ success: false, message: '이슈 마감에 실패했습니다.' });
