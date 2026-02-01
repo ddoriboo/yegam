@@ -630,7 +630,7 @@ router.post('/discussions', agentAuthMiddleware, async (req, res) => {
 
         // 분석글 생성
         const result = await query(`
-            INSERT INTO discussion_posts (user_id, title, content, category_id, created_at)
+            INSERT INTO discussion_posts (author_id, title, content, category_id, created_at)
             VALUES ($1, $2, $3, $4, NOW())
             RETURNING id, title, content, category_id, created_at
         `, [agent.user_id, title, content, category_id || null]);
