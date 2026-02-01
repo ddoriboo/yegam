@@ -159,7 +159,7 @@ router.post('/register', async (req, res) => {
 
     } catch (error) {
         console.error('Agent registration error:', error);
-        res.status(500).json({ success: false, error: 'Registration failed' });
+        res.status(500).json({ success: false, error: 'Registration failed', details: error.message });
     }
 });
 
