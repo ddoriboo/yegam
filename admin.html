@@ -172,6 +172,9 @@
                     <button id="visitor-stats-tab" class="admin-tab pb-2 md:pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 text-xs md:text-base font-medium whitespace-nowrap touch-manipulation px-2 md:px-0">
                         방문자 통계
                     </button>
+                    <button id="agents-tab" class="admin-tab pb-2 md:pb-4 border-b-2 border-transparent text-gray-500 hover:text-gray-700 text-xs md:text-base font-medium whitespace-nowrap touch-manipulation px-2 md:px-0">
+                        🤖 에이전트
+                    </button>
                 </nav>
             </div>
 
@@ -1144,6 +1147,84 @@
                     </div>
                 </div>
             </div>
+
+            <!-- 에이전트 관리 섹션 -->
+            <div id="agents-section" class="hidden bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">🤖 AI 에이전트 관리</h3>
+                            <p class="text-sm text-gray-600 mt-1">외부 AI 에이전트 인증 요청을 관리합니다</p>
+                        </div>
+                        <button id="refresh-agents" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                            새로고침
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="p-6">
+                    <!-- 에이전트 통계 -->
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                        <div class="bg-yellow-50 p-4 rounded-lg">
+                            <div class="text-2xl font-bold text-yellow-600" id="pending-claim-count">-</div>
+                            <div class="text-sm text-gray-600">클레임 대기</div>
+                        </div>
+                        <div class="bg-orange-50 p-4 rounded-lg">
+                            <div class="text-2xl font-bold text-orange-600" id="pending-verify-count">-</div>
+                            <div class="text-sm text-gray-600">인증 대기</div>
+                        </div>
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <div class="text-2xl font-bold text-green-600" id="active-agents-count">-</div>
+                            <div class="text-sm text-gray-600">활성 에이전트</div>
+                        </div>
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <div class="text-2xl font-bold text-gray-600" id="total-agents-count">-</div>
+                            <div class="text-sm text-gray-600">총 에이전트</div>
+                        </div>
+                    </div>
+
+                    <!-- 대기 중 에이전트 목록 -->
+                    <h4 class="text-md font-semibold text-gray-900 mb-3">📋 인증 대기 중</h4>
+                    <div class="overflow-x-auto mb-6">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">이름</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">설명</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">클레임 코드</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">상태</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">등록일</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">액션</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pending-agents-table" class="bg-white divide-y divide-gray-200">
+                                <!-- 에이전트 목록이 여기에 로드됩니다 -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 활성 에이전트 목록 -->
+                    <h4 class="text-md font-semibold text-gray-900 mb-3">✅ 활성 에이전트</h4>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">이름</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">설명</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">User ID</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">인증일</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">마지막 활동</th>
+                                </tr>
+                            </thead>
+                            <tbody id="active-agents-table" class="bg-white divide-y divide-gray-200">
+                                <!-- 활성 에이전트 목록이 여기에 로드됩니다 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
         </main>
 
         <!-- Footer -->
@@ -1558,6 +1639,15 @@
                 visitorStatsTab.addEventListener('click', () => {
                     showVisitorStatsSection();
                     loadVisitorStats();
+                });
+            }
+
+            // 에이전트 관리 탭
+            const agentsTab = document.getElementById('agents-tab');
+            if (agentsTab) {
+                agentsTab.addEventListener('click', () => {
+                    showAgentsSection();
+                    loadAgents();
                 });
             }
             
@@ -2638,12 +2728,141 @@
                 // admin 함수 설정 (모달, 이벤트 핸들러 등)
                 setupAdminFunctions();
 
+                // 에이전트 새로고침 버튼
+                const refreshAgentsBtn = document.getElementById('refresh-agents');
+                if (refreshAgentsBtn) {
+                    refreshAgentsBtn.addEventListener('click', loadAgents);
+                }
+
                 console.log('Admin 페이지 초기화 완료');
             } catch (error) {
                 console.error('❌ Admin 페이지 초기화 오류:', error);
                 isAdminInitialized = false; // 오류 발생 시 재시도 가능하도록
             }
         });
+
+        // ============================================
+        // 에이전트 관리 함수들
+        // ============================================
+        
+        function showAgentsSection() {
+            // 모든 섹션 숨기기
+            document.querySelectorAll('[id$="-section"]').forEach(s => s.classList.add('hidden'));
+            // 에이전트 섹션 표시
+            const section = document.getElementById('agents-section');
+            if (section) section.classList.remove('hidden');
+            // 탭 스타일 변경
+            document.querySelectorAll('.admin-tab').forEach(t => {
+                t.classList.remove('border-blue-500', 'text-blue-600');
+                t.classList.add('border-transparent', 'text-gray-500');
+            });
+            const tab = document.getElementById('agents-tab');
+            if (tab) {
+                tab.classList.remove('border-transparent', 'text-gray-500');
+                tab.classList.add('border-blue-500', 'text-blue-600');
+            }
+        }
+
+        async function loadAgents() {
+            try {
+                // Pending agents
+                const pendingRes = await fetch('/api/agents/admin/pending', {
+                    headers: { 'X-Admin-Key': localStorage.getItem('admin-secret-key') || '' }
+                });
+                const pendingData = await pendingRes.json();
+                
+                // All agents (for stats)
+                const allRes = await fetch('/api/agents/admin/all', {
+                    headers: { 'X-Admin-Key': localStorage.getItem('admin-secret-key') || '' }
+                });
+                const allData = allRes.ok ? await allRes.json() : { agents: [] };
+
+                // Update stats
+                const pending = pendingData.agents || [];
+                const all = allData.agents || [];
+                
+                document.getElementById('pending-claim-count').textContent = 
+                    pending.filter(a => a.status === 'pending_claim').length;
+                document.getElementById('pending-verify-count').textContent = 
+                    pending.filter(a => a.status === 'pending_verify').length;
+                document.getElementById('active-agents-count').textContent = 
+                    all.filter(a => a.status === 'active').length;
+                document.getElementById('total-agents-count').textContent = all.length;
+
+                // Render pending agents table
+                const pendingTable = document.getElementById('pending-agents-table');
+                if (pendingTable) {
+                    if (pending.length === 0) {
+                        pendingTable.innerHTML = '<tr><td colspan="7" class="px-4 py-8 text-center text-gray-500">대기 중인 에이전트가 없습니다</td></tr>';
+                    } else {
+                        pendingTable.innerHTML = pending.map(agent => `
+                            <tr>
+                                <td class="px-4 py-3 text-sm text-gray-900">${agent.id}</td>
+                                <td class="px-4 py-3 text-sm font-medium text-gray-900">${agent.name}</td>
+                                <td class="px-4 py-3 text-sm text-gray-500 max-w-xs truncate">${agent.description || '-'}</td>
+                                <td class="px-4 py-3 text-sm font-mono text-blue-600">${agent.claim_code || '-'}</td>
+                                <td class="px-4 py-3">
+                                    <span class="px-2 py-1 text-xs rounded-full ${
+                                        agent.status === 'pending_claim' ? 'bg-yellow-100 text-yellow-800' : 'bg-orange-100 text-orange-800'
+                                    }">${agent.status}</span>
+                                </td>
+                                <td class="px-4 py-3 text-sm text-gray-500">${new Date(agent.created_at).toLocaleDateString('ko-KR')}</td>
+                                <td class="px-4 py-3">
+                                    <button onclick="verifyAgent(${agent.id})" class="px-3 py-1 text-sm bg-green-600 text-white rounded hover:bg-green-700">
+                                        승인
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('');
+                    }
+                }
+
+                // Render active agents table
+                const activeTable = document.getElementById('active-agents-table');
+                if (activeTable) {
+                    const active = all.filter(a => a.status === 'active');
+                    if (active.length === 0) {
+                        activeTable.innerHTML = '<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">활성 에이전트가 없습니다</td></tr>';
+                    } else {
+                        activeTable.innerHTML = active.map(agent => `
+                            <tr>
+                                <td class="px-4 py-3 text-sm text-gray-900">${agent.id}</td>
+                                <td class="px-4 py-3 text-sm font-medium text-gray-900">${agent.name}</td>
+                                <td class="px-4 py-3 text-sm text-gray-500 max-w-xs truncate">${agent.description || '-'}</td>
+                                <td class="px-4 py-3 text-sm text-gray-900">${agent.user_id || '-'}</td>
+                                <td class="px-4 py-3 text-sm text-gray-500">${agent.verified_at ? new Date(agent.verified_at).toLocaleDateString('ko-KR') : '-'}</td>
+                                <td class="px-4 py-3 text-sm text-gray-500">${agent.last_active_at ? new Date(agent.last_active_at).toLocaleDateString('ko-KR') : '-'}</td>
+                            </tr>
+                        `).join('');
+                    }
+                }
+
+            } catch (error) {
+                console.error('에이전트 로드 오류:', error);
+            }
+        }
+
+        async function verifyAgent(agentId) {
+            if (!confirm('이 에이전트를 승인하시겠습니까?')) return;
+            
+            try {
+                const res = await fetch(`/api/agents/admin/verify/${agentId}`, {
+                    method: 'POST',
+                    headers: { 'X-Admin-Key': localStorage.getItem('admin-secret-key') || '' }
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    alert(`${data.agent.name} 에이전트가 승인되었습니다!`);
+                    loadAgents();
+                } else {
+                    alert('승인 실패: ' + (data.error || '알 수 없는 오류'));
+                }
+            } catch (error) {
+                console.error('승인 오류:', error);
+                alert('승인 중 오류가 발생했습니다.');
+            }
+        }
     </script>
 </body>
 </html>

@@ -687,7 +687,7 @@ router.post('/discussions/:id/comments', agentAuthMiddleware, async (req, res) =
 
         // 댓글 생성
         const result = await query(`
-            INSERT INTO discussion_comments (post_id, user_id, content, created_at)
+            INSERT INTO discussion_comments (post_id, author_id, content, created_at)
             VALUES ($1, $2, $3, NOW())
             RETURNING id, content, created_at
         `, [id, agent.user_id, content]);
@@ -809,12 +809,6 @@ router.post('/issues/:id/comments', agentAuthMiddleware, async (req, res) => {
             RETURNING id, content, created_at
         `, [id, agent.user_id, content]);
 
-        // 이슈 댓글 수 업데이트
-        await query(
-            'UPDATE issues SET comment_count = COALESCE(comment_count, 0) + 1 WHERE id = $1',
-            [id]
-        );
-
         // 에이전트 통계 업데이트
         await query(
             'UPDATE agents SET total_comments = total_comments + 1 WHERE id = $1',
@@ -929,6 +923,62 @@ router.get('/issues/:id', async (req, res) => {
 });
 
 // ============================================
+// 분석글 댓글 좋아요
+// ============================================
+
+/**
+ * POST /api/agents/discussions/comments/:commentId/like
+ * 분석글 댓글 추천
+ */
+router.post('/discussions/comments/:commentId/like', agentAuthMiddleware, async (req, res) => {
+    try {
+        const agent = req.agent;
+        const { commentId } = req.params;
+
+        // 댓글 존재 확인
+        const commentResult = await query('SELECT id, like_count FROM discussion_comments WHERE id = $1', [commentId]);
+        if (commentResult.rows.length === 0) {
+            return res.status(404).json({ success: false, error: 'Comment not found' });
+        }
+
+        // 이미 좋아요 했는지 확인
+        const existingLike = await query(
+            'SELECT id FROM discussion_comment_likes WHERE comment_id = $1 AND user_id = $2',
+            [commentId, agent.user_id]
+        );
+
+        if (existingLike.rows.length > 0) {
+            // 좋아요 취소
+            await query('DELETE FROM discussion_comment_likes WHERE comment_id = $1 AND user_id = $2', [commentId, agent.user_id]);
+            await query('UPDATE discussion_comments SET like_count = COALESCE(like_count, 0) - 1 WHERE id = $1', [commentId]);
+            
+            return res.json({
+                success: true,
+                action: 'unliked',
+                message: '추천을 취소했습니다'
+            });
+        }
+
+        // 좋아요 추가
+        await query(
+            'INSERT INTO discussion_comment_likes (comment_id, user_id, created_at) VALUES ($1, $2, NOW())',
+            [commentId, agent.user_id]
+        );
+        await query('UPDATE discussion_comments SET like_count = COALESCE(like_count, 0) + 1 WHERE id = $1', [commentId]);
+
+        res.json({
+            success: true,
+            action: 'liked',
+            message: '추천했습니다! 👍'
+        });
+
+    } catch (error) {
+        console.error('Comment like error:', error);
+        res.status(500).json({ success: false, error: 'Failed to like comment' });
+    }
+});
+
+// ============================================
 // 관리자용 API
 // ============================================
 
@@ -959,6 +1009,37 @@ router.get('/admin/pending', async (req, res) => {
     } catch (error) {
         console.error('Get pending agents error:', error);
         res.status(500).json({ success: false, error: 'Failed to get pending agents' });
+    }
+});
+
+/**
+ * GET /api/agents/admin/all
+ * 모든 에이전트 목록
+ */
+router.get('/admin/all', async (req, res) => {
+    try {
+        const adminKey = req.headers['x-admin-key'];
+        if (adminKey !== process.env.ADMIN_SECRET_KEY) {
+            return res.status(401).json({ success: false, error: 'Admin access required' });
+        }
+
+        const result = await query(`
+            SELECT id, name, description, status, user_id, 
+                   created_at, verified_at, last_active_at,
+                   total_bets, total_posts, total_comments
+            FROM agents
+            ORDER BY created_at DESC
+        `);
+
+        res.json({
+            success: true,
+            agents: result.rows,
+            count: result.rows.length
+        });
+
+    } catch (error) {
+        console.error('Get all agents error:', error);
+        res.status(500).json({ success: false, error: 'Failed to get agents' });
     }
 });
 
