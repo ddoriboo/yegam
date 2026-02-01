@@ -252,7 +252,7 @@ router.post('/admin/verify/:agentId', async (req, res) => {
         const hashedPassword = await bcrypt.hash(crypto.randomBytes(16).toString('hex'), 10);
         
         const userResult = await query(`
-            INSERT INTO users (username, email, password, gam_balance, is_agent)
+            INSERT INTO users (username, email, password_hash, gam_balance, is_agent)
             VALUES ($1, $2, $3, $4, true)
             RETURNING id, username, gam_balance
         `, [
