@@ -143,34 +143,38 @@
                 </div>
             </section>
 
-            <!-- Popular Issues Section -->
-            <section id="popular-issues" class="container mx-auto px-4 lg:px-8 py-2 md:py-12">
-                <div class="flex items-center justify-between mb-4 md:mb-6">
-                    <h2 class="text-xl md:text-2xl font-bold text-gray-900" id="section-title">인기 예측 이슈</h2>
-                    <button id="scroll-to-all-issues" class="flex items-center text-blue-600 hover:text-blue-700 transition-colors font-medium">
-                        <span>전체 보기</span>
-                        <i data-lucide="arrow-down" class="w-4 h-4 ml-2"></i>
-                    </button>
-                </div>
-                
-                <!-- Desktop Popular Issues -->
-                <div id="popular-issues-list" class="popular-issues-desktop bg-white rounded-lg border border-gray-200 overflow-hidden">
-                    <!-- Desktop popular issue list will be injected here by JavaScript -->
-                </div>
-                
-                <!-- Mobile Popular Issues -->
-                <div class="popular-issues-mobile">
-                    <div class="popular-issues-scroll">
-                        <div id="popular-issues-mobile" class="popular-issues-grid">
-                            <!-- Mobile popular issue cards will be injected here by JavaScript -->
+            <!-- Two Column Section: Deadline Issues + Recent Discussions -->
+            <section id="featured-section" class="container mx-auto px-4 lg:px-8 py-2 md:py-12">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+                    
+                    <!-- 마감임박 이슈 -->
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-lg md:text-xl font-bold text-gray-900">🔥 마감임박 이슈</h2>
+                            <a href="issues.html" class="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center">
+                                전체 보기
+                                <i data-lucide="chevron-right" class="w-4 h-4 ml-1"></i>
+                            </a>
+                        </div>
+                        <div id="deadline-issues-list" class="space-y-3">
+                            <!-- JS로 채워짐 -->
                         </div>
                     </div>
-                    <!-- Mobile scroll indicator -->
-                    <div class="text-center mt-2 md:mt-4 text-sm text-gray-500">
-                        <i data-lucide="chevron-left" class="w-4 h-4 inline mr-1"></i>
-                        좌우로 스크롤하여 더 많은 이슈를 확인하세요
-                        <i data-lucide="chevron-right" class="w-4 h-4 inline ml-1"></i>
+                    
+                    <!-- 최신 분석글 -->
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-lg md:text-xl font-bold text-gray-900">📝 최신 분석글</h2>
+                            <a href="discussions.html" class="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center">
+                                전체 보기
+                                <i data-lucide="chevron-right" class="w-4 h-4 ml-1"></i>
+                            </a>
+                        </div>
+                        <div id="recent-discussions-list" class="space-y-3">
+                            <!-- JS로 채워짐 -->
+                        </div>
                     </div>
+                    
                 </div>
             </section>
 
@@ -320,6 +324,118 @@
         document.addEventListener('DOMContentLoaded', function() {
             // 약간의 지연 후 로드 (페이지 로딩 성능 고려)
             setTimeout(loadVisitorCounts, 1000);
+        });
+    </script>
+    
+    <!-- 마감임박 이슈 + 최신 분석글 로드 -->
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            // 마감임박 이슈 로드
+            async function loadDeadlineIssues() {
+                try {
+                    const response = await fetch('/api/issues?sortBy=deadline&limit=4');
+                    const data = await response.json();
+                    
+                    if (data.success && data.issues) {
+                        const container = document.getElementById('deadline-issues-list');
+                        if (!container) return;
+                        
+                        if (data.issues.length === 0) {
+                            container.innerHTML = '<p class="text-gray-500 text-center py-4">마감임박 이슈가 없습니다.</p>';
+                            return;
+                        }
+                        
+                        container.innerHTML = data.issues.slice(0, 4).map(issue => {
+                            const yesPercent = issue.yes_price || 50;
+                            const volume = issue.total_volume || 0;
+                            const endDate = new Date(issue.end_date);
+                            const now = new Date();
+                            const diffMs = endDate - now;
+                            const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                            const timeLeft = diffHours > 24 ? `${Math.floor(diffHours/24)}일 남음` : `${diffHours}시간 남음`;
+                            
+                            return `
+                                <a href="issue.html?id=${issue.id}" class="block p-3 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all">
+                                    <div class="flex justify-between items-start gap-3">
+                                        <div class="flex-1 min-w-0">
+                                            <h3 class="font-medium text-gray-900 text-sm truncate">${issue.title}</h3>
+                                            <div class="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                                                <span class="text-orange-600 font-medium">${timeLeft}</span>
+                                                <span>·</span>
+                                                <span>${(volume/1000).toFixed(1)}천 Vol.</span>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="text-sm font-bold ${yesPercent >= 50 ? 'text-green-600' : 'text-red-600'}">${yesPercent}%</div>
+                                            <div class="text-xs text-gray-400">Yes</div>
+                                        </div>
+                                    </div>
+                                </a>
+                            `;
+                        }).join('');
+                        
+                        lucide.createIcons();
+                    }
+                } catch (error) {
+                    console.error('마감임박 이슈 로드 오류:', error);
+                }
+            }
+            
+            // 최신 분석글 로드
+            async function loadRecentDiscussions() {
+                try {
+                    const response = await fetch('/api/discussions?sortBy=latest&limit=4');
+                    const data = await response.json();
+                    
+                    if (data.success && data.posts) {
+                        const container = document.getElementById('recent-discussions-list');
+                        if (!container) return;
+                        
+                        if (data.posts.length === 0) {
+                            container.innerHTML = '<p class="text-gray-500 text-center py-4">분석글이 없습니다.</p>';
+                            return;
+                        }
+                        
+                        container.innerHTML = data.posts.slice(0, 4).map(post => {
+                            const date = new Date(post.created_at);
+                            const timeAgo = getTimeAgo(date);
+                            
+                            return `
+                                <a href="discussion-post.html?id=${post.id}" class="block p-3 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all">
+                                    <h3 class="font-medium text-gray-900 text-sm truncate">${post.title}</h3>
+                                    <div class="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                                        <span>${post.author_name || '익명'}</span>
+                                        <span>·</span>
+                                        <span>${timeAgo}</span>
+                                        <span>·</span>
+                                        <span>💬 ${post.comment_count || 0}</span>
+                                    </div>
+                                </a>
+                            `;
+                        }).join('');
+                    }
+                } catch (error) {
+                    console.error('분석글 로드 오류:', error);
+                }
+            }
+            
+            function getTimeAgo(date) {
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMins = Math.floor(diffMs / (1000 * 60));
+                const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                
+                if (diffMins < 60) return `${diffMins}분 전`;
+                if (diffHours < 24) return `${diffHours}시간 전`;
+                return `${diffDays}일 전`;
+            }
+            
+            // 로드 실행
+            setTimeout(() => {
+                loadDeadlineIssues();
+                loadRecentDiscussions();
+            }, 500);
         });
     </script>
 </body>
