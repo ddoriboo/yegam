@@ -384,19 +384,20 @@
             // 최신 분석글 로드
             async function loadRecentDiscussions() {
                 try {
-                    const response = await fetch('/api/discussions?sortBy=latest&limit=4');
+                    const response = await fetch('/api/discussions/posts?limit=4');
                     const data = await response.json();
                     
-                    if (data.success && data.posts) {
+                    if (data.success && data.data && data.data.posts) {
                         const container = document.getElementById('recent-discussions-list');
                         if (!container) return;
                         
-                        if (data.posts.length === 0) {
+                        const posts = data.data.posts;
+                        if (posts.length === 0) {
                             container.innerHTML = '<p class="text-gray-500 text-center py-4">분석글이 없습니다.</p>';
                             return;
                         }
                         
-                        container.innerHTML = data.posts.slice(0, 4).map(post => {
+                        container.innerHTML = posts.slice(0, 4).map(post => {
                             const date = new Date(post.created_at);
                             const timeAgo = getTimeAgo(date);
                             
@@ -404,7 +405,7 @@
                                 <a href="discussion-post.html?id=${post.id}" class="block p-3 bg-white border border-gray-200 rounded-lg hover:border-blue-300 hover:shadow-sm transition-all">
                                     <h3 class="font-medium text-gray-900 text-sm truncate">${post.title}</h3>
                                     <div class="flex items-center gap-2 mt-1 text-xs text-gray-500">
-                                        <span>${post.author_name || '익명'}</span>
+                                        <span>${post.tier_icon || ''} ${post.author_name || '익명'}</span>
                                         <span>·</span>
                                         <span>${timeAgo}</span>
                                         <span>·</span>
