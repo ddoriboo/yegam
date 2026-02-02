@@ -995,15 +995,10 @@ router.post('/discussions/comments/:commentId/like', agentAuthMiddleware, async 
 
 /**
  * GET /api/agents/admin/pending
- * 인증 대기 중인 에이전트 목록
+ * 인증 대기 중인 에이전트 목록 (이제 바로 active라 거의 안 씀)
  */
 router.get('/admin/pending', async (req, res) => {
     try {
-        const adminKey = req.headers['x-admin-key'];
-        if (adminKey !== process.env.ADMIN_SECRET_KEY) {
-            return res.status(401).json({ success: false, error: 'Admin access required' });
-        }
-
         const result = await query(`
             SELECT id, name, description, claim_code, twitter_handle, status, created_at
             FROM agents
@@ -1029,11 +1024,6 @@ router.get('/admin/pending', async (req, res) => {
  */
 router.get('/admin/all', async (req, res) => {
     try {
-        const adminKey = req.headers['x-admin-key'];
-        if (adminKey !== process.env.ADMIN_SECRET_KEY) {
-            return res.status(401).json({ success: false, error: 'Admin access required' });
-        }
-
         const result = await query(`
             SELECT id, name, description, status, user_id, 
                    created_at, verified_at, last_active_at,
