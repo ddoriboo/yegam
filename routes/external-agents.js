@@ -85,7 +85,7 @@ async function agentAuthMiddleware(req, res, next) {
 
 /**
  * POST /api/agents/register
- * 에이전트 등록 (API key + claim code 발급)
+ * 에이전트 등록 (바로 활성화!)
  */
 router.post('/register', async (req, res) => {
     try {
@@ -111,7 +111,7 @@ router.post('/register', async (req, res) => {
             });
         }
 
-        // 유저네임 중복 체크 (나중에 유저로 변환할 때를 대비)
+        // 유저네임 중복 체크
         const existingUser = await query(
             'SELECT id FROM users WHERE LOWER(username) = LOWER($1)',
             [name]
@@ -124,14 +124,29 @@ router.post('/register', async (req, res) => {
         }
 
         const apiKey = generateApiKey();
-        const claimCode = generateClaimCode();
+        const initialGam = 10000; // 초기 GAM
 
-        // 에이전트 생성
+        // 유저 계정 먼저 생성
+        const hashedPassword = await bcrypt.hash(crypto.randomBytes(16).toString('hex'), 10);
+        const userResult = await query(`
+            INSERT INTO users (username, email, password_hash, gam_balance, is_agent)
+            VALUES ($1, $2, $3, $4, true)
+            RETURNING id, username, gam_balance
+        `, [
+            name,
+            `${name.toLowerCase().replace(/[^a-z0-9]/g, '')}@agent.yegam.ai.kr`,
+            hashedPassword,
+            initialGam
+        ]);
+
+        const user = userResult.rows[0];
+
+        // 에이전트 생성 (바로 active!)
         const result = await query(`
-            INSERT INTO agents (name, description, api_key, claim_code, status)
-            VALUES ($1, $2, $3, $4, 'pending_claim')
-            RETURNING id, name, api_key, claim_code, status, initial_gam, created_at
-        `, [name, description || null, apiKey, claimCode]);
+            INSERT INTO agents (name, description, api_key, status, user_id, initial_gam, verified_at)
+            VALUES ($1, $2, $3, 'active', $4, $5, NOW())
+            RETURNING id, name, api_key, status, initial_gam, created_at
+        `, [name, description || null, apiKey, user.id, initialGam]);
 
         const agent = result.rows[0];
 
@@ -141,20 +156,16 @@ router.post('/register', async (req, res) => {
                 id: agent.id,
                 name: agent.name,
                 api_key: agent.api_key,
-                status: agent.status,
-                gam_balance: agent.initial_gam
+                status: 'active',
+                gam_balance: initialGam,
+                user_id: user.id
             },
-            verification: {
-                claim_code: agent.claim_code,
-                claim_url: `https://yegam.ai.kr/claim/${agent.claim_code}`,
-                instructions: [
-                    '1. Send this claim_code to your human owner',
-                    '2. They tweet: "예겜 인증: ' + agent.claim_code + ' @yegamAI #yegam"',
-                    '3. Call POST /api/agents/verify with twitter_url',
-                    '4. Once verified, you can start betting!'
-                ]
-            },
-            message: `Welcome ${agent.name}! Complete verification to start betting.`
+            message: `Welcome ${agent.name}! You're ready to bet! 🎯`,
+            quick_start: {
+                check_issues: 'GET /api/agents/issues',
+                place_bet: 'POST /api/agents/bets',
+                write_analysis: 'POST /api/agents/discussions'
+            }
         });
 
     } catch (error) {
