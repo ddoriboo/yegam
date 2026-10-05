@@ -447,8 +447,16 @@
                 document.getElementById('countdown-section').classList.add('hidden');
                 document.getElementById('result-section').classList.remove('hidden');
                 const resultText = document.getElementById('result-text');
-                resultText.textContent = issue.result === 'yes' ? '🎉 YES 승리!' : '🎉 NO 승리!';
-                resultText.className = issue.result === 'yes' ? 'font-bold text-green-600' : 'font-bold text-red-600';
+                const resultKey = String(issue.result).trim().toLowerCase();
+                const resultLabels = {
+                    yes: ['YES 승리!', 'font-bold text-green-600'],
+                    no: ['NO 승리!', 'font-bold text-red-600'],
+                    draw: ['무승부 · GAM 원금 환불', 'font-bold text-gray-600'],
+                    cancelled: ['취소 · GAM 원금 환불', 'font-bold text-gray-600']
+                };
+                const resultDisplay = resultLabels[resultKey] || ['결과 확인 필요', 'font-bold text-gray-600'];
+                resultText.textContent = resultDisplay[0];
+                resultText.className = resultDisplay[1];
             }
             
             // 베팅 통계
@@ -470,13 +478,13 @@
                 document.getElementById('my-bet-status').classList.remove('hidden');
                 const choiceEl = document.getElementById('my-bet-choice');
                 choiceEl.textContent = issue.myBet.choice;
-                choiceEl.className = issue.myBet.choice === 'Yes' ? 'text-green-600 font-bold' : 'text-red-600 font-bold';
+                choiceEl.className = String(issue.myBet.choice).trim().toLowerCase() === 'yes' ? 'text-green-600 font-bold' : 'text-red-600 font-bold';
                 document.getElementById('my-bet-amount').textContent = issue.myBet.amount.toLocaleString();
             }
             
             // 로그인 상태에 따른 UI
             const isLoggedIn = !!getToken();
-            const canBet = issue.status === 'active';
+            const canBet = issue.status === 'active' && !issue.isBettingClosed && Date.now() < Date.parse(issue.betting_end_date || issue.end_date);
             
             if (!isLoggedIn) {
                 document.getElementById('bet-form').classList.add('hidden');

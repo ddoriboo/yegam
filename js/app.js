@@ -4124,7 +4124,7 @@ function renderUserBets(bets) {
         const betDate = new Date(bet.created_at || bet.createdAt || Date.now());
         const formattedDate = `${betDate.getFullYear()}.${String(betDate.getMonth() + 1).padStart(2, '0')}.${String(betDate.getDate()).padStart(2, '0')}`;
         
-        const choiceColor = bet.choice === 'Yes' ? 'text-green-600 bg-green-100' : 'text-red-600 bg-red-100';
+        const choiceColor = String(bet.choice).trim().toLowerCase() === 'yes' ? 'text-green-600 bg-green-100' : 'text-red-600 bg-red-100';
         
         return `
             <div class="p-4 border-b border-gray-200 last:border-b-0 hover:bg-gray-50 transition-colors">
