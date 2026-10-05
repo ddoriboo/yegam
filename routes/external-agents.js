@@ -241,7 +241,7 @@ router.post('/admin/verify/:agentId', async (req, res) => {
     try {
         // 간단한 관리자 인증 (나중에 강화)
         const adminKey = req.headers['x-admin-key'];
-        if (adminKey !== process.env.ADMIN_SECRET_KEY) {
+        if (!process.env.ADMIN_SECRET_KEY || process.env.ADMIN_SECRET_KEY.length < 32 || !adminKey || adminKey !== process.env.ADMIN_SECRET_KEY) {
             return res.status(401).json({ success: false, error: 'Admin access required' });
         }
 
@@ -439,131 +439,46 @@ router.put('/me', agentAuthMiddleware, async (req, res) => {
  * 베팅하기
  */
 router.post('/bets', agentAuthMiddleware, async (req, res) => {
+    const { placeBet, BetPlacementError } = require('../services/placeBet');
     try {
         const agent = req.agent;
         const { issue_id, position, amount } = req.body;
-
-        // 검증
         if (!issue_id || !position || !amount) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Required: issue_id, position (yes/no), amount' 
-            });
+            return res.status(400).json({ success: false, error: 'Required: issue_id, position (yes/no), amount' });
         }
-
-        if (!['yes', 'no'].includes(position.toLowerCase())) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Position must be "yes" or "no"' 
-            });
+        if (typeof position !== 'string' || !['yes', 'no'].includes(position.toLowerCase())) {
+            return res.status(400).json({ success: false, error: 'Position must be "yes" or "no"' });
         }
-
         if (amount < 100) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Minimum bet is 100 GAM' 
-            });
+            return res.status(400).json({ success: false, error: 'Minimum bet is 100 GAM' });
         }
-
-        // 이슈 확인
-        const issueResult = await query(
-            'SELECT * FROM issues WHERE id = $1 AND status = $2',
-            [issue_id, 'active']
-        );
-
-        if (issueResult.rows.length === 0) {
-            return res.status(404).json({ 
-                success: false, 
-                error: 'Issue not found or not active' 
-            });
-        }
-
-        const issue = issueResult.rows[0];
-
-        // 마감 시간 확인
-        const bettingEndDate = new Date(issue.betting_end_date || issue.end_date);
-        if (new Date() >= bettingEndDate) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Betting is closed for this issue' 
-            });
-        }
-
-        // GAM 잔액 확인
-        const userResult = await query(
-            'SELECT gam_balance FROM users WHERE id = $1',
-            [agent.user_id]
-        );
-
-        if (userResult.rows.length === 0 || userResult.rows[0].gam_balance < amount) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Insufficient GAM balance',
-                current_balance: userResult.rows[0]?.gam_balance || 0
-            });
-        }
-
-        const choice = position.toLowerCase();
-
-        // 기존 베팅 확인
-        const existingBet = await query(
-            'SELECT * FROM bets WHERE user_id = $1 AND issue_id = $2',
-            [agent.user_id, issue_id]
-        );
-
-        if (existingBet.rows.length > 0) {
-            // 기존 베팅 업데이트 로직 (생략 - 필요시 추가)
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Already bet on this issue. Update not supported yet.',
-                existing_bet: existingBet.rows[0]
-            });
-        }
-
-        // GAM 차감
-        await query(
-            'UPDATE users SET gam_balance = gam_balance - $1 WHERE id = $2',
-            [amount, agent.user_id]
-        );
-
-        // 베팅 생성
-        const betResult = await query(`
-            INSERT INTO bets (user_id, issue_id, choice, amount, created_at)
-            VALUES ($1, $2, $3, $4, NOW())
-            RETURNING id, issue_id, choice, amount, created_at
-        `, [agent.user_id, issue_id, choice, amount]);
-
-        const bet = betResult.rows[0];
-
-        // 이슈 볼륨 업데이트
-        const volumeField = choice === 'yes' ? 'yes_volume' : 'no_volume';
-        await query(`
-            UPDATE issues 
-            SET ${volumeField} = COALESCE(${volumeField}, 0) + $1,
-                total_volume = COALESCE(total_volume, 0) + $1
-            WHERE id = $2
-        `, [amount, issue_id]);
-
-        // 새 잔액 조회
-        const newBalanceResult = await query(
-            'SELECT gam_balance FROM users WHERE id = $1',
-            [agent.user_id]
-        );
-
+        const placed = await placeBet({ issueId: issue_id, userId: agent.user_id, choice: position, amount });
+        const { bet, issue, balance } = placed;
+        const choice = bet.choice.toLowerCase();
         res.status(201).json({
             success: true,
-            bet: {
-                id: bet.id,
-                issue_id: bet.issue_id,
-                issue_title: issue.title,
-                position: bet.choice,
-                amount: bet.amount
-            },
-            gam_balance: newBalanceResult.rows[0].gam_balance,
+            bet: { id: bet.id, issue_id: bet.issue_id, issue_title: issue.title, position: choice, amount: bet.amount },
+            gam_balance: balance,
             message: `Bet placed! ${amount} GAM on ${choice.toUpperCase()} 🎯`
         });
-
     } catch (error) {
+        if (error instanceof BetPlacementError) {
+            const messages = {
+                ISSUE_NOT_FOUND: 'Issue not found or not active',
+                ISSUE_NOT_ACTIVE: 'Issue not found or not active',
+                BETTING_CLOSED: 'Betting is closed for this issue',
+                USER_NOT_FOUND: 'Insufficient GAM balance',
+                INSUFFICIENT_BALANCE: 'Insufficient GAM balance',
+                DUPLICATE_BET: 'Already bet on this issue. Update not supported yet.',
+                INVALID_AMOUNT: 'Amount must be a positive integer within the database integer limit',
+                INVALID_CHOICE: 'Position must be "yes" or "no"',
+                INTEGER_LIMIT: 'Bet exceeds the database integer limit'
+            };
+            const body = { success: false, error: messages[error.code] || error.message };
+            if (error.code === 'INSUFFICIENT_BALANCE' || error.code === 'USER_NOT_FOUND') body.current_balance = error.details.currentBalance || 0;
+            if (error.details.existingBet) body.existing_bet = error.details.existingBet;
+            return res.status(error.code === 'USER_NOT_FOUND' ? 400 : error.status).json(body);
+        }
         console.error('Bet error:', error);
         res.status(500).json({ success: false, error: 'Bet failed' });
     }

@@ -1,4 +1,9 @@
 const express = require('express');
+const { settleIssue } = require('../services/settlement');
+const automaticSettlement = require('../services/automaticSettlement');
+const { validateResolutionRule, inferLegacyRule } = require('../services/marketResolutionRule');
+const { resolveUpbit } = require('../services/upbitResolution');
+const { resolutionKey } = require('../database/settlement-schema');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -114,6 +119,21 @@ router.post('/issues',
         const { title, category, description, image_url, yes_price = 50, is_popular = false } = req.body;
         const end_date = req.body.endDate || req.body.end_date;
         const betting_end_date = req.body.bettingEndDate || req.body.betting_end_date || end_date;
+        let resolutionParams = null;
+        try {
+            const suppliedRule = Object.hasOwn(req.body,'resolution_params') ? req.body.resolution_params : req.body.resolutionParams;
+            resolutionParams = suppliedRule === undefined ? inferLegacyRule({description, end_date, betting_end_date}) : (suppliedRule === null ? null : validateResolutionRule(suppliedRule, {end_date, betting_end_date}));
+            if (resolutionParams) {
+                const titlePrices = [...title.matchAll(/(?<![\d.,])([1-9]\d*(?:,\d{3})*)\s*원/g)];
+                if (titlePrices.length>1 || (titlePrices.length===1 && Number(titlePrices[0][1].replace(/,/g,''))!==resolutionParams.threshold)) throw new Error('Title threshold mismatch');
+            }
+            const publicRule = inferLegacyRule({description, end_date, betting_end_date});
+            if (resolutionParams && (!publicRule || JSON.stringify(publicRule)!==JSON.stringify(resolutionParams))) throw new Error('공개 판정 기준과 구조화 규칙이 일치해야 합니다.');
+            if (description?.includes('YEGAM-') && !resolutionParams) throw new Error('유효한 자동 판정 규칙이 필요합니다.');
+        } catch (_) {
+            return res.status(400).json({success:false,message:'자동 판정 규칙과 마감 시각을 확인하세요.'});
+        }
+
         
         if (!title || !category || !end_date) {
             return res.status(400).json({ 
@@ -139,10 +159,10 @@ router.post('/issues',
             
             // end_date, betting_end_date는 프론트엔드에서 UTC ISO string으로 변환되어 전달됨
             const result = await client.query(`
-                INSERT INTO issues (title, category, description, image_url, yes_price, end_date, betting_end_date, is_popular, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6::timestamptz, $7::timestamptz, $8, NOW(), NOW())
+                INSERT INTO issues (title, category, description, image_url, yes_price, end_date, betting_end_date, is_popular, resolution_params, resolution_key, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6::timestamptz, $7::timestamptz, $8, $9::jsonb, $10, NOW(), NOW())
                 RETURNING *
-            `, [title, category, description, image_url, yes_price, end_date, betting_end_date, is_popular]);
+            `, [title, category, description, image_url, yes_price, end_date, betting_end_date, is_popular, resolutionParams ? JSON.stringify(resolutionParams) : null, resolutionParams ? resolutionKey(resolutionParams) : null]);
         
             const issue = result.rows[0];
             
@@ -158,91 +178,56 @@ router.post('/issues',
             client.release();
         }
     } catch (error) {
-        console.error('이슈 생성 실패:', error);
-        res.status(500).json({ success: false, message: '이슈 생성에 실패했습니다.' });
+        console.error('이슈 생성 실패:', error.code || 'ISSUE_CREATE_FAILED');
+        res.status(error.code==='23505'?409:500).json({ success: false, message: error.code==='23505'?'동일 판정 회차가 이미 있습니다.':'이슈 생성에 실패했습니다.' });
     }
 });
 
 // 이슈 수정
-router.put('/issues/:id', 
-    secureAdminMiddleware,
-    // validateEndDateChange 미들웨어 제거 - 어드민은 자유롭게 수정 가능
-    rateLimitIssueModifications(),
-    validateDeadlineChange(),
-    logIssueModification('ADMIN_UPDATE_ISSUE'),
-    async (req, res) => {
+router.put('/issues/:id', secureAdminMiddleware, rateLimitIssueModifications(), validateDeadlineChange(), logIssueModification('ADMIN_UPDATE_ISSUE'), async (req,res) => {
+    const { getClient } = require('../database/postgres');
+    let client;
     try {
-        const { id } = req.params;
-        const { title, category, description, image_url } = req.body;
-        // endDate, bettingEndDate, yesPrice, isPopular 둘 다 지원 (camelCase & snake_case)
+        const id = Number(req.params.id);
+        const {title, category, description, image_url} = req.body;
         const end_date = req.body.endDate || req.body.end_date;
         const betting_end_date = req.body.bettingEndDate || req.body.betting_end_date || end_date;
-        const yes_price = req.body.yesPrice || req.body.yes_price;
-        const is_popular = req.body.isPopular !== undefined ? req.body.isPopular : req.body.is_popular;
-        
-        if (!title || !category || !end_date) {
-            return res.status(400).json({ 
-                success: false, 
-                message: '제목, 카테고리, 마감일은 필수입니다.' 
-            });
-        }
-        
-        // end_date 변경 전 DB 세션 컨텍스트 설정
-        const { getPool } = require('../database/postgres');
-        const pool = getPool();
-        const client = await pool.connect();
-        
+        if (!Number.isSafeInteger(id) || id<=0 || !title || !category || !end_date) return res.status(400).json({success:false,message:'제목, 카테고리, 마감일은 필수입니다.'});
+        client = await getClient();
+        await client.query('BEGIN');
+        const existing = (await client.query('SELECT * FROM issues WHERE id=$1 FOR UPDATE',[id])).rows[0];
+        if (!existing) { await client.query('ROLLBACK'); return res.status(404).json({success:false,message:'이슈를 찾을 수 없습니다.'}); }
+        const suppliedRule = Object.hasOwn(req.body,'resolution_params') ? req.body.resolution_params : req.body.resolutionParams;
+        let rule;
         try {
-            if (req.endDateContext) {
-                await EndDateTracker.setSessionContext(client, {
-                    currentUser: req.user?.username,
-                    changeType: 'ADMIN_UPDATE',
-                    changeReason: req.body.change_reason || 'Admin modification',
-                    clientIp: req.ip,
-                    userAgent: req.get('User-Agent'),
-                    requestId: req.endDateContext.requestId,
-                    sessionId: req.sessionID
-                });
+            rule = suppliedRule !== undefined ? (suppliedRule === null ? null : validateResolutionRule(suppliedRule,{end_date,betting_end_date})) : (existing.resolution_params ? validateResolutionRule(existing.resolution_params,{end_date,betting_end_date}) : inferLegacyRule({description,end_date,betting_end_date}));
+            if(rule) {
+                const titlePrices = [...title.matchAll(/(?<![\d.,])([1-9]\d*(?:,\d{3})*)\s*원/g)];
+                if(titlePrices.length>1 || (titlePrices.length===1 && Number(titlePrices[0][1].replace(/,/g,''))!==rule.threshold)) throw new Error('Title threshold mismatch');
             }
-            
-            // end_date, betting_end_date는 프론트엔드에서 UTC ISO string으로 변환되어 전달됨
-            const result = await client.query(`
-                UPDATE issues 
-                SET title = $1, category = $2, description = $3, image_url = $4, 
-                    yes_price = $5, end_date = $6::timestamptz, betting_end_date = $7::timestamptz, 
-                    is_popular = $8, updated_at = NOW()
-                WHERE id = $9
-                RETURNING *
-            `, [title, category, description, image_url, yes_price, end_date, betting_end_date, is_popular ? true : false, id]);
-        
-            if (result.rows.length === 0) {
-                return res.status(404).json({ success: false, message: '이슈를 찾을 수 없습니다.' });
-            }
-            
-            const issue = result.rows[0];
-            
-            // 이슈 수정 로깅
-            logIssueCreation(issue.id, issue.title, issue.end_date, req.user?.id, 'admin', req.ip, 'admin_update');
-            
-            // 빠른 변경 패턴 감지
-            detectRapidDeadlineChanges(issue.id);
-            
-            res.json({
-                success: true,
-                message: '이슈가 성공적으로 수정되었습니다.',
-                issue: {
-                    ...issue,
-                    isPopular: Boolean(issue.is_popular)
-                }
-            });
-        } finally {
-            client.release();
-        }
-        
-    } catch (error) {
-        console.error('이슈 수정 실패:', error);
-        res.status(500).json({ success: false, message: '이슈 수정에 실패했습니다.' });
-    }
+            const publicRule = inferLegacyRule({description,end_date,betting_end_date});
+            if(rule && (!publicRule || JSON.stringify(publicRule)!==JSON.stringify(rule))) throw new Error('Public criteria and stored rule disagree');
+            if(description?.includes('YEGAM-') && !rule) throw new Error('invalid rule');
+        } catch (_) { await client.query('ROLLBACK'); return res.status(400).json({success:false,message:'판정 규칙과 시각이 일치하지 않습니다.'}); }
+        const sameRule = JSON.stringify(existing.resolution_params ? validateResolutionRule(existing.resolution_params) : null) === JSON.stringify(rule);
+        const dateChanged = new Date(existing.end_date).getTime()!==new Date(end_date).getTime() || new Date(existing.betting_end_date || existing.end_date).getTime()!==new Date(betting_end_date).getTime();
+        const hasBets = (await client.query('SELECT EXISTS(SELECT 1 FROM bets WHERE issue_id=$1) AS value',[id])).rows[0].value;
+        if ((!sameRule || dateChanged) && (hasBets || existing.result !== null)) { await client.query('ROLLBACK'); return res.status(409).json({success:false,message:'참여 또는 정산 후 판정 규칙과 시각은 변경할 수 없습니다.'}); }
+        if(req.endDateContext) await EndDateTracker.setSessionContext(client,{currentUser:req.user?.username,changeType:'ADMIN_UPDATE',changeReason:req.body.change_reason||'Admin modification',clientIp:req.ip,userAgent:req.get('User-Agent'),requestId:req.endDateContext.requestId,sessionId:req.sessionID});
+        const yes_price = req.body.yesPrice ?? req.body.yes_price ?? existing.yes_price;
+        const is_popular = req.body.isPopular ?? req.body.is_popular ?? existing.is_popular;
+        const result = await client.query(
+            'UPDATE issues SET title=$1,category=$2,description=$3,image_url=$4,yes_price=$5,end_date=$6::timestamptz,betting_end_date=$7::timestamptz,is_popular=$8,resolution_params=$9::jsonb,resolution_key=$10,updated_at=NOW() WHERE id=$11 RETURNING *',
+            [title,category,description,image_url,yes_price,end_date,betting_end_date,Boolean(is_popular),rule ? JSON.stringify(rule):null,rule ? resolutionKey(rule):null,id]
+        );
+        await client.query('COMMIT');
+        logIssueCreation(id,title,end_date,req.user?.id,'admin',req.ip,'admin_update');
+        detectRapidDeadlineChanges(id);
+        return res.json({success:true,message:'이슈가 성공적으로 수정되었습니다.',issue:{...result.rows[0],isPopular:Boolean(result.rows[0].is_popular)}});
+    } catch(error) {
+        if(client) try { await client.query('ROLLBACK'); } catch(_) {}
+        return res.status(error.code==='23505'?409:500).json({success:false,message:error.code==='23505'?'동일 판정 회차가 이미 있습니다.':'이슈 수정에 실패했습니다.'});
+    } finally { if(client) client.release(); }
 });
 
 // 이슈 삭제
@@ -379,221 +364,41 @@ router.get('/issues/closed', secureAdminMiddleware, async (req, res) => {
 });
 
 // 이슈 결과 설정 및 보상 지급
-router.post('/issues/:id/result', secureAdminMiddleware, async (req, res) => {
-    const { id } = req.params;
-    const { result, reason } = req.body;
-    const adminId = req.user?.id || 1; // 임시로 관리자 ID 1 사용
-    
-    if (!result || !reason) {
-        return res.status(400).json({ 
-            success: false, 
-            message: '결과와 사유는 필수입니다.' 
-        });
-    }
-    
-    if (!['Yes', 'No', 'Draw', 'Cancelled'].includes(result)) {
-        return res.status(400).json({ 
-            success: false, 
-            message: '유효하지 않은 결과입니다.' 
-        });
-    }
-    
-    const db = getDB();
-    
+router.get('/settlements/status', secureAdminMiddleware, async (req,res) => {
     try {
-        // 트랜잭션 시작
-        await new Promise((resolve, reject) => {
-            db.run('BEGIN TRANSACTION', (err) => {
-                if (err) reject(err);
-                else resolve();
-            });
-        });
-        
-        // 이슈 정보 조회
-        const issue = await new Promise((resolve, reject) => {
-            db.get('SELECT * FROM issues WHERE id = ?', [id], (err, issue) => {
-                if (err) reject(err);
-                else resolve(issue);
-            });
-        });
-        
-        if (!issue) {
-            await new Promise((resolve) => db.run('ROLLBACK', resolve));
-            return res.status(404).json({ success: false, message: '이슈를 찾을 수 없습니다.' });
+        const due = await query('SELECT id,title,end_date,result,status,resolution_last_error FROM issues WHERE resolution_params IS NOT NULL AND result IS NULL ORDER BY end_date,id');
+        res.json({success:true,...automaticSettlement.getStatus(),pendingIssues:due.rows});
+    } catch (_) { res.status(503).json({success:false,message:'정산 준비 상태를 확인할 수 없습니다.'}); }
+});
+router.post('/settlements/run', secureAdminMiddleware, async (req,res) => {
+    try { res.json({success:true,report:await automaticSettlement.run({dryRun:req.body?.dry_run!==false})}); }
+    catch (_) { res.status(503).json({success:false,message:'정산 검사를 완료하지 못했습니다.'}); }
+});
+router.post('/issues/:id/result', secureAdminMiddleware, async (req,res) => {
+    try {
+        const id=Number(req.params.id);
+        const {result}=req.body;
+        const reason=typeof req.body.reason==='string'?req.body.reason.trim():'';
+        if(!Number.isSafeInteger(id)||id<=0||!['Yes','No','Draw','Cancelled'].includes(result)||reason.length<3||reason.length>2000) return res.status(400).json({success:false,message:'유효한 결과와 결정 사유를 입력하세요.'});
+        const issue=(await query('SELECT * FROM issues WHERE id=$1',[id])).rows[0];
+        if(!issue) return res.status(404).json({success:false,message:'이슈를 찾을 수 없습니다.'});
+        let source='admin';
+        let evidence={actor:{namespace:'admin',id:req.user?.id,username:req.user?.username}};
+        let expectedRule;
+        if(issue.resolution_params && ['Yes','No'].includes(result)) {
+            expectedRule=validateResolutionRule(issue.resolution_params,issue);
+            const oracle=await resolveUpbit(expectedRule);
+            if(oracle.status==='pending') return res.status(409).json({success:false,message:'공식 판정 자료를 아직 확인할 수 없습니다.'});
+            if(oracle.status!==result) return res.status(400).json({success:false,message:'공식 캔들 판정 결과와 다릅니다.'});
+            source='upbit'; evidence={...evidence,rule:expectedRule,...oracle.evidence};
         }
-        
-        if (issue.result !== null) {
-            await new Promise((resolve) => db.run('ROLLBACK', resolve));
-            return res.status(400).json({ success: false, message: '이미 결과가 확정된 이슈입니다.' });
-        }
-        
-        // 이슈 결과 업데이트
-        await new Promise((resolve, reject) => {
-            db.run(`
-                UPDATE issues 
-                SET result = ?, decided_by = ?, decided_at = ${getCurrentTimeSQL()}, 
-                    decision_reason = ?, status = 'resolved'
-                WHERE id = ?
-            `, [result, adminId, reason, id], function(err) {
-                if (err) reject(err);
-                else resolve();
-            });
-        });
-        
-        // 베팅 정보 조회
-        const bets = await new Promise((resolve, reject) => {
-            db.all('SELECT * FROM bets WHERE issue_id = ?', [id], (err, bets) => {
-                if (err) reject(err);
-                else resolve(bets);
-            });
-        });
-        
-        // 보상 계산 및 지급
-        if (result === 'Yes' || result === 'No') {
-            const winningBets = bets.filter(bet => bet.choice === result);
-            const losingBets = bets.filter(bet => bet.choice !== result);
-            const totalPool = bets.reduce((sum, bet) => sum + bet.amount, 0);
-            const totalWinningAmount = winningBets.reduce((sum, bet) => sum + bet.amount, 0);
-            
-            // 승리자가 있는 경우 보상 지급
-            if (totalWinningAmount > 0) {
-                const houseEdge = 0.05; // 5% 수수료
-                const rewardPool = totalPool * (1 - houseEdge);
-                
-                for (const bet of winningBets) {
-                    const userReward = Math.floor((bet.amount / totalWinningAmount) * rewardPool);
-                    
-                    // 사용자 잔액 업데이트
-                    await new Promise((resolve, reject) => {
-                        db.run(
-                            'UPDATE users SET gam_balance = gam_balance + ? WHERE id = ?',
-                            [userReward, bet.user_id],
-                            function(err) {
-                                if (err) reject(err);
-                                else resolve();
-                            }
-                        );
-                    });
-                    
-                    // 보상 기록 저장
-                    await new Promise((resolve, reject) => {
-                        db.run(
-                            'INSERT INTO rewards (user_id, issue_id, bet_id, reward_amount) VALUES (?, ?, ?, ?)',
-                            [bet.user_id, id, bet.id, userReward],
-                            function(err) {
-                                if (err) reject(err);
-                                else resolve();
-                            }
-                        );
-                    });
-                    
-                    // 승리 알림 생성
-                    try {
-                        await NotificationService.notifyBettingWin(
-                            bet.user_id, 
-                            id, 
-                            issue.title, 
-                            bet.amount, 
-                            userReward
-                        );
-                        console.log(`✅ 승리 알림 생성 완료: 사용자 ${bet.user_id}`);
-                    } catch (notificationError) {
-                        console.error(`승리 알림 생성 실패: 사용자 ${bet.user_id}:`, notificationError);
-                    }
-                }
-            }
-            
-            // 패배한 베터들에게 패배 알림 생성 (승리자 유무와 관계없이)
-            for (const bet of losingBets) {
-                try {
-                    await NotificationService.notifyBettingLoss(
-                        bet.user_id, 
-                        id, 
-                        issue.title, 
-                        bet.amount, 
-                        reason || '예측이 빗나갔습니다.'
-                    );
-                    console.log(`✅ 패배 알림 생성 완료: 사용자 ${bet.user_id}`);
-                } catch (notificationError) {
-                    console.error(`패배 알림 생성 실패: 사용자 ${bet.user_id}:`, notificationError);
-                }
-            }
-        } else if (result === 'Draw' || result === 'Cancelled') {
-            // 무승부 또는 취소시 모든 베팅 금액 반환
-            for (const bet of bets) {
-                await new Promise((resolve, reject) => {
-                    db.run(
-                        'UPDATE users SET gam_balance = gam_balance + ? WHERE id = ?',
-                        [bet.amount, bet.user_id],
-                        function(err) {
-                            if (err) reject(err);
-                            else resolve();
-                        }
-                    );
-                });
-                
-                // 환불 기록 저장
-                await new Promise((resolve, reject) => {
-                    db.run(
-                        'INSERT INTO rewards (user_id, issue_id, bet_id, reward_amount) VALUES (?, ?, ?, ?)',
-                        [bet.user_id, id, bet.id, bet.amount],
-                        function(err) {
-                            if (err) reject(err);
-                            else resolve();
-                        }
-                    );
-                });
-                
-                // 무승부/취소 알림 생성
-                try {
-                    const resultText = result === 'Draw' ? '무승부' : '취소';
-                    const message = result === 'Draw' 
-                        ? `"${issue.title}" 이슈가 무승부로 종료되어 베팅 금액 ${bet.amount.toLocaleString()} GAM이 전액 환불되었습니다.`
-                        : `"${issue.title}" 이슈가 취소되어 베팅 금액 ${bet.amount.toLocaleString()} GAM이 전액 환불되었습니다.`;
-                    
-                    await NotificationService.createNotification({
-                        userId: bet.user_id,
-                        type: result === 'Draw' ? 'betting_draw' : 'betting_cancelled',
-                        title: `💰 베팅 금액이 환불되었습니다`,
-                        message,
-                        relatedId: id,
-                        relatedType: 'issue'
-                    });
-                    console.log(`✅ ${resultText} 알림 생성 완료: 사용자 ${bet.user_id}`);
-                } catch (notificationError) {
-                    console.error(`${resultText} 알림 생성 실패: 사용자 ${bet.user_id}:`, notificationError);
-                }
-            }
-        }
-        
-        // 트랜잭션 커밋
-        await new Promise((resolve, reject) => {
-            db.run('COMMIT', (err) => {
-                if (err) reject(err);
-                else resolve();
-            });
-        });
-        
-        res.json({
-            success: true,
-            message: `이슈 결과가 '${result}'로 확정되었습니다. 보상이 지급되었습니다.`,
-            result: {
-                issueId: id,
-                result: result,
-                reason: reason,
-                decidedBy: adminId,
-                rewardedUsers: bets.length
-            }
-        });
-        
-    } catch (error) {
-        // 에러 발생시 롤백
-        await new Promise((resolve) => db.run('ROLLBACK', resolve));
-        console.error('이슈 결과 처리 실패:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: '이슈 결과 처리 중 오류가 발생했습니다.' 
-        });
+        const summary=await settleIssue(id,{result,reason,decidedBy:null,source,evidence,expectedRule});
+        if(summary.alreadySettled) return res.status(409).json({success:false,message:'이미 정산된 이슈입니다.',alreadySettled:true,result:summary.result});
+        await automaticSettlement.notifySettlement(summary,issue.title);
+        res.json({success:true,message:'결과 확정과 정산이 완료되었습니다.',settlement:summary});
+    } catch(error) {
+        const status=error.code==='ISSUE_NOT_FOUND'?404:['ISSUE_NOT_CLOSED','RECONCILIATION_REQUIRED','RULE_CHANGED'].includes(error.code)?409:500;
+        res.status(status).json({success:false,code:error.code||'SETTLEMENT_FAILED',message:'정산을 완료하지 못했습니다. 중복 지급 또는 부분 지급은 반영하지 않았습니다.'});
     }
 });
 

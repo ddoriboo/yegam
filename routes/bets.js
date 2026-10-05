@@ -10,145 +10,25 @@ const router = express.Router();
 router.post('/', authMiddleware, validateBetRequest, async (req, res) => {
     const { issueId, choice, amount } = req.validatedData;
     const userId = req.user.id;
-    
-    let client;
-    
+    const { placeBet, BetPlacementError } = require('../services/placeBet');
     try {
-        client = await getClient();
-        await client.query('BEGIN');
-        
-        // 사용자 GAM 잔액 확인
-        const userResult = await client.query('SELECT gam_balance FROM users WHERE id = $1', [userId]);
-        const user = userResult.rows[0];
-        
-        if (!user) {
-            await client.query('ROLLBACK');
-            client.release();
-            return res.status(404).json({ 
-                success: false, 
-                message: '사용자를 찾을 수 없습니다.' 
-            });
-        }
-        
-        const gamBalance = user.gam_balance ?? 0;
-        if (gamBalance < amount) {
-            await client.query('ROLLBACK');
-            client.release();
-            return res.status(400).json({ 
-                success: false, 
-                message: '보유 GAM이 부족합니다.' 
-            });
-        }
-        
-        // 이슈 존재 확인
-        const issueResult = await client.query('SELECT * FROM issues WHERE id = $1 AND status = $2', [issueId, 'active']);
-        const issue = issueResult.rows[0];
-        
-        if (!issue) {
-            await client.query('ROLLBACK');
-            client.release();
-            return res.status(404).json({ 
-                success: false, 
-                message: '존재하지 않는 이슈입니다.' 
-            });
-        }
-        
-        // 베팅 마감일 확인 (betting_end_date가 있으면 사용, 없으면 end_date 사용)
-        const bettingDeadline = issue.betting_end_date || issue.end_date;
-        if (new Date(bettingDeadline) < new Date()) {
-            await client.query('ROLLBACK');
-            client.release();
-            return res.status(400).json({ 
-                success: false, 
-                message: '베팅이 마감되었습니다.' 
-            });
-        }
-        
-        // 이미 베팅했는지 확인
-        const betResult = await client.query('SELECT id FROM bets WHERE user_id = $1 AND issue_id = $2', [userId, issueId]);
-        const existingBet = betResult.rows[0];
-        
-        if (existingBet) {
-            await client.query('ROLLBACK');
-            client.release();
-            return res.status(400).json({ 
-                success: false, 
-                message: '이미 베팅한 이슈입니다.' 
-            });
-        }
-        
-        // 베팅 기록 생성
-        const insertBetResult = await client.query(
-            'INSERT INTO bets (user_id, issue_id, choice, amount) VALUES ($1, $2, $3, $4) RETURNING id', 
-            [userId, issueId, choice, amount]
-        );
-        
-        const betId = insertBetResult.rows[0].id;
-        
-        // 사용자 GAM 잔액 차감 및 업데이트된 잔액 조회
-        await client.query('UPDATE users SET gam_balance = gam_balance - $1 WHERE id = $2', [amount, userId]);
-        
-        // 업데이트된 사용자 정보 다시 조회 (정확한 잔액 확인)
-        const updatedUserResult = await client.query('SELECT gam_balance FROM users WHERE id = $1', [userId]);
-        const updatedUserBalance = updatedUserResult.rows[0].gam_balance;
-        
-        // 이슈 볼륨 및 가격 업데이트
-        const newYesVolume = choice === 'Yes' ? (issue.yes_volume || 0) + amount : (issue.yes_volume || 0);
-        const newNoVolume = choice === 'No' ? (issue.no_volume || 0) + amount : (issue.no_volume || 0);
-        const newTotalVolume = newYesVolume + newNoVolume;
-        const newYesPrice = newTotalVolume > 0 ? Math.round((newYesVolume / newTotalVolume) * 100) : 50;
-        
-        await client.query(
-            'UPDATE issues SET yes_volume = $1, no_volume = $2, total_volume = $3, yes_price = $4, updated_at = CURRENT_TIMESTAMP WHERE id = $5', 
-            [newYesVolume, newNoVolume, newTotalVolume, newYesPrice, issueId]
-        );
-        
-        // 트랜잭션 커밋
-        await client.query('COMMIT');
-        client.release();
-        
-        console.log(`✅ 베팅 성공 - 사용자 ${userId}, 이전 잔액: ${gamBalance}, 베팅 금액: ${amount}, 현재 잔액: ${updatedUserBalance}`);
-        
+        const placed = await placeBet({ issueId, userId, choice, amount });
+        const { bet, previousBalance, balance, yesPrice, totalVolume } = placed;
+        console.log('베팅 성공 - 사용자 ' + userId + ', 이전 잔액: ' + previousBalance + ', 베팅 금액: ' + amount + ', 현재 잔액: ' + balance);
         res.json({
             success: true,
             message: '베팅이 성공적으로 완료되었습니다.',
-            bet: {
-                id: betId,
-                userId,
-                issueId,
-                choice,
-                amount
-            },
-            updatedUser: {
-                gam_balance: updatedUserBalance // DB에서 직접 조회한 정확한 잔액
-            },
-            updatedIssue: {
-                yesPrice: newYesPrice,
-                totalVolume: newTotalVolume
-            },
-            debug: {
-                previousBalance: gamBalance,
-                betAmount: amount,
-                expectedBalance: gamBalance - amount,
-                actualBalance: updatedUserBalance
-            }
+            bet: { id: bet.id, userId, issueId, choice: bet.choice, amount: bet.amount },
+            updatedUser: { gam_balance: balance },
+            updatedIssue: { yesPrice, totalVolume },
+            debug: { previousBalance, betAmount: amount, expectedBalance: previousBalance - amount, actualBalance: balance }
         });
-        
     } catch (error) {
-        console.error('베팅 오류:', error);
-        if (client) {
-            try {
-                await client.query('ROLLBACK');
-            } catch (rollbackError) {
-                console.error('롤백 오류:', rollbackError);
-            }
-            client.release();
+        if (error instanceof BetPlacementError) {
+            return res.status(error.status).json({ success: false, message: error.message });
         }
-        res.status(500).json({ 
-            success: false, 
-            message: '베팅 처리 중 오류가 발생했습니다.',
-            error: error.message
-        });
+        console.error('베팅 오류:', error);
+        res.status(500).json({ success: false, message: '베팅 처리 중 오류가 발생했습니다.', error: 'BET_PLACEMENT_FAILED' });
     }
 });
 

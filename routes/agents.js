@@ -36,7 +36,7 @@ const requireAdmin = (req, res, next) => {
   // 기존 관리자 인증 로직 또는 간단한 토큰 검증
   const adminToken = req.headers.authorization?.replace('Bearer ', '');
   
-  if (adminToken !== process.env.ADMIN_SECRET_KEY) {
+  if (!process.env.ADMIN_SECRET_KEY || process.env.ADMIN_SECRET_KEY.length < 32 || !adminToken || adminToken !== process.env.ADMIN_SECRET_KEY) {
     return res.status(401).json({ error: 'Unauthorized' });
   }
   

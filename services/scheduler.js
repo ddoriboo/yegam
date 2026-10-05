@@ -58,7 +58,8 @@ class IssueScheduler {
             // 각 이슈를 마감 상태로 변경하고 알림 전송
             for (const issue of expiredIssues) {
                 try {
-                    await dbRun('UPDATE issues SET status = $1 WHERE id = $2', ['closed', issue.id]);
+                    const closed = await dbQuery("UPDATE issues SET status=$1 WHERE id=$2 AND status='active' AND result IS NULL RETURNING id", ['closed',issue.id]);
+                    if(closed.rowCount!==1) continue;
                     
                     // 타임존 정보를 포함한 로깅
                     const endDateKST = issue.end_date_kst ? new Date(issue.end_date_kst).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }) : 'N/A';
