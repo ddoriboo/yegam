@@ -8,8 +8,15 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const {validateResolutionRule, inferLegacyRule} = require('../services/marketResolutionRule');
-const {resolutionKey} = require('../database/settlement-schema');
+const {inferLegacyRule} = require('../services/marketResolutionRule');
+const providers=require('../services/resolutionProviders');
+const {ruleKey:resolutionKey}=providers;
+// HTTP JSON and its handler share one realm; bridge isolated VM fixtures
+// without weakening the real descriptor/prototype validator.
+const cloneIssue=i=>i===undefined?undefined:JSON.parse(JSON.stringify(i));
+const validateResolutionRule=(r,i)=>providers.validateRule(r,cloneIssue(i));
+const publicCriteria=(r,i)=>providers.publicCriteria(r,cloneIssue(i));
+const assertPublishable=(r,i)=>providers.assertPublishable(r,cloneIssue(i));
 const source = fs.readFileSync(path.join(__dirname, '../routes/admin.js'), 'utf8');
 const MARKER = 'YEGAM-BTC-20261006-1800-KRW-v1';
 const END = '2026-10-06T09:00:00Z';
@@ -37,7 +44,7 @@ function handler(method, deps) {
   const lambdaEnd = section.lastIndexOf('});');
   assert.ok(lambdaStart >= 0 && lambdaEnd > lambdaStart, 'actual async handler must exist');
   return vm.runInNewContext('(' + section.slice(lambdaStart, lambdaEnd + 1) + ')', {
-    validateResolutionRule, inferLegacyRule, resolutionKey,
+    validateResolutionRule, inferLegacyRule, resolutionKey, publicCriteria, assertPublishable,
     require(name) {
       assert.equal(name, '../database/postgres');
       return {getPool:() => ({connect:deps.acquire}), getClient:deps.acquire};
@@ -178,8 +185,9 @@ test('PUT permits zero-bet rule enrollment', async () => {
   assert.equal(out.calls.at(-1).sql,'COMMIT');
 });
 for (const [state,opts] of [['unresolved',{hasBets:false}],['bets exist',{hasBets:true}],['resolved',{existing:existing({result:'Yes'})}]]) {
-  test('PUT permits harmless description edit with identical rule/times when ' + state, async () => {
+  test('PUT public-description editing respects participation freeze when ' + state, async () => {
     const out = await invoke('put',body({description:DESCRIPTION + '\n출처 설명만 추가합니다.',resolution_params:rule()}),opts);
+    if(state!=='unresolved'){rejected(out,409);return;}
     persistedRule(out);
     assert.equal(writes(out)[0].params[2],DESCRIPTION + '\n출처 설명만 추가합니다.');
     assert.equal(out.calls.at(-1).sql,'COMMIT');
@@ -278,3 +286,21 @@ for (const alias of ['resolution_params','resolutionParams']) {
     assert.equal(out.releases,1);
   });
 }
+
+// Same real handlers with v2 rules; no network/production state.
+const officialRules=require('../services/officialResolutionRules');
+function weatherBody(overrides={}){
+ const resolution_params={version:2,provider:'awc_metar',station:'RKSI',metric:'temperature_c',operator:'gt',threshold:17,observation_at:'2099-10-06T09:00:00.000Z',missing_data_policy:'cancel_after_24h'};
+ return{title:officialRules.officialTitle(resolution_params),category:'날씨',description:providers.officialDescription(resolution_params,{end_date:resolution_params.observation_at,betting_end_date:'2099-10-06T03:00:00.000Z'}),end_date:resolution_params.observation_at,betting_end_date:'2099-10-06T03:00:00.000Z',resolution_params,...overrides};
+}
+test('official provider create gated off before SQL',async()=>{const previous=process.env.AUTO_RESOLVE_OFFICIAL;delete process.env.AUTO_RESOLVE_OFFICIAL;try{rejected(await invoke('post',weatherBody()),400,false);}finally{if(previous===undefined)delete process.env.AUTO_RESOLVE_OFFICIAL;else process.env.AUTO_RESOLVE_OFFICIAL=previous;}});
+test('enabled official create persists weather rule and event-only key',async()=>{const previous=process.env.AUTO_RESOLVE_OFFICIAL;process.env.AUTO_RESOLVE_OFFICIAL='true';try{const input=weatherBody();persistedRule(await invoke('post',input),input.resolution_params,officialRules.officialRuleKey(input.resolution_params));}finally{if(previous===undefined)delete process.env.AUTO_RESOLVE_OFFICIAL;else process.env.AUTO_RESOLVE_OFFICIAL=previous;}});
+test('official title category and public criteria must agree before SQL',async()=>{const previous=process.env.AUTO_RESOLVE_OFFICIAL;process.env.AUTO_RESOLVE_OFFICIAL='true';try{for(const change of[{title:'다른 기온 목표'},{category:'정치'},{description:'규칙 없는 자동 판정 주장'},{description:weatherBody().description+'\n'+weatherBody().description}])rejected(await invoke('post',weatherBody(change)),400,false);}finally{if(previous===undefined)delete process.env.AUTO_RESOLVE_OFFICIAL;else process.env.AUTO_RESOLVE_OFFICIAL=previous;}});
+test('official past betting cutoff cannot publish with exact criteria',async()=>{const previous=process.env.AUTO_RESOLVE_OFFICIAL;process.env.AUTO_RESOLVE_OFFICIAL='true';try{rejected(await invoke('post',weatherBody({betting_end_date:'2000-01-01T00:00:00.000Z'})),400,false);}finally{if(previous===undefined)delete process.env.AUTO_RESOLVE_OFFICIAL;else process.env.AUTO_RESOLVE_OFFICIAL=previous;}});
+test('official rule changes after a bet are frozen under lock',async()=>{const input=weatherBody();const prior={id:42,...input,result:null,yes_price:50,is_popular:false};const nextRule={...input.resolution_params,threshold:18};const changed={...input,resolution_params:nextRule,title:officialRules.officialTitle(nextRule),description:providers.officialDescription(nextRule,input)};rejected(await invoke('put',changed,{existing:prior,hasBets:true}),409);});
+
+test('legacy put/delete routes cannot mutate any structured official issue',()=>{const legacy=fs.readFileSync(path.join(__dirname,'../routes/issues.js'),'utf8');assert.match(legacy,/WHERE id = \$9 AND resolution_params IS NULL/);assert.match(legacy,/UPDATE issues SET status = \$1 WHERE id = \$2 AND resolution_params IS NULL/);});
+test('official same-rule public title cannot be changed after participation',async()=>{const input=weatherBody();const prior={id:42,...input,result:null,yes_price:50,is_popular:false};rejected(await invoke('put',{...input},{existing:{...prior,description:'Old public description'},hasBets:true}),409);});
+test('official rule cannot be installed through put with feature flag disabled',async()=>{const previous=process.env.AUTO_RESOLVE_OFFICIAL;delete process.env.AUTO_RESOLVE_OFFICIAL;try{rejected(await invoke('put',weatherBody(),{existing:existing({resolution_params:null}),hasBets:false}),400);}finally{if(previous===undefined)delete process.env.AUTO_RESOLVE_OFFICIAL;else process.env.AUTO_RESOLVE_OFFICIAL=previous;}});
+
+test('automatic end-date consistency repair also preserves rule-locked observation dates',()=>{const repair=fs.readFileSync(path.join(__dirname,'../utils/end-date-tracker.js'),'utf8');assert.match(repair,/SET end_date = \$1\s+WHERE id = \$2 AND resolution_params IS NULL/);});

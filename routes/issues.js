@@ -402,7 +402,7 @@ router.put('/:id',
             SET title = $1, category = $2, description = $3, image_url = $4, 
                 end_date = $5::timestamptz, betting_end_date = $6::timestamptz, 
                 yes_price = $7, is_popular = $8, updated_at = CURRENT_TIMESTAMP 
-            WHERE id = $9
+            WHERE id = $9 AND resolution_params IS NULL
         `;
         
         const result = await run(updateQuery, [
@@ -446,7 +446,7 @@ router.delete('/:id',
     try {
         const issueId = req.params.id;
         
-        const result = await run('UPDATE issues SET status = $1 WHERE id = $2', ['deleted', issueId]);
+        const result = await run('UPDATE issues SET status = $1 WHERE id = $2 AND resolution_params IS NULL', ['deleted', issueId]);
         
         if (result.changes === 0) {
             return res.status(404).json({ 

@@ -1,7 +1,6 @@
 'use strict';
 
-const { validateResolutionRule } = require('./marketResolutionRule');
-const { resolveUpbit } = require('./upbitResolution');
+const { validateRule: validateResolutionRule, resolveRule, providerEnabled, providerStatus, resolutionReason } = require('./resolutionProviders');
 const { ensureSettlementSchema } = require('../database/settlement-schema');
 
 async function notifySettlement(summary, issueTitle, dependencies = {}) {
@@ -33,9 +32,10 @@ class AutomaticSettlement {
     constructor(dependencies = {}) {
         this.dependencies = dependencies;
         this.query = dependencies.query || ((...args) => require('../database/postgres').query(...args));
-        this.resolve = dependencies.resolve || resolveUpbit;
+        this.resolve = dependencies.resolve || resolveRule;
         this.settle = dependencies.settle || ((...args) => require('./settlement').settleIssue(...args));
         this.enabled = dependencies.enabled || (() => process.env.AUTO_RESOLVE_UPBIT === 'true');
+        this.officialEnabled = dependencies.officialEnabled || (() => process.env.AUTO_RESOLVE_OFFICIAL === 'true');
         this.initialized = false;
         this.running = false;
         this.timer = null;
@@ -51,13 +51,15 @@ class AutomaticSettlement {
         return {
             version: 'upbit-atomic-v1', initialized: this.initialized,
             enabled: Boolean(this.enabled()), running: this.running,
-            intervalSeconds: 60, lastRun: this.lastRun
+            intervalSeconds: 60, lastRun: this.lastRun,
+            officialEnabled: Boolean(this.officialEnabled()),
+            providers: providerStatus({ upbit: this.enabled(), official: this.officialEnabled() })
         };
     }
 
     async run({ dryRun = false } = {}) {
         if (!this.initialized) return { skipped: true, reason: 'SCHEMA_NOT_READY', ...this.getStatus() };
-        if (!dryRun && !this.enabled()) return { skipped: true, reason: 'AUTO_RESOLUTION_DISABLED', ...this.getStatus() };
+        if (!dryRun && !this.enabled() && !this.officialEnabled()) return { skipped: true, reason: 'AUTO_RESOLUTION_DISABLED', ...this.getStatus() };
         if (this.running) return { skipped: true, reason: 'ALREADY_RUNNING' };
         this.running = true;
         const report = { startedAt: new Date().toISOString(), dryRun, settled: [], pending: [], failed: [] };
@@ -69,9 +71,12 @@ class AutomaticSettlement {
                   AND end_date <= clock_timestamp() - INTERVAL '5 seconds'
                 ORDER BY end_date, id LIMIT 50
             `);
+            const limitedProviders = new Set();
             for (const issue of due.rows) {
                 try {
                     const rule = validateResolutionRule(issue.resolution_params, issue);
+                    if (limitedProviders.has(rule.provider)) { report.pending.push({id:issue.id,reason:'provider_rate_limited'}); continue; }
+                    if (!dryRun && !providerEnabled(rule,{upbit:this.enabled(),official:this.officialEnabled()})) { report.pending.push({id:issue.id,reason:'PROVIDER_DISABLED'}); continue; }
                     const decision = await this.resolve(rule);
                     if (decision.status === 'pending') {
                         report.pending.push({ id: issue.id, reason: decision.reason });
@@ -79,19 +84,18 @@ class AutomaticSettlement {
                             'UPDATE issues SET resolution_attempted_at=NOW(),resolution_last_error=$1 WHERE id=$2 AND result IS NULL',
                             [String(decision.reason || 'CANDLE_NOT_AVAILABLE').slice(0, 500), issue.id]
                         );
-                        if (decision.reason === 'rate_limited') break;
+                        if (decision.reason === 'rate_limited') limitedProviders.add(rule.provider);
                         continue;
                     }
                     if (!['Yes','No','Cancelled'].includes(decision.status)) throw Object.assign(new Error('Invalid oracle outcome'), { code: 'INVALID_ORACLE_RESULT' });
-                    const reason = decision.status === 'Cancelled'
-                        ? `업비트 고정 1분봉 자료를 기준 시각 이후 24시간 내 확인하지 못해 취소합니다. ${decision.reason || ''}`
-                        : `업비트 ${rule.market} ${decision.evidence.candle_open_at} 1분봉 종가 ${decision.evidence.close}원, 기준 ${rule.threshold}원 초과 여부: ${decision.status}.`;
+                    const reason = resolutionReason(rule, decision);
                     if (dryRun) {
                         report.settled.push({ id: issue.id, proposedResult: decision.status, evidence: decision.evidence || null });
                         continue;
                     }
                     const summary = await this.settle(issue.id, {
-                        result: decision.status, reason, decidedBy: null, source: 'upbit', expectedRule: rule,
+                        result: decision.status, reason, decidedBy: null, source: rule.provider, expectedRule: rule,
+                        expectedDates: {end_date:issue.end_date,betting_end_date:issue.betting_end_date},
                         evidence: { rule, ...(decision.evidence || {}), missingDataReason: decision.reason || null }
                     });
                     await notifySettlement(summary, issue.title, this.dependencies);

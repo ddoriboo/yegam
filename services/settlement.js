@@ -65,7 +65,7 @@ function requireRow(result, code = 'RECONCILIATION_REQUIRED') {
 }
 
 /** One checked-out PostgreSQL client owns every operation including transaction control. */
-async function settleIssue(issueId, { result, reason, decidedBy = null, source = 'manual', evidence = null, refundNoWinners = false, expectedRule }, dependencies = {}) {
+async function settleIssue(issueId, { result, reason, decidedBy = null, source = 'manual', evidence = null, refundNoWinners = false, expectedRule, expectedDates }, dependencies = {}) {
     issueId = Number(integer(issueId, 'issue id'));
     result = normalizeResult(result);
     if (decidedBy !== null) decidedBy = Number(integer(decidedBy, 'deciding user id'));
@@ -76,7 +76,7 @@ async function settleIssue(issueId, { result, reason, decidedBy = null, source =
         await client.query('BEGIN');
         began = true;
         const found = await client.query(
-            'SELECT id, result, status, end_date, resolution_params, end_date <= clock_timestamp() AS has_ended FROM issues WHERE id = $1 FOR UPDATE', [issueId]);
+            'SELECT id, result, status, end_date, betting_end_date, resolution_params, end_date <= clock_timestamp() AS has_ended FROM issues WHERE id = $1 FOR UPDATE', [issueId]);
         const issue = found.rows[0];
         if (!issue) throw fail('ISSUE_NOT_FOUND', 'Issue not found');
         if (issue.result != null || ['resolved', 'settled'].includes(issue.status)) {
@@ -84,6 +84,7 @@ async function settleIssue(issueId, { result, reason, decidedBy = null, source =
             began = false;
             return { alreadySettled: true, issueId, result: issue.result, credits: [] };
         }
+        if (issue.resolution_params != null && expectedRule === undefined) throw fail('RULE_REQUIRED', 'Structured official issues require verified oracle rule evidence');
         if (expectedRule !== undefined) {
             let matches = false;
             try {
@@ -94,6 +95,17 @@ async function settleIssue(issueId, { result, reason, decidedBy = null, source =
                 // Non-JSON/circular rules are not safe evidence for a financial settlement.
             }
             if (!matches) throw fail('RULE_CHANGED', 'Resolution rule changed after oracle evaluation');
+            if (expectedRule.observation_at !== undefined) {
+                const actual = new Date(issue.end_date).getTime(), declared = Date.parse(expectedRule.observation_at);
+                if (!Number.isFinite(actual) || !Number.isFinite(declared) || actual !== declared) throw fail('RULE_CHANGED', 'Observation date changed after oracle evaluation');
+                if (expectedDates === undefined) throw fail('RULE_REQUIRED', 'Official oracle settlement requires captured issue dates');
+            }
+            if (expectedDates !== undefined) {
+                for (const key of ['end_date', 'betting_end_date']) {
+                    const actual = new Date(issue[key]).getTime(), expected = new Date(expectedDates[key]).getTime();
+                    if (issue[key] == null || expectedDates[key] == null || !Number.isFinite(actual) || !Number.isFinite(expected) || actual !== expected) throw fail('RULE_CHANGED', 'Issue dates changed after oracle evaluation');
+                }
+            }
         }
         const isRefundResult = ['Draw', 'Cancelled'].includes(result);
         if (!(issue.has_ended === true || (isRefundResult && issue.status === 'closed'))) {

@@ -1,9 +1,10 @@
 const express = require('express');
 const { settleIssue } = require('../services/settlement');
 const automaticSettlement = require('../services/automaticSettlement');
-const { validateResolutionRule, inferLegacyRule } = require('../services/marketResolutionRule');
-const { resolveUpbit } = require('../services/upbitResolution');
-const { resolutionKey } = require('../database/settlement-schema');
+const { inferLegacyRule } = require('../services/marketResolutionRule');
+const { validateRule: validateResolutionRule, resolveRule: resolveUpbit, ruleKey: resolutionKey, publicCriteria, assertPublishable, providerEnabled } = require('../services/resolutionProviders');
+const { planOfficial } = require('../services/resolutionPlanning');
+const oracleReadLimit = require('express-rate-limit')({windowMs:60000,max:12,standardHeaders:true,legacyHeaders:false,message:{success:false,message:'공식 자료 조회는 잠시 후 다시 시도하세요.'}});
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -123,12 +124,7 @@ router.post('/issues',
         try {
             const suppliedRule = Object.hasOwn(req.body,'resolution_params') ? req.body.resolution_params : req.body.resolutionParams;
             resolutionParams = suppliedRule === undefined ? inferLegacyRule({description, end_date, betting_end_date}) : (suppliedRule === null ? null : validateResolutionRule(suppliedRule, {end_date, betting_end_date}));
-            if (resolutionParams) {
-                const titlePrices = [...title.matchAll(/(?<![\d.,])([1-9]\d*(?:,\d{3})*)\s*원/g)];
-                if (titlePrices.length>1 || (titlePrices.length===1 && Number(titlePrices[0][1].replace(/,/g,''))!==resolutionParams.threshold)) throw new Error('Title threshold mismatch');
-            }
-            const publicRule = inferLegacyRule({description, end_date, betting_end_date});
-            if (resolutionParams && (!publicRule || JSON.stringify(publicRule)!==JSON.stringify(resolutionParams))) throw new Error('공개 판정 기준과 구조화 규칙이 일치해야 합니다.');
+            if (resolutionParams) assertPublishable(resolutionParams,{title,category,description,end_date,betting_end_date});
             if (description?.includes('YEGAM-') && !resolutionParams) throw new Error('유효한 자동 판정 규칙이 필요합니다.');
         } catch (_) {
             return res.status(400).json({success:false,message:'자동 판정 규칙과 마감 시각을 확인하세요.'});
@@ -201,18 +197,18 @@ router.put('/issues/:id', secureAdminMiddleware, rateLimitIssueModifications(), 
         let rule;
         try {
             rule = suppliedRule !== undefined ? (suppliedRule === null ? null : validateResolutionRule(suppliedRule,{end_date,betting_end_date})) : (existing.resolution_params ? validateResolutionRule(existing.resolution_params,{end_date,betting_end_date}) : inferLegacyRule({description,end_date,betting_end_date}));
-            if(rule) {
-                const titlePrices = [...title.matchAll(/(?<![\d.,])([1-9]\d*(?:,\d{3})*)\s*원/g)];
-                if(titlePrices.length>1 || (titlePrices.length===1 && Number(titlePrices[0][1].replace(/,/g,''))!==rule.threshold)) throw new Error('Title threshold mismatch');
-            }
-            const publicRule = inferLegacyRule({description,end_date,betting_end_date});
-            if(rule && (!publicRule || JSON.stringify(publicRule)!==JSON.stringify(rule))) throw new Error('Public criteria and stored rule disagree');
+            if(rule) publicCriteria(rule,{title,category,description,end_date,betting_end_date});
             if(description?.includes('YEGAM-') && !rule) throw new Error('invalid rule');
         } catch (_) { await client.query('ROLLBACK'); return res.status(400).json({success:false,message:'판정 규칙과 시각이 일치하지 않습니다.'}); }
         const sameRule = JSON.stringify(existing.resolution_params ? validateResolutionRule(existing.resolution_params) : null) === JSON.stringify(rule);
         const dateChanged = new Date(existing.end_date).getTime()!==new Date(end_date).getTime() || new Date(existing.betting_end_date || existing.end_date).getTime()!==new Date(betting_end_date).getTime();
         const hasBets = (await client.query('SELECT EXISTS(SELECT 1 FROM bets WHERE issue_id=$1) AS value',[id])).rows[0].value;
-        if ((!sameRule || dateChanged) && (hasBets || existing.result !== null)) { await client.query('ROLLBACK'); return res.status(409).json({success:false,message:'참여 또는 정산 후 판정 규칙과 시각은 변경할 수 없습니다.'}); }
+        const publicChanged = existing.resolution_params && (title!==existing.title || category!==existing.category || description!==existing.description);
+        if ((!sameRule || dateChanged || publicChanged) && (hasBets || existing.result !== null)) { await client.query('ROLLBACK'); return res.status(409).json({success:false,message:'참여 또는 정산 후 공개 판정 기준·규칙·시각은 변경할 수 없습니다.'}); }
+        if (rule && rule.provider!=='upbit' && (!sameRule || dateChanged)) {
+            try { assertPublishable(rule,{title,category,description,end_date,betting_end_date}); }
+            catch (_) { await client.query('ROLLBACK'); return res.status(400).json({success:false,message:'활성화된 공식 제공자와 충분한 미래 베팅 시간이 필요합니다.'}); }
+        }
         if(req.endDateContext) await EndDateTracker.setSessionContext(client,{currentUser:req.user?.username,changeType:'ADMIN_UPDATE',changeReason:req.body.change_reason||'Admin modification',clientIp:req.ip,userAgent:req.get('User-Agent'),requestId:req.endDateContext.requestId,sessionId:req.sessionID});
         const yes_price = req.body.yesPrice ?? req.body.yes_price ?? existing.yes_price;
         const is_popular = req.body.isPopular ?? req.body.is_popular ?? existing.is_popular;
@@ -236,12 +232,13 @@ router.delete('/issues/:id', secureAdminMiddleware, (req, res) => {
     const db = getDB();
     
     // 이슈에 연관된 데이터 확인
-    db.get('SELECT COUNT(*) as bet_count FROM bets WHERE issue_id = ?', [id], (err, result) => {
+    db.get('SELECT (SELECT COUNT(*) FROM bets WHERE issue_id=?) AS bet_count, EXISTS(SELECT 1 FROM issues WHERE id=? AND resolution_params IS NOT NULL) AS has_rule', [id,id], (err, result) => {
         if (err) {
             console.error('이슈 베팅 확인 실패:', err);
             return res.status(500).json({ success: false, message: '이슈 삭제 확인에 실패했습니다.' });
         }
         
+        if (result.has_rule) return res.status(409).json({success:false,message:'공식 판정 규칙 이슈는 삭제하지 않고 선언된 판정·환불 정책으로 처리합니다.'});
         if (result.bet_count > 0) {
             return res.status(400).json({ 
                 success: false, 
@@ -255,7 +252,7 @@ router.delete('/issues/:id', secureAdminMiddleware, (req, res) => {
                 console.error('이슈 댓글 삭제 실패:', err);
             }
             
-            db.run('DELETE FROM issues WHERE id = ?', [id], function(err) {
+            db.run('DELETE FROM issues WHERE id = ? AND resolution_params IS NULL', [id], function(err) {
                 if (err) {
                     console.error('이슈 삭제 실패:', err);
                     return res.status(500).json({ success: false, message: '이슈 삭제에 실패했습니다.' });
@@ -363,6 +360,20 @@ router.get('/issues/closed', secureAdminMiddleware, async (req, res) => {
     }
 });
 
+// Authenticated read-only oracle tools. No issue, bet, balance or ledger writes.
+router.post('/resolution/preview', secureAdminMiddleware, oracleReadLimit, async (req,res) => {
+    try {
+        const rule=validateResolutionRule(req.body?.resolution_params);
+        res.json({success:true,rule,decision:await resolveUpbit(rule)});
+    } catch (_) { res.status(400).json({success:false,message:'유효한 공식 판정 규칙을 입력하세요.'}); }
+});
+router.get('/resolution/candidates', secureAdminMiddleware, oracleReadLimit, async (req,res) => {
+    try {
+        const now=Date.now(),kst=new Date(now+9*3600000),date=kst.toISOString().slice(0,10);
+        const slot=req.query.slot||date+'T'+(kst.getUTCHours()>=18?'09':'00')+':00:00.000Z';
+        res.json({success:true,...await planOfficial(req.query.provider,slot,{now})});
+    } catch (_) { res.status(400).json({success:false,message:'지원되는 제공자와 현재 회차 시각을 입력하세요.'}); }
+});
 // 이슈 결과 설정 및 보상 지급
 router.get('/settlements/status', secureAdminMiddleware, async (req,res) => {
     try {
@@ -385,14 +396,16 @@ router.post('/issues/:id/result', secureAdminMiddleware, async (req,res) => {
         let source='admin';
         let evidence={actor:{namespace:'admin',id:req.user?.id,username:req.user?.username}};
         let expectedRule;
-        if(issue.resolution_params && ['Yes','No'].includes(result)) {
+        if(issue.resolution_params) {
+            if(result==='Draw') return res.status(400).json({success:false,message:'공식 규칙 이슈의 동률은 선언된 규칙으로 판정하며 임의 무승부 처리할 수 없습니다.'});
             expectedRule=validateResolutionRule(issue.resolution_params,issue);
+            if(expectedRule.provider!=='upbit' && !providerEnabled(expectedRule)) return res.status(409).json({success:false,message:'해당 공식 제공자의 정산이 비활성화되어 있습니다.'});
             const oracle=await resolveUpbit(expectedRule);
             if(oracle.status==='pending') return res.status(409).json({success:false,message:'공식 판정 자료를 아직 확인할 수 없습니다.'});
-            if(oracle.status!==result) return res.status(400).json({success:false,message:'공식 캔들 판정 결과와 다릅니다.'});
-            source='upbit'; evidence={...evidence,rule:expectedRule,...oracle.evidence};
+            if(oracle.status!==result) return res.status(400).json({success:false,message:'공식 자료 판정 결과와 다릅니다.'});
+            source=expectedRule.provider; evidence={...evidence,rule:expectedRule,...oracle.evidence,missingDataReason:oracle.reason||null};
         }
-        const summary=await settleIssue(id,{result,reason,decidedBy:null,source,evidence,expectedRule});
+        const summary=await settleIssue(id,{result,reason,decidedBy:null,source,evidence,expectedRule,expectedDates:expectedRule?{end_date:issue.end_date,betting_end_date:issue.betting_end_date}:undefined});
         if(summary.alreadySettled) return res.status(409).json({success:false,message:'이미 정산된 이슈입니다.',alreadySettled:true,result:summary.result});
         await automaticSettlement.notifySettlement(summary,issue.title);
         res.json({success:true,message:'결과 확정과 정산이 완료되었습니다.',settlement:summary});

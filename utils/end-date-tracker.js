@@ -410,12 +410,12 @@ class EndDateTracker {
                         });
 
                         // 데이터 복구
-                        await client.query(`
+                        const repaired = await client.query(`
                             UPDATE issues 
                             SET end_date = $1 
-                            WHERE id = $2
+                            WHERE id = $2 AND resolution_params IS NULL
                         `, [correctEndDate, inconsistency.issue_id]);
-
+                        if (repaired.rowCount === 0) continue;
                         result.repairedIssues++;
                         
                         endDateLogger.info('Data consistency repaired', {
