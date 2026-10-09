@@ -36,6 +36,7 @@ class AutomaticSettlement {
         this.settle = dependencies.settle || ((...args) => require('./settlement').settleIssue(...args));
         this.enabled = dependencies.enabled || (() => process.env.AUTO_RESOLVE_UPBIT === 'true');
         this.officialEnabled = dependencies.officialEnabled || (() => process.env.AUTO_RESOLVE_OFFICIAL === 'true');
+        this.treasuryEnabled = dependencies.treasuryEnabled || (() => process.env.AUTO_RESOLVE_TREASURY === 'true');
         this.initialized = false;
         this.running = false;
         this.timer = null;
@@ -53,7 +54,7 @@ class AutomaticSettlement {
             enabled: Boolean(this.enabled()), running: this.running,
             intervalSeconds: 60, lastRun: this.lastRun,
             officialEnabled: Boolean(this.officialEnabled()),
-            providers: providerStatus({ upbit: this.enabled(), official: this.officialEnabled() })
+            providers: providerStatus({ upbit: this.enabled(), official: this.officialEnabled(), treasury: this.treasuryEnabled() })
         };
     }
 
@@ -76,7 +77,7 @@ class AutomaticSettlement {
                 try {
                     const rule = validateResolutionRule(issue.resolution_params, issue);
                     if (limitedProviders.has(rule.provider)) { report.pending.push({id:issue.id,reason:'provider_rate_limited'}); continue; }
-                    if (!dryRun && !providerEnabled(rule,{upbit:this.enabled(),official:this.officialEnabled()})) { report.pending.push({id:issue.id,reason:'PROVIDER_DISABLED'}); continue; }
+                    if (!dryRun && !providerEnabled(rule,{upbit:this.enabled(),official:this.officialEnabled(),treasury:this.treasuryEnabled()})) { report.pending.push({id:issue.id,reason:'PROVIDER_DISABLED'}); continue; }
                     const decision = await this.resolve(rule);
                     if (decision.status === 'pending') {
                         report.pending.push({ id: issue.id, reason: decision.reason });

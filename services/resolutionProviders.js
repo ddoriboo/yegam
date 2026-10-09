@@ -7,13 +7,13 @@ const { resolveOfficial } = require('./officialResolution');
 const DEFINITIONS = Object.freeze([
   Object.freeze({ provider:'upbit',version:1,category:'코인',flag:'AUTO_RESOLVE_UPBIT' }),
   Object.freeze({ provider:'awc_metar',version:2,category:'날씨',flag:'AUTO_RESOLVE_OFFICIAL' }),
-  Object.freeze({ provider:'us_treasury',version:2,category:'경제',flag:'AUTO_RESOLVE_OFFICIAL' })
+  Object.freeze({ provider:'us_treasury',version:2,category:'경제',flag:'AUTO_RESOLVE_TREASURY',requires:'AUTO_RESOLVE_OFFICIAL' })
 ]);
 function definition(rule){const d=DEFINITIONS.find(d=>d.provider===rule?.provider&&d.version===rule?.version);if(!d)throw Object.assign(new TypeError('Unsupported official provider'),{code:'UNSUPPORTED_PROVIDER'});return d;}
 function validateRule(rule,issue){definition(rule);return rule.provider==='upbit'?legacy.validateResolutionRule(rule,issue):official.validateOfficialRule(rule,issue);}
 function ruleKey(rule){const r=validateRule(rule);return r.provider==='upbit'?require('../database/settlement-schema').resolutionKey(r):official.officialRuleKey(r);}
 function resolveRule(rule,options){const r=validateRule(rule);return r.provider==='upbit'?resolveUpbit(r,options):resolveOfficial(r,options);}
-function providerEnabled(rule,{upbit=process.env.AUTO_RESOLVE_UPBIT==='true',official:enabled=process.env.AUTO_RESOLVE_OFFICIAL==='true'}={}){definition(rule);return rule.provider==='upbit'?Boolean(upbit):Boolean(enabled);}
+function providerEnabled(rule,{upbit=process.env.AUTO_RESOLVE_UPBIT==='true',official:enabled=process.env.AUTO_RESOLVE_OFFICIAL==='true',treasury=process.env.AUTO_RESOLVE_TREASURY==='true'}={}){definition(rule);return rule.provider==='upbit'?Boolean(upbit):rule.provider==='us_treasury'?Boolean(enabled&&treasury):Boolean(enabled);}
 function providerStatus(flags){return DEFINITIONS.map(d=>({...d,enabled:providerEnabled(d,flags)}));}
 function officialDescription(rule,issue){
  const r=official.validateOfficialRule(rule,issue);

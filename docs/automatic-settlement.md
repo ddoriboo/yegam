@@ -83,7 +83,7 @@ Railway에 서로 다른 안전한 32자 이상 값을 설정해야 한다. 실�
 
 ## 비코인 v2와 순환 게시
 
-`AUTO_RESOLVE_OFFICIAL=true`를 별도로 설정해야 비코인 게시·규칙 변경·정산을 활성화한다. 기본값은 비활성화이며 `AUTO_RESOLVE_UPBIT`와 독립적이다. `/settlements/status`의 `enabled`는 기존 Upbit 필드이고, `officialEnabled`와 `providers`가 새 제공자 상태를 알린다.
+`AUTO_RESOLVE_OFFICIAL=true`를 별도로 설정해야 날씨의 게시·규칙 변경·정산을 활성화한다. 경제는 여기에 `AUTO_RESOLVE_TREASURY=true`도 필요하다. 두 공식 출처를 운영 서버에서 각각 읽기 전용 smoke 검사한 뒤 개별 활성화한다. 기본값은 비활성화이며 `AUTO_RESOLVE_UPBIT`와 독립적이다. `/settlements/status`의 `enabled`는 기존 Upbit 필드이고, `officialEnabled`와 `providers`가 새 제공자 상태를 알린다.
 
 - 날씨: RKSI의 선언된 UTC 정시 `obsTime`과 정확히 일치하는 단일 METAR의 `temp`(°C)를 정수 임계값과 비교한다. 관측 6시간 전까지 베팅을 닫도록 서버가 강제한다. 인접 시각·현재값·서울 도심 기온으로 대체하지 않는다.
 - 경제: 평일의 정확한 `NEW_DATE` 행의 `BC_10YEAR`를 1bp=0.01%p로 변환한다. 문자열·BigInt로 변환하여 반올림하지 않는다. 베팅은 그 날짜의 뉴욕 자정 이전에 끝내고, 판정 관측은 그 날짜가 끝난 뒤에 시작한다. 최초 발표 빈티지가 아니라 선언된 관측 이후 원자적 트랜잭션에서 처음 성공적으로 기록·정산한 값을 고정한다. 롤백된 값은 확정되지 않으며 재시도 때 공식 정정을 사용할 수 있다. 확정 후 소급 정정하지 않는다.
