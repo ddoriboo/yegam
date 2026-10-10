@@ -1,0 +1,41 @@
+/* Discovery and choices use existing data only; no synthetic activity or probability. */
+.discovery-intro { margin: 0 0 22px; }
+.discovery-intro h1 { margin: 0 0 6px; color: #111827; font-size: clamp(22px, 3vw, 30px); font-weight: 750; letter-spacing: -.035em; }
+.discovery-intro p { color: #64748b; font-size: 14px; line-height: 1.65; }
+.market-card { display: flex; flex-direction: column; gap: 14px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 16px; background: #fff; transition: border-color .18s, box-shadow .18s; }
+.market-card:hover { border-color: #b6c6df; box-shadow: 0 5px 18px #1e3a5f08; }
+.market-card__top { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 11px; }
+.market-card__topic { color: #475569; font-weight: 650; }
+.market-card__state { color: #64748b; white-space: nowrap; }
+.market-card__state--urgent { color: #b45309; background: #fff7ed; padding: 3px 6px; border-radius: 5px; }
+.market-card__heading { display: flex; align-items: flex-start; gap: 12px; }
+.market-card__heading h3 { flex: 1; color: #0f172a; font-size: 16px; font-weight: 700; line-height: 1.5; letter-spacing: -.02em; }
+.market-card__heading a { color: inherit; text-decoration: none; }
+.market-card__heading a:focus-visible, .market-card__footer a:focus-visible, .deadline-card:focus-visible, .market-choice:focus-visible { outline: 2px solid #2563eb; outline-offset: 4px; border-radius: 5px; }
+.market-card__badge, .market-card__image { width: 48px; height: 48px; flex-shrink: 0; border-radius: 12px; }
+.market-card__badge { display: flex; align-items: center; justify-content: center; color: #475569; background: #f1f5f9; font-size: 12px; font-weight: 750; }
+.market-card--crypto .market-card__badge { background: #eef2ff; color: #4338ca; }
+.market-card--weather .market-card__badge { background: #e0f2fe; color: #0369a1; }
+.market-card__image { object-fit: cover; }
+.market-card__context { color: #64748b; font-size: 12px; line-height: 1.6; margin: 0; }
+.market-card__times { display: flex; flex-direction: column; gap: 5px; font-size: 12px; padding: 11px 12px; border-radius: 9px; background: #f8fafc; }
+.market-card__times div { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.market-card__times dt { color: #64748b; }
+.market-card__times dd { color: #334155; font-variant-numeric: tabular-nums; font-weight: 600; }
+.market-card__choices { display: flex; gap: 9px; margin-top: auto; }
+.market-choice { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 11px 12px; border: 1px solid transparent; border-radius: 10px; text-align: left; cursor: pointer; transition: background .15s; }
+.market-choice strong { font-size: 13px; }
+.market-choice span { font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
+.market-choice--yes { color: #047857; background: #ecfdf5; border-color: #d1fae5; }
+.market-choice--yes:hover { background: #d1fae5; }
+.market-choice--no { color: #be123c; background: #fff1f2; border-color: #ffe4e6; }
+.market-choice--no:hover { background: #ffe4e6; }
+.market-card__unavailable { width: 100%; padding: 14px; color: #64748b; text-align: center; background: #f1f5f9; border-radius: 10px; font-size: 12px; }
+.market-card__footer { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; color: #64748b; font-size: 10px; line-height: 1.6; }
+.market-card__footer a { flex-shrink: 0; color: #475569; text-decoration: none; font-weight: 650; }
+.deadline-card { display: flex; flex-direction: column; gap: 6px; padding: 13px 15px; background: #fff; border: 1px solid #e2e8f0; border-radius: 11px; transition: border-color .15s; }
+.deadline-card:hover { border-color: #93c5fd; }
+.deadline-card__title { color: #0f172a; font-size: 13px; font-weight: 650; line-height: 1.5; }
+.deadline-card__meta { display: flex; flex-wrap: wrap; gap: 8px; color: #64748b; font-size: 11px; }
+.deadline-card__meta strong { color: #b45309; font-weight: 600; }
+@media (max-width: 640px) { .market-card { padding: 16px; gap: 12px; } .market-card__heading h3 { font-size: 15px; } .market-card__state { font-size: 10px; } .market-choice { padding: 10px; } }

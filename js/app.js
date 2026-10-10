@@ -898,8 +898,9 @@ function sortIssues(issues, sortType) {
                 (b.total_volume || b.totalVolume || 0) - (a.total_volume || a.totalVolume || 0)
             );
         case 'ending':
-            return sortedIssues.sort((a, b) => 
-                new Date(a.end_date || a.endDate) - new Date(b.end_date || b.endDate)
+            return sortedIssues.sort((a, b) => window.MarketCard
+                ? window.MarketCard.compareClosing(a, b)
+                : new Date(a.betting_end_date || a.end_date || a.endDate) - new Date(b.betting_end_date || b.end_date || b.endDate)
             );
         case 'volume':
             return sortedIssues.sort((a, b) => 
@@ -1021,8 +1022,11 @@ function performHeaderSearch(query) {
     const topResults = filteredIssues.slice(0, 5);
     
     const resultsHTML = topResults.map(issue => {
-        const yesPrice = issue.yesPercentage || issue.yes_price || 50;
-        const timeLeft = getTimeLeft(issue.end_date || issue.endDate);
+        const cardView = window.MarketCard?.model(issue, window.IssueSummary?.buildIssueSummary(issue));
+        const bettingAt = issue.betting_end_date || issue.end_date || issue.endDate;
+        const timeLeft = cardView?.state || getTimeLeft(bettingAt);
+        const volume = Number(issue.total_volume || issue.totalVolume || 0);
+        const activity = cardView?.participation || (volume > 0 ? formatVolume(volume) + ' GAM' : '참여 전 · 초기값은 실제 확률이 아닙니다');
         
         return `
             <div class="search-result-item p-3 border-b border-gray-100 last:border-b-0 hover:bg-gray-50 cursor-pointer transition-colors" 
@@ -1036,16 +1040,15 @@ function performHeaderSearch(query) {
                             <div class="text-xs text-gray-500 flex items-center">
                                 <i data-lucide="clock" class="w-3 h-3 mr-1 flex-shrink-0"></i>
                                 <div class="flex flex-col leading-tight">
-                                    <span class="font-medium">${getTimeLeft(issue.end_date || issue.endDate)}</span>
-                                    <span class="text-gray-400 text-[9px]">${formatEndDate(issue.end_date || issue.endDate)}</span>
+                                    <span class="font-medium">${timeLeft}</span>
+                                    <span class="text-gray-400 text-xs">참여 마감 ${cardView?.bettingAt || formatEndDate(bettingAt)}</span>
                                 </div>
                             </div>
                         </div>
                         <h4 class="text-sm font-medium text-gray-900 truncate">${issue.title}</h4>
                     </div>
                     <div class="text-right flex-shrink-0">
-                        <div class="text-sm font-bold text-green-600">Yes ${yesPrice}%</div>
-                        <div class="text-xs text-gray-500">${formatVolume(issue.total_volume || issue.totalVolume || 0)} GAM</div>
+                        <div class="text-xs text-gray-500 max-w-40">${activity}</div>
                     </div>
                 </div>
             </div>
@@ -1974,8 +1977,11 @@ async function loadAllBettingOdds() {
     await Promise.allSettled(promises);
 }
 
-// Polymarket-style issue card
+// Display-only cards: stored descriptions, rules and financial actions are unchanged.
 function createIssueCard(issue) {
+    if (window.MarketCard) {
+        return window.MarketCard.renderCard(issue, window.IssueSummary?.buildIssueSummary(issue));
+    }
     const yesPrice = issue.yesPercentage || issue.yes_price || 50;
     const noPrice = 100 - yesPrice;
     const volume = issue.total_volume || issue.totalVolume || 0;
