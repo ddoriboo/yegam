@@ -107,3 +107,9 @@ test('homepage presents selectable question cards before secondary analysis and 
     const home = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
     assert.ok(home.indexOf('id="all-issues-section"') < home.indexOf('id="featured-section"'));
 });
+
+test('dedicated list default sort matches ending state and names the creation-time filter', () => {
+    const html = fs.readFileSync(path.join(__dirname, '..', 'issues.html'), 'utf8');
+    assert.match(html, /<option value="ending" selected>마감 임박순<\/option>/);
+    assert.match(html, /최근 게시된 기간/);
+});
