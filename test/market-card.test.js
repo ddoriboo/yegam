@@ -84,6 +84,7 @@ test('both listing entrypoints load summary/card helpers before app and use scop
         assert.ok(html.indexOf('js/ui/issue-summary.js') < html.indexOf('js/ui/market-card.js'));
         assert.ok(html.indexOf('js/ui/market-card.js') < html.indexOf('src="js/app.js'));
         assert.match(html, /css\/market-cards\.css/);
+        assert.match(html, /한국시간\(KST\)/);
     }
     const home = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
     assert.match(home, /id="search-input" type="search"/); assert.match(home, /selectEndingSoon\(data\.issues\.filter/);
