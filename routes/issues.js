@@ -297,6 +297,7 @@ router.get('/:id', async (req, res) => {
                 title: issueResult.title,
                 category: issueResult.category,
                 description: issueResult.description,
+                resolution_params: issueResult.resolution_params || null,
                 image_url: issueResult.image_url,
                 end_date: issueResult.end_date ? new Date(issueResult.end_date).toISOString() : null,
                 betting_end_date: bettingEndDate ? new Date(bettingEndDate).toISOString() : null,
