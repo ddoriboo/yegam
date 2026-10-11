@@ -1,5 +1,7 @@
 const express = require('express');
 const router = express.Router();
+// Panel balances must not receive legacy attendance/achievement refills.
+router.param('userId', require('../middleware/official-panel-guard').rejectPanelRewardTarget());
 const gamService = require('../services/gamService');
 const { authMiddleware } = require('../middleware/auth');
 

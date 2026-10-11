@@ -63,6 +63,9 @@ const createTables = async () => {
             )
         `);
         
+        // Panel marker must exist before legacy balance migration.
+        await client.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_panel_role TEXT');
+
         // 이슈 테이블 (TIMESTAMPTZ 사용으로 타임존 정보 보존)
         await client.query(`
             CREATE TABLE IF NOT EXISTS issues (
@@ -104,7 +107,7 @@ const createTables = async () => {
         try {
             await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS gam_balance INTEGER DEFAULT 10000`);
             // 기존 사용자들의 gam_balance를 coins 값으로 초기화
-            await client.query(`UPDATE users SET gam_balance = coins WHERE gam_balance IS NULL`);
+            await client.query(`UPDATE users SET gam_balance = coins WHERE gam_balance IS NULL AND ai_panel_role IS NULL`);
             console.log('✅ 사용자 테이블 gam_balance 컬럼 추가 완료');
         } catch (error) {
             console.log('사용자 테이블 gam_balance 컬럼 추가 스킵 (이미 존재함)');
@@ -160,21 +163,21 @@ const createTables = async () => {
             await client.query(`
                 UPDATE users 
                 SET gam_balance = COALESCE(coins, 10000) 
-                WHERE gam_balance IS NULL OR gam_balance = 0
+                WHERE (gam_balance IS NULL OR gam_balance = 0) AND ai_panel_role IS NULL
             `);
             
             // 2. 앞으로는 gam_balance를 기본값으로 설정
             await client.query(`
                 UPDATE users 
                 SET gam_balance = COALESCE(gam_balance, 10000) 
-                WHERE gam_balance IS NULL
+                WHERE gam_balance IS NULL AND ai_panel_role IS NULL
             `);
             
             // 3. coins 컬럼을 gam_balance와 동기화 (하위 호환성)
             await client.query(`
                 UPDATE users 
                 SET coins = gam_balance 
-                WHERE coins != gam_balance OR coins IS NULL
+                WHERE (coins != gam_balance OR coins IS NULL) AND ai_panel_role IS NULL
             `);
             
             console.log('✅ GAM 시스템 완전 통일 마이그레이션 완료');

@@ -15,6 +15,8 @@ const {
 } = require('../middleware/end-date-security');
 const EndDateTracker = require('../utils/end-date-tracker');
 
+const { loadBreakdowns, emptyBreakdown } = require('../services/bettingBreakdown');
+
 const router = express.Router();
 
 // 모든 이슈 조회
@@ -60,11 +62,13 @@ router.get('/', async (req, res) => {
             ORDER BY i.created_at DESC
         `, params);
         const issues = result.rows;
+        const breakdowns = await loadBreakdowns(query, issues.map(issue => issue.id));
         
         res.json({
             success: true,
             issues: issues.map(issue => ({
                 ...issue,
+                ...(breakdowns.get(Number(issue.id)) || emptyBreakdown()),
                 isPopular: Boolean(issue.is_popular),
                 commentCount: parseInt(issue.comment_count) || 0,
                 participantCount: parseInt(issue.participant_count) || 0,
@@ -120,6 +124,7 @@ router.get('/:id/betting-stats', async (req, res) => {
             totalParticipants += parseInt(row.bet_count) || 0;
         });
         
+        const groups = (await loadBreakdowns(query, [issueId])).get(Number(issueId)) || emptyBreakdown();
         const totalAmount = yesAmount + noAmount;
         const houseEdge = 0.02; // 수수료 2%로 통일
         const effectivePool = totalAmount * (1 - houseEdge);
@@ -164,6 +169,7 @@ router.get('/:id/betting-stats', async (req, res) => {
         res.json({
             success: true,
             stats: {
+                ...groups,
                 issueId: parseInt(issueId),
                 issueTitle: issue.title,
                 issueStatus: issue.status,
@@ -227,6 +233,8 @@ router.get('/:id', async (req, res) => {
             });
         }
         
+        const groups = (await loadBreakdowns(query, [issueId])).get(Number(issueId)) || emptyBreakdown();
+
         // YES/NO 비율 계산
         const totalAmount = parseInt(issueResult.yes_amount) + parseInt(issueResult.no_amount);
         const yesRatio = totalAmount > 0 ? Math.round((parseInt(issueResult.yes_amount) / totalAmount) * 100) : 50;
@@ -293,6 +301,7 @@ router.get('/:id', async (req, res) => {
         res.json({
             success: true,
             issue: {
+                ...groups,
                 id: issueResult.id,
                 title: issueResult.title,
                 category: issueResult.category,

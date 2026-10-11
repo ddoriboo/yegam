@@ -25,6 +25,8 @@ function dbInteger(value, label) {
 }
 
 async function placeBet({ issueId, userId, choice, amount }, dependencies = {}) {
+    // Opaque wrapper-issued capability, never a request-body flag.
+    const panel = require('./officialPanelBet').getInternalContext(dependencies.panelContext);
     // Injecting a client factory avoids loading DB configuration in unit tests.
     const getClient = dependencies.getClient || require('../database/postgres').getClient;
     const client = await getClient();
@@ -35,13 +37,13 @@ async function placeBet({ issueId, userId, choice, amount }, dependencies = {}) 
 
         // Match settlement's lock order. Never lock/debit a user before the issue.
         const issueResult = await client.query(
-            'SELECT id, title, status, result, end_date, betting_end_date, yes_volume, no_volume, total_volume, yes_price FROM issues WHERE id = $1 FOR UPDATE',
+            'SELECT id, title, status, result, end_date, betting_end_date, yes_volume, no_volume, total_volume, yes_price' + (panel ? ', resolution_params, resolution_key, category, description' : '') + ' FROM issues WHERE id = $1 FOR UPDATE',
             [issueId]
         );
         const issue = issueResult.rows[0];
         if (!issue) reject('ISSUE_NOT_FOUND', 404, '존재하지 않는 이슈입니다.');
-        if (issue.status !== 'active') reject('ISSUE_NOT_ACTIVE', 404, '존재하지 않는 이슈입니다.');
-        if (issue.result != null) reject('BETTING_CLOSED', 400, '베팅이 마감되었습니다.');
+        if (!panel && issue.status !== 'active') reject('ISSUE_NOT_ACTIVE', 404, '존재하지 않는 이슈입니다.');
+        if (!panel && issue.result != null) reject('BETTING_CLOSED', 400, '베팅이 마감되었습니다.');
 
         // Read the DB wall clock after acquiring the lock, not transaction-start NOW().
         // SQL comparison avoids losing timestamp precision through JS Date conversion.
@@ -52,11 +54,23 @@ async function placeBet({ issueId, userId, choice, amount }, dependencies = {}) 
             );
             if (cutoff.rows[0]?.betting_open !== true) reject('BETTING_CLOSED', 400, '베팅이 마감되었습니다.');
         };
-        await checkCutoff();
+        if (!panel) await checkCutoff();
 
-        const userResult = await client.query('SELECT gam_balance FROM users WHERE id = $1 FOR UPDATE', [userId]);
+        const userResult = panel
+            ? await client.query('SELECT gam_balance, id, ai_panel_role FROM users WHERE ai_panel_role = $1 FOR UPDATE', [panel.personaKey])
+            : await client.query('SELECT gam_balance, ai_panel_role FROM users WHERE id = $1 FOR UPDATE', [userId]);
         const user = userResult.rows[0];
         if (!user) reject('USER_NOT_FOUND', 404, '사용자를 찾을 수 없습니다.');
+        if (!panel && user.ai_panel_role != null) reject('PANEL_PATH_REQUIRED', 403, '공식 AI 패널은 전용 베팅 경로만 사용할 수 있습니다.');
+        if (panel) {
+            userId = user.id;
+            const retry = await panel.beforeBet({client, issue, user});
+            if (retry) {
+                await client.query('COMMIT');
+                transactionStarted = false;
+                return {bet:retry, issue, balance:user.gam_balance, previousBalance:user.gam_balance, alreadyPlaced:true};
+            }
+        }
         // A cross-issue bet may have waited on this user lock past the deadline.
         await checkCutoff();
         if (!Number.isInteger(amount) || amount <= 0 || amount > MAX_DB_INT) {
@@ -101,6 +115,7 @@ async function placeBet({ issueId, userId, choice, amount }, dependencies = {}) 
             'INSERT INTO gam_transactions (user_id, type, category, amount, description, reference_id) VALUES ($1, $2, $3, $4, $5, $6)',
             [userId, 'burn', 'bet', amount, '베팅: ' + issue.title, 'bet:' + bet.id]
         );
+        if (panel) await panel.writeAudit({client, bet, userId, issueId});
         await client.query('COMMIT');
         transactionStarted = false;
         return { bet, issue, previousBalance, balance: updatedUser.rows[0].gam_balance, yesPrice, totalVolume };

@@ -16,6 +16,8 @@ const envConfig = EnvironmentValidator.validate();
 
 const authRoutes = require('./routes/auth');
 const issueRoutes = require('./routes/issues');
+const { createAdminPanelRouter, createPublicPanelRouter } = require('./routes/official-panel');
+const { ensureOfficialPanelSchema } = require('./database/official-panel-schema');
 const issueRequestRoutes = require('./routes/issue-requests');
 const betRoutes = require('./routes/bets');
 const commentRoutes = require('./routes/comments');
@@ -169,6 +171,8 @@ app.use(['/api/test-notifications','/api/debug/gam','/api/test-openai'], adminBo
 
 app.use('/api/auth', authRoutes);
 app.use('/api/issues', issueRoutes);
+app.use('/api/ai-panel', createPublicPanelRouter());
+app.use('/api/admin/ai-panel', createAdminPanelRouter());
 app.use('/api/issue-requests', issueRequestRoutes);
 app.use('/api/bets', betRoutes);
 app.use('/api/comments', commentRoutes);
@@ -316,6 +320,13 @@ const startServer = async () => {
         console.log('Atomic settlement schema ready');
     } catch (error) {
         console.error('Automatic settlement disabled: schema initialization failed', error.code || 'SCHEMA_NOT_READY');
+    }
+
+    try {
+        await ensureOfficialPanelSchema();
+        console.log('Official AI panel schema ready (no automatic account funding)');
+    } catch (error) {
+        console.error('Official AI panel schema unavailable', error.code || 'SCHEMA_NOT_READY');
     }
 
     app.listen(PORT, '0.0.0.0', () => {

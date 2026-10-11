@@ -4,6 +4,8 @@ const { getClient } = require('../database/postgres');
 const { authMiddleware } = require('../middleware/auth');
 const { validateBetRequest } = require('../middleware/validation');
 
+const { loadBreakdowns, emptyBreakdown } = require('../services/bettingBreakdown');
+
 const router = express.Router();
 
 // 베팅하기
@@ -105,9 +107,11 @@ router.get('/issue/:issueId/stats', async (req, res) => {
         
         const result = await query(sql, [issueId]);
         const stats = result.rows;
+        const groups = (await loadBreakdowns(query, [issueId])).get(Number(issueId)) || emptyBreakdown();
         
         res.json({
             success: true,
+            ...groups,
             stats: stats.reduce((acc, stat) => {
                 acc[stat.choice.toLowerCase()] = {
                     betCount: parseInt(stat.bet_count),
@@ -115,7 +119,7 @@ router.get('/issue/:issueId/stats', async (req, res) => {
                     avgAmount: Math.round(parseFloat(stat.avg_amount))
                 };
                 return acc;
-            }, {})
+            }, { ...groups })
         });
     } catch (error) {
         console.error('베팅 통계 조회 오류:', error);

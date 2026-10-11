@@ -46,6 +46,14 @@
         const number = Number(value);
         return Number.isFinite(number) && number >= 0 ? number : 0;
     }
+    function groupParticipation(issue) {
+        const human = issue.humanStats ?? issue.human_stats;
+        const panel = issue.aiPanelStats ?? issue.ai_panel_stats;
+        const external = issue.externalAgentStats ?? issue.external_agent_stats;
+        if (!human || !panel || !external) return null;
+        const line = (label, unit, stats) => label + ' ' + count(stats.participantCount ?? stats.participant_count).toLocaleString('ko-KR') + unit + ' ' + count(stats.totalVolume ?? stats.total_volume).toLocaleString('ko-KR') + ' GAM';
+        return {lines: [line('사람', '명', human), line('AI패널', '개', panel), line('외부 봇', '개', external)], noHuman: count(human.participantCount ?? human.participant_count) === 0};
+    }
     function model(issue, summary = null, now = Date.now()) {
         const id = Number(issue.id);
         const validId = Number.isSafeInteger(id) && id > 0;
@@ -58,7 +66,7 @@
         const symbol = summary?.source?.match(/KRW-([A-Z0-9]+)/)?.[1];
         const weather = summary?.source?.startsWith('인천공항');
         const title = weather ? '인천공항, ' + kst(issue.end_date ?? issue.endDate) + ' 기온이 ' + summary.target + ' 넘을까?' : String(issue.title || '제목 확인 필요');
-        return { id, validId, category, symbol, weather, title, summary, open, ended, closingAt: stamp,
+        return { id, validId, category, symbol, weather, title, summary, open, ended, groups: groupParticipation(issue), closingAt: stamp,
             timeLeft: remaining(stamp, now), urgent: open && stamp - now < 3 * 3600000,
             bettingAt: kst(issue.betting_end_date ?? issue.bettingEndDate ?? issue.end_date ?? issue.endDate),
             observationAt: kst(issue.end_date ?? issue.endDate),
@@ -83,7 +91,9 @@
             '<p class="market-card__context">' + escape(card.summary ? (card.weather ? '정해진 시각의 공식 관측 기온으로 판정' : '정해진 시각 직전 1분봉 종가로 판정') + ' · 동률은 NO' : '판정 조건과 공식 출처는 상세에서 확인하세요.') + '</p>' +
             '<dl class="market-card__times"><div><dt>참여 마감</dt><dd>' + escape(card.bettingAt) + '</dd></div><div><dt>결과 확인 시작</dt><dd>' + escape(card.observationAt) + '</dd></div></dl>' +
             '<div class="market-card__choices">' + (card.open ? choice(card, 'Yes') + choice(card, 'No') : '<span class="market-card__unavailable">' + escape(card.state) + '</span>') + '</div>' +
-            '<div class="market-card__footer"><span>' + escape(card.participation) + '</span><a href="' + url + '" aria-label="' + escape(card.title + ' 자세히 보기') + '">자세히 보기</a></div></article>';
+            '<div class="market-card__participants">' + (card.groups ? card.groups.lines.map(line => '<span>' + escape(line) + '</span>').join('') : '<span>' + escape(card.participation) + ' · 참여 유형 미분류</span>') + '</div>' +
+            '<p class="market-card__pool-notice">전체 풀·배당은 AI·외부 봇 포함, 검증된 확률이나 사람들의 합의가 아닙니다.' + (card.groups?.noHuman ? ' 사람 참여 0명: 사람 여론 없음.' : '') + '</p>' +
+            '<div class="market-card__footer"><a href="ai-panel.html">공식 AI 패널 공개내역</a><a href="' + url + '" aria-label="' + escape(card.title + ' 자세히 보기') + '">자세히 보기</a></div></article>';
     }
     function renderDeadline(issue, summary = null, now = Date.now()) {
         const card = model(issue, summary, now);

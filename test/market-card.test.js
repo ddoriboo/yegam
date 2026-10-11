@@ -114,3 +114,17 @@ test('dedicated list default sort matches ending state and names the creation-ti
     assert.match(html, /<option value="ending" selected>마감 임박순<\/option>/);
     assert.match(html, /최근 게시된 기간/);
 });
+
+test('classified cards separate human, official AI and external bot participation', () => {
+ const html=render(issue({humanStats:{participantCount:2,totalVolume:300},aiPanelStats:{participantCount:10,totalVolume:1000},externalAgentStats:{participantCount:1,totalVolume:100}}));
+ assert.match(html,/사람 2명 300 GAM/);assert.match(html,/AI패널 10개 1,000 GAM/);assert.match(html,/외부 봇 1개 100 GAM/);assert.match(html,/전체 풀·배당은 AI·외부 봇 포함/);assert.match(html,/검증된 확률이나 사람들의 합의가 아닙니다/);
+});
+test('AI-only card shows no fabricated human consensus and handles hostile group numbers',()=>{
+ const html=render(issue({humanStats:{participantCount:0,totalVolume:0},aiPanelStats:{participantCount:'<script>',totalVolume:100},externalAgentStats:{participantCount:0,totalVolume:0}}));
+ assert.match(html,/사람 참여 0명: 사람 여론 없음/);assert.match(html,/AI패널 0개 100 GAM/);assert.doesNotMatch(html,/<script>/);
+});
+test('legacy cards label total participation as unclassified rather than verified humans',()=>{const html=render(issue({participant_count:3,total_volume:1000}));assert.match(html,/3명 참여 · 1,000 GAM · 참여 유형 미분류/);assert.doesNotMatch(html,/사람 3명/);});
+test('snake_case additive group payload works without HTML injection',()=>{const html=render(issue({human_stats:{participant_count:1,total_volume:100},ai_panel_stats:{participant_count:0,total_volume:0},external_agent_stats:{participant_count:0,total_volume:0}}));assert.match(html,/사람 1명 100 GAM/);});
+test('public dashboard is read-only and safe for arbitrary rationale and URL text',()=>{
+ const html=fs.readFileSync(path.join(__dirname,'..','ai-panel.html'),'utf8');assert.match(html,/fetch\('\/api\/ai-panel',\{credentials:'omit'\}\)/);assert.match(html,/textContent=String/);assert.match(html,/\['http:','https:'\]/);assert.doesNotMatch(html,/innerHTML|placeBet|localStorage|api_key|authorization/i);assert.match(html,/실제 베팅 0건/);assert.match(html,/자동 보충 없음/);
+});
